@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "841314423983",
+    "project_id": "appenitaxiusuarios",
+    "storage_bucket": "appenitaxiusuarios.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841314423983:android:065a3272ef6a61bd73705a",
+        "android_client_info": {
+          "package_name": "com.example.app_eni_taxi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW9hcUNGcig9gaRzqY10RA7xj_Wv7lfKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841314423983:android:ed0bf1715196d9ce73705a",
+        "android_client_info": {
+          "package_name": "com.example.pantalla_de_inicio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW9hcUNGcig9gaRzqY10RA7xj_Wv7lfKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:841314423983:android:cdc8f25b70c9991073705a",
+        "android_client_info": {
+          "package_name": "com.milipol.controlroom"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW9hcUNGcig9gaRzqY10RA7xj_Wv7lfKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      },
+      "database_url": "https://appenitaxiusuarios-default-rtdb.firebaseio.com/"
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the --base-href argument provided to flutter build.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="control_room">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>control_room</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-messaging.js"></script>
+  
+  <script>
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g",
+      authDomain: "appenitaxiusuarios.firebaseapp.com",
+      databaseURL: "https://appenitaxiusuarios-default-rtdb.firebaseio.com",
+      projectId: "appenitaxiusuarios",
+      storageBucket: "appenitaxiusuarios.appspot.com",
+      messagingSenderId: "841314423983",
+      appId: "1:841314423983:web:67f4c5d20bd10e4373705a",
+      measurementId: "G-Z5C7K924QE"
+};
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firebase Cloud Messaging
+    const messaging = firebase.messaging();
+
+    // Request permission to receive notifications
+    messaging.requestPermission().then(() => {
+      console.log("Notification permission granted.");
+      return messaging.getToken();
+    }).then((token) => {
+      console.log("FCM Token:", token);
+      // You can send this token to your server and store it to send notifications later
+    }).catch((err) => {
+      console.error("Unable to get permission to notify.", err);
+    });
+
+    // Handle incoming messages
+    messaging.onMessage((payload) => {
+      console.log("Message received. ", payload);
+      // Customize notification handling here
+      const notificationTitle = payload.notification.title;
+      const notificationOptions = {
+        body: payload.notification.body,
+        icon: 'icons/Icon-192.png'
+      };
+      new Notification(notificationTitle, notificationOptions);
+    });
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
