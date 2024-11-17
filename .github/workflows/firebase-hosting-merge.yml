@@ -18,7 +18,8 @@ jobs:
       - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.8' # Versión exacta de Flutter
+          flutter-version: '3.24.3' # Versión exacta de Flutter
+          channel: stable
           architecture: x64
 
       # Verifica la instalación de Flutter
