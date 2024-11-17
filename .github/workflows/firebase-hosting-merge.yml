@@ -10,8 +10,24 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code
       - uses: actions/checkout@v4
-      - run: npm ci && npm run build
+      
+      # Step 2: Set up Flutter
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.5' # Replace with your Flutter version
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 4: Build the Flutter Web app
+      - name: Build Flutter Web
+        run: flutter build web --release
+
+      # Step 5: Deploy to Firebase Hosting
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
