@@ -160,7 +160,47 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ),
               const SizedBox(height: 8),
               Text(
+                'Pickup: ${trip['pickup']?['placeName'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Destino: ${trip['destination']?['placeName'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
                 'Fecha de emergencia: ${_formatDateTime(trip['emergency_at'])}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Equipaje: ${trip['luggage'] ?? 0}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Pasajeros: ${trip['passengers'] ?? 0}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Mascotas: ${trip['pets'] ?? 0}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -203,8 +243,12 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Emergencias en Viajes'),
+        title: const Text(
+          'Emergencias en Viajes',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.red[300],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
