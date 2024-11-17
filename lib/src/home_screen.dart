@@ -4,7 +4,8 @@ import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
 import 'driver_availability.dart';
 import 'driver_management_screen.dart';
-import 'login_screen.dart'; // Importa el archivo de LoginScreen
+import 'login_screen.dart';
+import 'emergency_during_trip_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final String usuario;
@@ -70,8 +71,10 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                TripRequestScreen(usuario: usuario, isSupervisor: isSupervisor, region: region),
+                            builder: (context) => TripRequestScreen(
+                                usuario: usuario,
+                                isSupervisor: isSupervisor,
+                                region: region),
                           ),
                         );
                       },
@@ -103,10 +106,9 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => OngoingTripScreen(
-                                usuario: usuario, 
-                                region: region,
-                              )
-                          ),
+                                    usuario: usuario,
+                                    region: region,
+                                  )),
                         );
                       },
                       child: const Column(
@@ -143,10 +145,9 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => FinishedTripScreen(
-                                usuario: usuario,
-                                region: region,
-                              )
-                          ),
+                                    usuario: usuario,
+                                    region: region,
+                                  )),
                         );
                       },
                       child: const Column(
@@ -177,16 +178,15 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => DriverAvailability(
-                                usuario: usuario,
-                                region: region,
-                              )
-                          ),
+                                    usuario: usuario,
+                                    region: region,
+                                  )),
                         );
                       },
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon((Icons.local_taxi), size: 50, color: Colors.white),
+                          Icon(Icons.local_taxi, size: 50, color: Colors.white),
                           SizedBox(height: 10),
                           Text(
                             'Conductores Disponibles',
@@ -201,45 +201,102 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            if (isSupervisor) // Mostrar solo si es supervisor
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(150, 190, 65, 1), // Verde Lima
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                DriverManagementScreen(
-                                  usuario: usuario,
-                                  region: region,
-                                )
-                            ),
-                          );
-                        },
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.settings, size: 50, color: Colors.white),
-                            SizedBox(height: 10),
-                            Text(
-                              'Gestión de Conductores y Vehículos',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[300], // Color rojo tenue
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EmergencyDuringTripScreen(region: region),
+                          ),
+                        );
+                      },
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.warning, size: 50, color: Colors.white),
+                          SizedBox(height: 10),
+                          Text(
+                            'Emergencias',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      onPressed: () {
+                        // Lógica pendiente
+                      },
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.cancel, size: 50, color: Colors.white),
+                          SizedBox(height: 10),
+                          Text(
+                            'Viajes Cancelados',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSupervisor)
+              const SizedBox(height: 16),
+            if (isSupervisor)
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color.fromRGBO(150, 190, 65, 1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DriverManagementScreen(
+                          usuario: usuario,
+                          region: region,
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.settings, size: 50, color: Colors.white),
+                      SizedBox(height: 10),
+                      Text(
+                        'Gestión de Conductores y Vehículos',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
