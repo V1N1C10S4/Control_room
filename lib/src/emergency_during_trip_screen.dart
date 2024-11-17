@@ -16,7 +16,8 @@ class EmergencyDuringTripScreen extends StatefulWidget {
 class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   final Logger _logger = Logger();
-  List<Map<dynamic, dynamic>> _emergencyTrips = [];
+  List<Map<dynamic, dynamic>> _inProgressEmergencies = [];
+  List<Map<dynamic, dynamic>> _resolvedEmergencies = [];
 
   @override
   void initState() {
@@ -28,31 +29,54 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
     _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data != null) {
-        final List<Map<dynamic, dynamic>> emergencyTrips = data.entries
-            .map((entry) {
-              final Map<dynamic, dynamic> trip =
-                  Map<dynamic, dynamic>.from(entry.value as Map);
-              trip['id'] = entry.key;
-              return trip;
-            })
-            .where((trip) =>
-                trip.containsKey('emergency_at') &&
-                trip['emergency_at'] != null &&
-                trip['city']?.toLowerCase() == widget.region.toLowerCase())
-            .toList();
+        final List<Map<dynamic, dynamic>> inProgress = [];
+        final List<Map<dynamic, dynamic>> resolved = [];
+
+        data.entries.map((entry) {
+          final Map<dynamic, dynamic> trip =
+              Map<dynamic, dynamic>.from(entry.value as Map);
+          trip['id'] = entry.key;
+          return trip;
+        }).where((trip) =>
+            trip.containsKey('emergency_at') &&
+            trip['emergency_at'] != null &&
+            trip['city']?.toLowerCase() == widget.region.toLowerCase())
+        .forEach((trip) {
+          if (trip['emergency'] == true) {
+            inProgress.add(trip);
+          } else {
+            resolved.add(trip);
+          }
+        });
+
+        // Ordenar las listas
+        inProgress.sort((a, b) {
+          final createdAtA = DateTime.parse(a['created_at'] ?? DateTime.now().toIso8601String());
+          final createdAtB = DateTime.parse(b['created_at'] ?? DateTime.now().toIso8601String());
+          return createdAtA.compareTo(createdAtB);
+        });
+
+        resolved.sort((a, b) {
+          final createdAtA = DateTime.parse(a['created_at'] ?? DateTime.now().toIso8601String());
+          final createdAtB = DateTime.parse(b['created_at'] ?? DateTime.now().toIso8601String());
+          return createdAtB.compareTo(createdAtA);
+        });
 
         setState(() {
-          _emergencyTrips = emergencyTrips;
+          _inProgressEmergencies = inProgress;
+          _resolvedEmergencies = resolved;
         });
       } else {
         setState(() {
-          _emergencyTrips = [];
+          _inProgressEmergencies = [];
+          _resolvedEmergencies = [];
         });
       }
     }).onError((error) {
       _logger.e('Error fetching emergency trips: $error');
       setState(() {
-        _emergencyTrips = [];
+        _inProgressEmergencies = [];
+        _resolvedEmergencies = [];
       });
     });
   }
@@ -98,6 +122,83 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
     );
   }
 
+  Widget _buildEmergencyCard(Map<dynamic, dynamic> trip, bool isInProgress) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          side: const BorderSide(color: Colors.black, width: 1),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ciudad: ${trip['city'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Conductor: ${trip['driver'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Usuario: ${trip['userName'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Fecha de emergencia: ${_formatDateTime(trip['emergency_at'])}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isInProgress ? Colors.red : Colors.green,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Text(
+                      isInProgress ? 'En progreso' : 'Atendida',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (isInProgress)
+                    IconButton(
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () => _handleEmergencySwitch(trip['id'], true),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,142 +206,42 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         title: const Text('Emergencias en Viajes'),
         backgroundColor: Colors.red[300],
       ),
-      body: _emergencyTrips.isEmpty
-          ? const Center(
+      body: Column(
+        children: [
+          if (_inProgressEmergencies.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.all(8.0),
               child: Text(
-                'No hay emergencias registradas',
-                style: TextStyle(fontSize: 24, color: Colors.grey),
+                'Emergencias en progreso',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-            )
-          : ListView.builder(
-              itemCount: _emergencyTrips.length,
-              itemBuilder: (context, index) {
-                final trip = _emergencyTrips[index];
-                final bool emergencyInProgress = trip['emergency'] == true;
-
-                return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      side: const BorderSide(color: Colors.black, width: 1),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ciudad: ${trip['city'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Conductor: ${trip['driver'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Usuario: ${trip['userName'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Pickup: ${trip['pickup']?['placeName'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Destino: ${trip['destination']?['placeName'] ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Fecha de emergencia: ${_formatDateTime(trip['emergency_at'])}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Equipaje: ${trip['luggage'] ?? 0}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Pasajeros: ${trip['passengers'] ?? 0}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Mascotas: ${trip['pets'] ?? 0}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: emergencyInProgress
-                                      ? Colors.red
-                                      : Colors.green,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                ),
-                                child: Text(
-                                  emergencyInProgress
-                                      ? 'En progreso'
-                                      : 'Atendida',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              if (emergencyInProgress)
-                                IconButton(
-                                  icon: const Icon(Icons.check_circle,
-                                      color: Colors.green),
-                                  onPressed: () => _handleEmergencySwitch(
-                                      trip['id'], emergencyInProgress),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
             ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _inProgressEmergencies.length,
+                itemBuilder: (context, index) =>
+                    _buildEmergencyCard(_inProgressEmergencies[index], true),
+              ),
+            ),
+          ],
+          if (_resolvedEmergencies.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                'Emergencias atendidas',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _resolvedEmergencies.length,
+                itemBuilder: (context, index) =>
+                    _buildEmergencyCard(_resolvedEmergencies[index], false),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
