@@ -7,11 +7,13 @@ import 'home_screen.dart';  // Asegúrate de importar la pantalla de solicitudes
 class SelectDriverScreen extends StatefulWidget {
   final Map<dynamic, dynamic> tripRequest;
   final bool isSupervisor; // Añadir este campo
+  final String region;
 
   const SelectDriverScreen({
     super.key, 
     required this.tripRequest,
     required this.isSupervisor, // Añadir como requerido
+    required this.region,
   });
 
   @override
@@ -105,7 +107,8 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
         context,
         MaterialPageRoute(builder: (context) => HomeScreen(
           usuario: widget.tripRequest['userId'],
-          isSupervisor: widget.isSupervisor, // Pasar el valor de isSupervisor correctamente
+          isSupervisor: widget.isSupervisor,
+          region: widget.region,
         )),
         (Route<dynamic> route) => false,
       );

@@ -5,12 +5,14 @@ import 'select_driver_screen.dart';
 
 class DetailRequestScreen extends StatelessWidget {
   final Map<dynamic, dynamic> tripRequest;
-  final bool isSupervisor; // Añadir este parámetro
+  final bool isSupervisor;
+  final String region;
 
   DetailRequestScreen({
     super.key,
     required this.tripRequest,
-    required this.isSupervisor, // Añadir como requerido
+    required this.isSupervisor,
+    required this.region,
   });
 
   final Logger _logger = Logger();
@@ -27,7 +29,8 @@ class DetailRequestScreen extends StatelessWidget {
           MaterialPageRoute(
             builder: (context) => SelectDriverScreen(
               tripRequest: tripRequest,
-              isSupervisor: isSupervisor, // Pasar el valor de isSupervisor correctamente
+              isSupervisor: isSupervisor,
+              region: region,
             ),
           ),
         );

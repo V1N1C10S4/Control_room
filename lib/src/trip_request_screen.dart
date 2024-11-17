@@ -7,7 +7,8 @@ import 'package:intl/intl.dart';
 class TripRequestScreen extends StatefulWidget {
   final String usuario;
   final bool isSupervisor; // Añadir el parámetro isSupervisor aquí
-  const TripRequestScreen({super.key, required this.usuario, required this.isSupervisor}); // Asegurar que sea requerido
+  final String region;
+  const TripRequestScreen({super.key, required this.usuario, required this.isSupervisor, required this.region}); // Asegurar que sea requerido
 
   @override
   TripRequestScreenState createState() => TripRequestScreenState();
@@ -146,7 +147,8 @@ class TripRequestScreenState extends State<TripRequestScreen> {
                                 MaterialPageRoute(
                                   builder: (context) => DetailRequestScreen(
                                     tripRequest: tripRequest,
-                                    isSupervisor: widget.isSupervisor, // Pasar isSupervisor aquí
+                                    isSupervisor: widget.isSupervisor,
+                                    region: widget.region,
                                   ),
                                 ),
                               );

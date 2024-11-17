@@ -4,44 +4,53 @@ import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
 import 'driver_availability.dart';
 import 'driver_management_screen.dart';
-import 'login_screen.dart'; // Asegúrate de tener la pantalla de login
+import 'login_screen.dart'; // Importa el archivo de LoginScreen
 
 class HomeScreen extends StatelessWidget {
   final String usuario;
-  final bool isSupervisor; // Añadido el parámetro isSupervisor
+  final bool isSupervisor;
+  final String region; // Añadido el parámetro de región
 
-  const HomeScreen({super.key, required this.usuario, required this.isSupervisor}); // Añadido como requerido
+  const HomeScreen({
+    super.key,
+    required this.usuario,
+    required this.isSupervisor,
+    required this.region, // Región como requerido
+  });
 
   // Función para cerrar sesión
   void _cerrarSesion(BuildContext context) {
-    // Navega de vuelta a la pantalla de inicio de sesión
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => MyAppForm()), // Cambia esto si tu pantalla de inicio de sesión tiene otro nombre
+      MaterialPageRoute(builder: (context) => MyAppForm()),
       (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Título dinámico según la región
+    final String appBarTitle =
+        region == 'Tabasco' ? 'Control Room Tabasco' : 'Control Room CDMX';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Control Room',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          appBarTitle,
+          style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color.fromRGBO(149, 189, 64, 1), // Verde militar
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () {
-              _cerrarSesion(context); // Llama a la función para cerrar sesión
+              _cerrarSesion(context);
             },
           ),
         ],
       ),
       body: Container(
-        color: const Color.fromARGB(255, 27, 25, 31),  // Cambiado a negro
+        color: const Color.fromARGB(255, 27, 25, 31), // Fondo negro
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -60,7 +69,10 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => TripRequestScreen(usuario: usuario, isSupervisor: isSupervisor)), // Pasar isSupervisor
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TripRequestScreen(usuario: usuario, isSupervisor: isSupervisor, region: region),
+                          ),
                         );
                       },
                       child: const Column(
@@ -89,7 +101,8 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => OngoingTripScreen(usuario: usuario)),
+                          MaterialPageRoute(
+                              builder: (context) => OngoingTripScreen(usuario: usuario)),
                         );
                       },
                       child: const Column(
@@ -124,7 +137,8 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => FinishedTripScreen(usuario: usuario)),
+                          MaterialPageRoute(
+                              builder: (context) => FinishedTripScreen(usuario: usuario)),
                         );
                       },
                       child: const Column(
@@ -153,7 +167,8 @@ class HomeScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => DriverAvailability(usuario: usuario)),
+                          MaterialPageRoute(
+                              builder: (context) => DriverAvailability(usuario: usuario)),
                         );
                       },
                       child: const Column(
@@ -174,14 +189,14 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            if (isSupervisor)  // Mostrar solo si es supervisor
+            if (isSupervisor) // Mostrar solo si es supervisor
               Expanded(
                 child: Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(150, 190, 65, 1),  // Verde Lima
+                          backgroundColor: const Color.fromRGBO(150, 190, 65, 1), // Verde Lima
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
@@ -189,7 +204,9 @@ class HomeScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => DriverManagementScreen(usuario: usuario)),
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    DriverManagementScreen(usuario: usuario)),
                           );
                         },
                         child: const Column(

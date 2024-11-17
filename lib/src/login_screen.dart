@@ -16,49 +16,26 @@ class _MyAppFormState extends State<MyAppForm> {
 
   Future<void> _verificarCredenciales(BuildContext context, String usuario, String contrasena) async {
     try {
-      // Verificar primero en la colección SupControlRoom
-      final docRefSup = FirebaseFirestore.instance.collection('SupControlRoom').doc(usuario);
-      final snapshotSup = await docRefSup.get();
+      // Lista de colecciones y sus respectivos roles y regiones
+      final List<Map<String, dynamic>> collections = [
+        {'name': 'SupControlRoomTabasco', 'isSupervisor': true, 'region': 'Tabasco'},
+        {'name': 'SupControlRoomCDMX', 'isSupervisor': true, 'region': 'CDMX'},
+        {'name': 'ControlRoomTabasco', 'isSupervisor': false, 'region': 'Tabasco'},
+        {'name': 'ControlRoomCDMX', 'isSupervisor': false, 'region': 'CDMX'},
+      ];
 
-      if (snapshotSup.exists) {
-        // El usuario es supervisor
-        final userData = snapshotSup.data();
-        final storedPassword = userData?['Contraseña'];
-
-        if (storedPassword == contrasena) {
-          Fluttertoast.showToast(
-            msg: 'Credenciales válidas (Supervisor)',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 3,
-            backgroundColor: Colors.green,
-            textColor: Colors.white,
-          );
-
-          if (mounted) {
-            // Navegar a la pantalla principal y pasar el parámetro isSupervisor como true
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HomeScreen(usuario: usuario, isSupervisor: true),
-              ),
-            );
-          }
-        } else {
-          _mostrarErrorCredenciales();
-        }
-      } else {
-        // Verificar en la colección ControlRoom (usuario común)
-        final docRef = FirebaseFirestore.instance.collection('ControlRoom').doc(usuario);
+      for (var collection in collections) {
+        final docRef = FirebaseFirestore.instance.collection(collection['name']).doc(usuario);
         final snapshot = await docRef.get();
 
         if (snapshot.exists) {
+          // Usuario encontrado en la colección actual
           final userData = snapshot.data();
           final storedPassword = userData?['Contraseña'];
 
           if (storedPassword == contrasena) {
             Fluttertoast.showToast(
-              msg: 'Credenciales válidas',
+              msg: 'Credenciales válidas (${collection['region']} - ${collection['isSupervisor'] ? "Supervisor" : "Monitorista"})',
               toastLength: Toast.LENGTH_SHORT,
               gravity: ToastGravity.BOTTOM,
               timeInSecForIosWeb: 3,
@@ -67,29 +44,45 @@ class _MyAppFormState extends State<MyAppForm> {
             );
 
             if (mounted) {
-              // Navegar a la pantalla principal y pasar el parámetro isSupervisor como false
+              // Navegar a la pantalla principal y pasar los parámetros
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HomeScreen(usuario: usuario, isSupervisor: false),
+                  builder: (context) => HomeScreen(
+                    usuario: usuario,
+                    isSupervisor: collection['isSupervisor'],
+                    region: collection['region'],
+                  ),
                 ),
               );
             }
+            return;
           } else {
-            _mostrarErrorCredenciales();
+            // Contraseña incorrecta
+            Fluttertoast.showToast(
+              msg: 'Credenciales inválidas',
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              timeInSecForIosWeb: 3,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+            );
+            return;
           }
-        } else {
-          Fluttertoast.showToast(
-            msg: 'El usuario no existe en la base de datos',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-            timeInSecForIosWeb: 3,
-            backgroundColor: Colors.orange,
-            textColor: Colors.white,
-          );
         }
       }
+
+      // Usuario no encontrado en ninguna colección
+      Fluttertoast.showToast(
+        msg: 'El usuario no existe en la base de datos',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 3,
+        backgroundColor: Colors.orange,
+        textColor: Colors.white,
+      );
     } catch (e) {
+      // Error general al verificar credenciales
       Fluttertoast.showToast(
         msg: 'Error al verificar credenciales: $e',
         toastLength: Toast.LENGTH_SHORT,
@@ -99,17 +92,6 @@ class _MyAppFormState extends State<MyAppForm> {
         textColor: Colors.white,
       );
     }
-  }
-
-  void _mostrarErrorCredenciales() {
-    Fluttertoast.showToast(
-      msg: 'Credenciales inválidas',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 3,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-    );
   }
 
   @override
