@@ -35,7 +35,8 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
         })
         .where((trip) =>
             trip['status'] == 'trip finished' &&
-            trip['city']?.toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
+            trip['city']?.toLowerCase() == widget.region.toLowerCase() &&
+            !trip.containsKey('emergency_at')) // Excluir viajes con 'emergency_at'
         .toList();
 
         // Ordenar los viajes terminados por el campo "finished_at"

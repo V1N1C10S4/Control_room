@@ -37,7 +37,8 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
             (trip['status'] == 'started' ||
             trip['status'] == 'passenger reached' ||
             trip['status'] == 'picked up passenger') &&
-            trip['city']?.toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
+            trip['city']?.toLowerCase() == widget.region.toLowerCase() &&
+            !trip.containsKey('emergency_at')) // Excluir viajes con 'emergency_at'
         .toList();
 
         // Ordenar los viajes según el campo "started_at"
