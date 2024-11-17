@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 
 class FinishedTripScreen extends StatefulWidget {
   final String usuario;
-  const FinishedTripScreen({super.key, required this.usuario});
+  final String region;
+  const FinishedTripScreen({super.key, required this.usuario, required this.region});
 
   @override
   FinishedTripScreenState createState() => FinishedTripScreenState();
@@ -31,7 +32,11 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
           final Map<dynamic, dynamic> trip = Map<dynamic, dynamic>.from(entry.value as Map);
           trip['id'] = entry.key;
           return trip;
-        }).where((trip) => trip['status'] == 'trip finished').toList();
+        })
+        .where((trip) =>
+            trip['status'] == 'trip finished' &&
+            trip['city']?.toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
+        .toList();
 
         // Ordenar los viajes terminados por el campo "finished_at"
         finishedTrips.sort((a, b) {

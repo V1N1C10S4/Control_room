@@ -4,7 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class DriverAvailability extends StatelessWidget {
   final String usuario;
-  const DriverAvailability({super.key, required this.usuario});
+  final String region; // Agregamos el parámetro region
+
+  const DriverAvailability({
+    super.key,
+    required this.usuario,
+    required this.region, // Aseguramos que sea requerido
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +34,14 @@ class DriverAvailability extends StatelessWidget {
 
           for (var doc in snapshot.data!.docs) {
             final data = doc.data() as Map<String, dynamic>;
-            final bool isAvailable = data['Estatus'] == 'disponible' && data['Viaje'] == false;
+            final bool isAvailable = data['Estatus'] == 'disponible' &&
+                data['Viaje'] == false &&
+                data['Ciudad']?.toLowerCase() == region.toLowerCase(); // Filtrar por región
 
             if (isAvailable) {
               availableDrivers.add(doc);
-            } else {
+            } else if (data['Ciudad']?.toLowerCase() == region.toLowerCase()) {
+              // Aseguramos que los no disponibles también sean de la región
               unavailableDrivers.add(doc);
             }
           }
@@ -70,7 +79,7 @@ class DriverAvailability extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     CircleAvatar(
-                                      radius: 50,  // Tamaño ajustado al diseño
+                                      radius: 50,
                                       backgroundImage: CachedNetworkImageProvider(driver['FotoPerfil']),
                                       backgroundColor: Colors.transparent,
                                     ),
@@ -135,7 +144,7 @@ class DriverAvailability extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     CircleAvatar(
-                                      radius: 50,  // Tamaño ajustado al diseño
+                                      radius: 50,
                                       backgroundImage: CachedNetworkImageProvider(driver['FotoPerfil']),
                                       backgroundColor: Colors.transparent,
                                     ),

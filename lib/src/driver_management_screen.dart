@@ -4,7 +4,13 @@ import 'update_driver_screen.dart'; // Asegúrate de importar la pantalla Update
 
 class DriverManagementScreen extends StatefulWidget {
   final String usuario;
-  const DriverManagementScreen({super.key, required this.usuario});
+  final String region; // Agregamos el parámetro "region"
+
+  const DriverManagementScreen({
+    super.key,
+    required this.usuario,
+    required this.region, // Aseguramos que sea requerido
+  });
 
   @override
   State<DriverManagementScreen> createState() => _DriverManagementScreenState();
@@ -41,7 +47,12 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
             return const Center(child: Text('No hay conductores disponibles'));
           }
 
-          final conductores = snapshot.data!.docs;
+          // Filtrar los conductores según la región
+          final conductores = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final ciudad = data['Ciudad']?.toLowerCase();
+            return ciudad == widget.region.toLowerCase(); // Comparación de región y ciudad
+          }).toList();
 
           return ListView.builder(
             itemCount: conductores.length,

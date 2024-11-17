@@ -33,10 +33,14 @@ class TripRequestScreenState extends State<TripRequestScreen> {
           final Map<dynamic, dynamic> request = Map<dynamic, dynamic>.from(entry.value as Map);
           request['id'] = entry.key;
           return request;
-        }).where((request) => request['status'] == 'pending' || request['status'] == 'authorized').toList();
+        })
+        .where((request) =>
+            (request['status'] == 'pending' || request['status'] == 'authorized') &&
+            request['city']?.toString().toLowerCase() == widget.region.toLowerCase()) // Filtro por región
+        .toList();
 
         setState(() {
-          _tripRequests = tripRequests.reversed.toList(); // Invertir el orden para mostrar primero las solicitudes más antiguas
+          _tripRequests = tripRequests.reversed.toList(); // Invertir el orden para mostrar primero las solicitudes más recientes
         });
       } else {
         setState(() {

@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 
 class OngoingTripScreen extends StatefulWidget {
   final String usuario;
-  const OngoingTripScreen({super.key, required this.usuario});
+  final String region;
+  const OngoingTripScreen({super.key, required this.usuario, required this.region});
 
   @override
   OngoingTripScreenState createState() => OngoingTripScreenState();
@@ -31,7 +32,13 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
           final Map<dynamic, dynamic> trip = Map<dynamic, dynamic>.from(entry.value as Map);
           trip['id'] = entry.key;
           return trip;
-        }).where((trip) => trip['status'] == 'started' || trip['status'] == 'passenger reached' || trip['status'] == 'picked up passenger').toList();
+        })
+        .where((trip) =>
+            (trip['status'] == 'started' ||
+            trip['status'] == 'passenger reached' ||
+            trip['status'] == 'picked up passenger') &&
+            trip['city']?.toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
+        .toList();
 
         // Ordenar los viajes según el campo "started_at"
         ongoingTrips.sort((a, b) {

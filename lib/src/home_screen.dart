@@ -102,7 +102,11 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => OngoingTripScreen(usuario: usuario)),
+                              builder: (context) => OngoingTripScreen(
+                                usuario: usuario, 
+                                region: region,
+                              )
+                          ),
                         );
                       },
                       child: const Column(
@@ -138,7 +142,11 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => FinishedTripScreen(usuario: usuario)),
+                              builder: (context) => FinishedTripScreen(
+                                usuario: usuario,
+                                region: region,
+                              )
+                          ),
                         );
                       },
                       child: const Column(
@@ -168,7 +176,11 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => DriverAvailability(usuario: usuario)),
+                              builder: (context) => DriverAvailability(
+                                usuario: usuario,
+                                region: region,
+                              )
+                          ),
                         );
                       },
                       child: const Column(
@@ -205,8 +217,12 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    DriverManagementScreen(usuario: usuario)),
+                              builder: (context) =>
+                                DriverManagementScreen(
+                                  usuario: usuario,
+                                  region: region,
+                                )
+                            ),
                           );
                         },
                         child: const Column(
