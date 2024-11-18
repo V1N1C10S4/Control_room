@@ -6,6 +6,7 @@ import 'driver_availability.dart';
 import 'driver_management_screen.dart';
 import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
+import 'cancelled_trip_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final String usuario;
@@ -244,7 +245,12 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        // Lógica pendiente
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CancelledTripsScreen(region: region),
+                          ),
+                        );
                       },
                       child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,

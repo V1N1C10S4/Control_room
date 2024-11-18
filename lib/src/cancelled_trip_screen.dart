@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class CancelledTripsScreen extends StatelessWidget {
+  final String region;
+
+  const CancelledTripsScreen({Key? key, required this.region}) : super(key: key);
+
+  Future<List<Map<String, dynamic>>> _fetchCancelledTrips() async {
+    final DatabaseReference ref = FirebaseDatabase.instance.ref().child('trip_requests');
+    final snapshot = await ref.orderByChild('status').equalTo('trip cancelled').get();
+
+    if (snapshot.exists) {
+      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+
+      List<Map<String, dynamic>> trips = data.entries.map((entry) {
+        final Map<String, dynamic> trip = Map<String, dynamic>.from(entry.value as Map);
+        trip['id'] = entry.key;
+
+        return {
+          'id': trip['id'],
+          'created_at': trip['created_at'] ?? 'NA',
+          'pickup': trip['pickup']['placeName'] ?? 'NA',
+          'destination': trip['destination']['placeName'] ?? 'NA',
+          'driver': trip['driver'] ?? 'NA',
+          'userName': trip['userName'] ?? 'NA',
+          'luggage': trip['luggage']?.toString() ?? 'NA',
+          'passengers': trip['passengers']?.toString() ?? 'NA',
+          'pets': trip['pets']?.toString() ?? 'NA',
+          'started_at': trip['started_at'] ?? 'NA',
+          'passenger_reached_at': trip['passenger_reached_at'] ?? 'NA',
+          'picked_up_passenger_at': trip['picked_up_passenger_at'] ?? 'NA',
+          'city': trip['city'] ?? 'NA',
+        };
+      }).toList();
+
+      // Filtrar por región y ordenar por `created_at`
+      trips = trips
+          .where((trip) => trip['city'] == region)
+          .toList()
+          ..sort((a, b) {
+            final createdAtA = a['created_at'] != 'NA' ? DateTime.parse(a['created_at']) : DateTime.now();
+            final createdAtB = b['created_at'] != 'NA' ? DateTime.parse(b['created_at']) : DateTime.now();
+            return createdAtB.compareTo(createdAtA); // Ordenar de más reciente a más antiguo
+          });
+
+      return trips;
+    }
+
+    return [];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Viajes Cancelados', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _fetchCancelledTrips(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error al cargar los datos'));
+          }
+
+          final trips = snapshot.data!;
+          if (trips.isEmpty) {
+            return const Center(child: Text('No hay viajes cancelados en esta región'));
+          }
+
+          return ListView.builder(
+            itemCount: trips.length,
+            itemBuilder: (context, index) {
+              final trip = trips[index];
+
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  side: const BorderSide(color: Colors.black, width: 1),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Solicitud #${trips.length - index}', // Enumeración descendente
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Creado el: ${trip['created_at']}'),
+                      Text('Desde: ${trip['pickup']}'),
+                      Text('Hasta: ${trip['destination']}'),
+                      Text('Conductor: ${trip['driver']}'),
+                      Text('Pasajero: ${trip['userName']}'),
+                      Text('Equipaje: ${trip['luggage']}'),
+                      Text('Pasajeros: ${trip['passengers']}'),
+                      Text('Mascotas: ${trip['pets']}'),
+                      Text('Inicio: ${trip['started_at']}'),
+                      Text('Pasajero alcanzado: ${trip['passenger_reached_at']}'),
+                      Text('Recogido: ${trip['picked_up_passenger_at']}'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
