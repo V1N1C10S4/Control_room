@@ -123,6 +123,10 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
   }
 
   Widget _buildEmergencyCard(Map<dynamic, dynamic> trip, bool isInProgress) {
+    final emergencyLocation = trip['emergency_location'] as Map<dynamic, dynamic>?;
+    final latitude = emergencyLocation?['latitude']?.toString() ?? 'N/A';
+    final longitude = emergencyLocation?['longitude']?.toString() ?? 'N/A';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Card(
@@ -184,6 +188,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ),
               const SizedBox(height: 8),
               Text(
+                'Emergencia reportada en: Lat: $latitude, Long: $longitude',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
                 'Equipaje: ${trip['luggage'] ?? 0}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
@@ -211,8 +223,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: isInProgress ? Colors.red : Colors.green,
                       borderRadius: BorderRadius.circular(8.0),
