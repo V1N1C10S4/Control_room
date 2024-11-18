@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
-import 'trip_details_screen.dart'; // Importa la nueva pantalla
 import 'package:intl/intl.dart';
 
 class OngoingTripScreen extends StatefulWidget {
@@ -106,76 +105,52 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Viaje #${_ongoingTrips.length - index}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'User: ${trip['userId']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Driver: ${trip['driver']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Pickup: ${trip['pickup']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Destination: ${trip['destination']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Status: ${trip['status']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Iniciado: $startedAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Pasajero alcanzado: $passengerReachedAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Pasajero recogido: $pickedUpPassengerAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ],
+                          Text(
+                            'Viaje #${_ongoingTrips.length - index}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TripDetailsScreen(trip: trip),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text('Detalles', style: TextStyle(color: Colors.white)),
+                          const SizedBox(height: 8),
+                          Text(
+                            'User: ${trip['userName'] ?? 'N/A'}', // Usando userName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Driver: ${trip['driver'] ?? 'N/A'}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}', // Usando placeName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}', // Usando placeName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Status: ${trip['status']}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Iniciado: $startedAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Pasajero alcanzado: $passengerReachedAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Pasajero recogido: $pickedUpPassengerAt',
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ],
                       ),

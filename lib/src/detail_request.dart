@@ -109,12 +109,12 @@ class DetailRequestScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Pickup: ${tripRequest['pickup']}',
+              'Pickup: ${tripRequest['pickup']['placeName'] ?? 'NA'}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
             Text(
-              'Destination: ${tripRequest['destination']}',
+              'Destination: ${tripRequest['destination']['placeName'] ?? 'NA'}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),

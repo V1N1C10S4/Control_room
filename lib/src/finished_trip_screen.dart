@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
-import 'trip_details_screen.dart'; // Importa la pantalla de detalles del viaje
 import 'package:intl/intl.dart';
 
 class FinishedTripScreen extends StatefulWidget {
@@ -90,7 +89,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
               itemBuilder: (context, index) {
                 final trip = _finishedTrips[index];
 
-                // Formatear las fechas de los campos created_at, started_at, passenger_reached_at, picked_up_passenger_at y finished_at
+                // Formatear las fechas de los campos
                 final String createdAt = _formatDateTime(trip['created_at']);
                 final String startedAt = _formatDateTime(trip['started_at']);
                 final String passengerReachedAt = _formatDateTime(trip['passenger_reached_at']);
@@ -106,84 +105,60 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Viaje #${_finishedTrips.length - index}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'User: ${trip['userId']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Driver: ${trip['driver']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Pickup: ${trip['pickup']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Destination: ${trip['destination']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Status: ${trip['status']}',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Solicitado: $createdAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Iniciado: $startedAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Pasajero alcanzado: $passengerReachedAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Pasajero recogido: $pickedUpPassengerAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                                Text(
-                                  'Finalizado: $finishedAt',
-                                  style: const TextStyle(fontSize: 16),
-                                ),
-                              ],
+                          Text(
+                            'Viaje #${_finishedTrips.length - index}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TripDetailsScreen(trip: trip, appBarColor: const Color.fromRGBO(158, 212, 176, 1)),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(158, 212, 176, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text('Detalles', style: TextStyle(color: Colors.white)),
+                          const SizedBox(height: 8),
+                          Text(
+                            'User: ${trip['userName'] ?? 'N/A'}', // Usando userName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Driver: ${trip['driver'] ?? 'N/A'}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}', // Usando placeName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}', // Usando placeName
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Status: ${trip['status']}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Solicitado: $createdAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Iniciado: $startedAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Pasajero alcanzado: $passengerReachedAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Pasajero recogido: $pickedUpPassengerAt',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            'Finalizado: $finishedAt',
+                            style: const TextStyle(fontSize: 16),
                           ),
                         ],
                       ),

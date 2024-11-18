@@ -32,6 +32,8 @@ class TripRequestScreenState extends State<TripRequestScreen> {
         final List<Map<dynamic, dynamic>> tripRequests = data.entries.map((entry) {
           final Map<dynamic, dynamic> request = Map<dynamic, dynamic>.from(entry.value as Map);
           request['id'] = entry.key;
+          request['pickup'] = request['pickup']['placeName'] ?? 'NA';
+          request['destination'] = request['destination']['placeName'] ?? 'NA';
           return request;
         })
         .where((request) =>

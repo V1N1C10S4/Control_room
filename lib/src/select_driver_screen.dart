@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
-import 'home_screen.dart';  // Asegúrate de importar la pantalla de solicitudes
+import 'home_screen.dart'; // Asegúrate de importar la pantalla de solicitudes
 
 class SelectDriverScreen extends StatefulWidget {
   final Map<dynamic, dynamic> tripRequest;
-  final bool isSupervisor; // Añadir este campo
+  final bool isSupervisor;
   final String region;
 
   const SelectDriverScreen({
-    super.key, 
+    super.key,
     required this.tripRequest,
-    required this.isSupervisor, // Añadir como requerido
+    required this.isSupervisor,
     required this.region,
   });
 
@@ -22,8 +22,10 @@ class SelectDriverScreen extends StatefulWidget {
 
 class SelectDriverScreenState extends State<SelectDriverScreen> {
   List<Map<String, dynamic>> _drivers = [];
+  List<Map<String, dynamic>> _filteredDrivers = [];
   final Logger _logger = Logger();
   String? _userCity;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -76,14 +78,31 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
 
       setState(() {
         _drivers = drivers;
+        _filteredDrivers = drivers; // Inicializa la lista filtrada
       });
-
     } catch (error) {
       _logger.e('Error fetching drivers: $error');
       setState(() {
         _drivers = [];
+        _filteredDrivers = [];
       });
     }
+  }
+
+  void _filterDrivers(String query) {
+    final lowerCaseQuery = query.toLowerCase();
+    setState(() {
+      _filteredDrivers = _drivers.where((driver) {
+        final city = driver['Ciudad']?.toLowerCase() ?? '';
+        final plates = driver['Placas']?.toLowerCase() ?? '';
+        final vehicleInfo = driver['InfoVehiculo']?.toLowerCase() ?? '';
+        final driverName = driver['NombreConductor']?.toLowerCase() ?? '';
+        return city.contains(lowerCaseQuery) ||
+            plates.contains(lowerCaseQuery) ||
+            vehicleInfo.contains(lowerCaseQuery) ||
+            driverName.contains(lowerCaseQuery);
+      }).toList();
+    });
   }
 
   void _assignDriver(String driverId) async {
@@ -101,18 +120,19 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
       });
 
       _logger.i('Driver assigned successfully.');
-      
+
       // Volver a la pantalla de solicitudes de viaje
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen(
-          usuario: widget.tripRequest['userId'],
-          isSupervisor: widget.isSupervisor,
-          region: widget.region,
-        )),
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            usuario: widget.tripRequest['userId'],
+            isSupervisor: widget.isSupervisor,
+            region: widget.region,
+          ),
+        ),
         (Route<dynamic> route) => false,
       );
-
     } catch (error) {
       _logger.e('Error assigning driver or updating trip status: $error');
     }
@@ -141,8 +161,24 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Buscar por nombre, ciudad, vehículo o placas...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                ),
+                onChanged: (value) {
+                  _filterDrivers(value);
+                },
+              ),
+            ),
             Expanded(
-              child: _drivers.isEmpty
+              child: _filteredDrivers.isEmpty
                   ? const Center(
                       child: Text(
                         'No hay conductores disponibles.',
@@ -150,9 +186,9 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                       ),
                     )
                   : ListView.builder(
-                      itemCount: _drivers.length,
+                      itemCount: _filteredDrivers.length,
                       itemBuilder: (context, index) {
-                        final driver = _drivers[index];
+                        final driver = _filteredDrivers[index];
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8.0),
                           child: ListTile(
