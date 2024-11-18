@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
 import 'select_driver_screen.dart';
@@ -18,7 +18,10 @@ class DetailRequestScreen extends StatelessWidget {
   final Logger _logger = Logger();
 
   void _updateTripStatus(BuildContext context, String newStatus) {
-    final DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref().child('trip_requests').child(tripRequest['id']);
+    final DatabaseReference tripRequestRef = FirebaseDatabase.instance
+        .ref()
+        .child('trip_requests')
+        .child(tripRequest['id']);
 
     tripRequestRef.update({
       'status': newStatus,
@@ -109,12 +112,12 @@ class DetailRequestScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Pickup: ${tripRequest['pickup']['placeName'] ?? 'NA'}',
+              'Pickup: ${tripRequest['pickup']}', // Se utiliza directamente como String
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
             Text(
-              'Destination: ${tripRequest['destination']['placeName'] ?? 'NA'}',
+              'Destination: ${tripRequest['destination']}', // Se utiliza directamente como String
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
