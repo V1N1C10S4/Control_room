@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:intl/intl.dart';
 
 class CancelledTripsScreen extends StatelessWidget {
   final String region;
@@ -19,7 +20,7 @@ class CancelledTripsScreen extends StatelessWidget {
 
         return {
           'id': trip['id'],
-          'created_at': trip['created_at'] ?? 'NA',
+          'created_at': trip['created_at'] != null ? _formatDateTime(trip['created_at']) : 'NA',
           'pickup': trip['pickup']['placeName'] ?? 'NA',
           'destination': trip['destination']['placeName'] ?? 'NA',
           'driver': trip['driver'] ?? 'NA',
@@ -27,9 +28,13 @@ class CancelledTripsScreen extends StatelessWidget {
           'luggage': trip['luggage']?.toString() ?? 'NA',
           'passengers': trip['passengers']?.toString() ?? 'NA',
           'pets': trip['pets']?.toString() ?? 'NA',
-          'started_at': trip['started_at'] ?? 'NA',
-          'passenger_reached_at': trip['passenger_reached_at'] ?? 'NA',
-          'picked_up_passenger_at': trip['picked_up_passenger_at'] ?? 'NA',
+          'started_at': trip['started_at'] != null ? _formatDateTime(trip['started_at']) : 'NA',
+          'passenger_reached_at': trip['passenger_reached_at'] != null
+              ? _formatDateTime(trip['passenger_reached_at'])
+              : 'NA',
+          'picked_up_passenger_at': trip['picked_up_passenger_at'] != null
+              ? _formatDateTime(trip['picked_up_passenger_at'])
+              : 'NA',
           'city': trip['city'] ?? 'NA',
         };
       }).toList();
@@ -39,8 +44,12 @@ class CancelledTripsScreen extends StatelessWidget {
           .where((trip) => trip['city'] == region)
           .toList()
           ..sort((a, b) {
-            final createdAtA = a['created_at'] != 'NA' ? DateTime.parse(a['created_at']) : DateTime.now();
-            final createdAtB = b['created_at'] != 'NA' ? DateTime.parse(b['created_at']) : DateTime.now();
+            final createdAtA = a['created_at'] != 'NA'
+                ? DateFormat('dd/MM/yyyy HH:mm').parse(a['created_at'])
+                : DateTime.now();
+            final createdAtB = b['created_at'] != 'NA'
+                ? DateFormat('dd/MM/yyyy HH:mm').parse(b['created_at'])
+                : DateTime.now();
             return createdAtB.compareTo(createdAtA); // Ordenar de más reciente a más antiguo
           });
 
@@ -48,6 +57,12 @@ class CancelledTripsScreen extends StatelessWidget {
     }
 
     return [];
+  }
+
+  String _formatDateTime(String? dateTimeStr) {
+    if (dateTimeStr == null) return 'N/A';
+    DateTime dateTime = DateTime.parse(dateTimeStr);
+    return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
   }
 
   @override
