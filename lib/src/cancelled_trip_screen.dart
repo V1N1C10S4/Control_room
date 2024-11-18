@@ -56,6 +56,15 @@ class CancelledTripsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Viajes Cancelados', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchCancelledTrips(),
@@ -64,12 +73,12 @@ class CancelledTripsScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Error al cargar los datos'));
+            return const Center(child: Text('Error al cargar los datos', style: TextStyle(fontSize: 24, color: Colors.grey),));
           }
 
           final trips = snapshot.data!;
           if (trips.isEmpty) {
-            return const Center(child: Text('No hay viajes cancelados en esta región'));
+            return const Center(child: Text('No hay viajes cancelados en esta región', style: TextStyle(fontSize: 24, color: Colors.grey),));
           }
 
           return ListView.builder(
