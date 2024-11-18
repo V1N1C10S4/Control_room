@@ -95,13 +95,22 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         content: const Text(
             '¿Estás seguro de que quieres marcar esta emergencia como atendida?'),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text('Cancelar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, // Botón rojo
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+            ),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white), // Texto blanco
+            ),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
@@ -115,7 +124,16 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 _logger.e('Error al actualizar emergencia: $error');
               }
             },
-            child: const Text('Confirmar'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green, // Botón verde
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+            ),
+            child: const Text(
+              'Confirmar',
+              style: TextStyle(color: Colors.white), // Texto blanco
+            ),
           ),
         ],
       ),
