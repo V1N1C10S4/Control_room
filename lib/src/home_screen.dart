@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'trip_request_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
@@ -38,6 +39,53 @@ class _HomeScreenState extends State<HomeScreen> {
     _initializeFCM();
     _listenForTokenRefresh();
     _listenForTripStatusChanges();
+    _listenForEmergencies();
+  }
+
+  void _listenForEmergencies() {
+    final tripRequestsRef = _databaseReference.child('trip_requests');
+
+    // Attach a listener to monitor changes in the `emergency` field
+    tripRequestsRef.onChildChanged.listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        _handleEmergency(event.snapshot.key, tripData);
+      }
+    });
+  }
+
+  void _handleEmergency(String? tripId, Map<dynamic, dynamic> tripData) {
+    if (tripData.containsKey('emergency') && tripId != null) {
+      final bool isEmergency = tripData['emergency'] == true;
+      final String userName = tripData['userName'] ?? 'Usuario desconocido';
+
+      if (isEmergency) {
+        String message = "¡¡¡Emergencia detectada!!! En viaje de $userName ($tripId), se requiere atención inmediata";
+        _showEmergencyBanner(message);
+        _playEmergencyAlert();
+      }
+    }
+  }
+
+  void _showEmergencyBanner(String message) {
+    final snackBar = SnackBar(
+      content: Text(
+        message,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
+      duration: const Duration(seconds: 5),
+      backgroundColor: Colors.red,
+    );
+
+    // Ensure the context is still valid before showing
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
+  }
+
+  void _playEmergencyAlert() async {
+    final player = AudioPlayer();
+    await player.play(AssetSource('sounds/emergency_alert.mp3'));
   }
 
   void _listenForTripStatusChanges() {
@@ -85,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Show the banner notification
       _showBannerNotification(message);
+      _playNotificationSound();
     }
   }
 
@@ -94,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
         message,
         style: const TextStyle(fontSize: 16, color: Colors.white),
       ),
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 6),
       backgroundColor: Colors.blue,
     );
 
@@ -102,6 +151,11 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
+  }
+
+  void _playNotificationSound() async {
+    final player = AudioPlayer();
+    await player.play(AssetSource('sounds/notification.mp3'));
   }
 
   // Step 1: Initialize and fetch the FCM token
