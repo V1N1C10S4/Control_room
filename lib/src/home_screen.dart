@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'trip_request_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
@@ -8,17 +10,98 @@ import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final String usuario;
   final bool isSupervisor;
-  final String region; // Añadido el parámetro de región
+  final String region;
 
   const HomeScreen({
-    super.key,
+    Key? key,
     required this.usuario,
     required this.isSupervisor,
-    required this.region, // Región como requerido
-  });
+    required this.region,
+  }) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
+  String? _fcmToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFCM();
+    _listenForTokenRefresh();
+  }
+
+  Future<void> _initializeFCM() async {
+    try {
+      // Request notification permissions
+      NotificationSettings settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        print("Notification permission granted.");
+
+        // Retrieve the FCM token for the device
+        _fcmToken = await _messaging.getToken(
+          vapidKey: "BD7fXudObgHwjzX_crRsNMPi5OW6txgyCXRIi_kPfBLd0G1NNGe-uoG9m7qT4T0FQrTmtHHAE5_YK4WOO6ln98A",
+        );
+        if (_fcmToken != null) {
+          print("Initial FCM Token: $_fcmToken");
+          await _updateTokenInDatabase(_fcmToken!);
+        }
+      } else {
+        print("Notification permission not granted.");
+      }
+    } catch (e) {
+      print("Error initializing FCM: $e");
+    }
+  }
+
+  void _listenForTokenRefresh() {
+    // Listen for FCM token refresh events
+    _messaging.onTokenRefresh.listen((newToken) async {
+      print("FCM Token refreshed: $newToken");
+      setState(() {
+        _fcmToken = newToken;
+      });
+      await _updateTokenInDatabase(newToken);
+    });
+  }
+
+  Future<void> _updateTokenInDatabase(String token) async {
+    try {
+      final controlRoomRef = _databaseReference.child('controlroom/${widget.usuario}');
+
+      // Check if the "controlroom/${usuario}" node exists
+      final snapshot = await controlRoomRef.get();
+      if (!snapshot.exists) {
+        // Create the node if it doesn't exist
+        await controlRoomRef.set({
+          'fcmToken_2': token,
+          'city': widget.region,
+        });
+        print("Token and city created in database.");
+      } else {
+        // Update the token and city if the node exists
+        await controlRoomRef.update({
+          'fcmToken_2': token,
+          'city': widget.region,
+        });
+        print("Token and city updated in database.");
+      }
+    } catch (e) {
+      print("Error updating token in database: $e");
+    }
+  }
 
   // Función para cerrar sesión
   void _cerrarSesion(BuildContext context) {
@@ -33,7 +116,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Título dinámico según la región
     final String appBarTitle =
-        region == 'Tabasco' ? 'Control Room Tabasco' : 'Control Room CDMX';
+        widget.region == 'Tabasco' ? 'Control Room Tabasco' : 'Control Room CDMX';
 
     return Scaffold(
       appBar: AppBar(
@@ -73,9 +156,9 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) => TripRequestScreen(
-                                usuario: usuario,
-                                isSupervisor: isSupervisor,
-                                region: region),
+                                usuario: widget.usuario,
+                                isSupervisor: widget.isSupervisor,
+                                region: widget.region),
                           ),
                         );
                       },
@@ -107,8 +190,8 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => OngoingTripScreen(
-                                    usuario: usuario,
-                                    region: region,
+                                    usuario: widget.usuario,
+                                    region: widget.region,
                                   )),
                         );
                       },
@@ -146,8 +229,8 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => FinishedTripScreen(
-                                    usuario: usuario,
-                                    region: region,
+                                    usuario: widget.usuario,
+                                    region: widget.region,
                                   )),
                         );
                       },
@@ -179,8 +262,8 @@ class HomeScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => DriverAvailability(
-                                    usuario: usuario,
-                                    region: region,
+                                    usuario: widget.usuario,
+                                    region: widget.region,
                                   )),
                         );
                       },
@@ -217,7 +300,7 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => EmergencyDuringTripScreen(region: region),
+                            builder: (context) => EmergencyDuringTripScreen(region: widget.region),
                           ),
                         );
                       },
@@ -248,7 +331,7 @@ class HomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => CancelledTripsScreen(region: region),
+                            builder: (context) => CancelledTripsScreen(region: widget.region),
                           ),
                         );
                       },
@@ -269,9 +352,9 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            if (isSupervisor)
+            if (widget.isSupervisor)
               const SizedBox(height: 16),
-            if (isSupervisor)
+            if (widget.isSupervisor)
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -285,8 +368,8 @@ class HomeScreen extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => DriverManagementScreen(
-                          usuario: usuario,
-                          region: region,
+                          usuario: widget.usuario,
+                          region: widget.region,
                         ),
                       ),
                     );

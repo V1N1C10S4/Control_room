@@ -1,19 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the --base-href argument provided to flutter build.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -47,39 +34,27 @@
       messagingSenderId: "841314423983",
       appId: "1:841314423983:web:67f4c5d20bd10e4373705a",
       measurementId: "G-Z5C7K924QE"
-};
+    };
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
 
-    // Initialize Firebase Cloud Messaging
-    const messaging = firebase.messaging();
-
-    // Request permission to receive notifications
-    messaging.requestPermission().then(() => {
-      console.log("Notification permission granted.");
-      return messaging.getToken();
-    }).then((token) => {
-      console.log("FCM Token:", token);
-      // You can send this token to your server and store it to send notifications later
-    }).catch((err) => {
-      console.error("Unable to get permission to notify.", err);
-    });
-
-    // Handle incoming messages
-    messaging.onMessage((payload) => {
-      console.log("Message received. ", payload);
-      // Customize notification handling here
-      const notificationTitle = payload.notification.title;
-      const notificationOptions = {
-        body: payload.notification.body,
-        icon: 'icons/Icon-192.png'
-      };
-      new Notification(notificationTitle, notificationOptions);
-    });
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+    } else {
+      console.warn("Service workers are not supported in this browser.");
+    }
   </script>
 </head>
 <body>
+  <!-- Bootstrap Flutter -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
