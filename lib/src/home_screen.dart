@@ -51,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         print("Notification permission granted.");
         _fcmToken = await _messaging.getToken(
-          vapidKey: "YOUR_PUBLIC_VAPID_KEY",
+          vapidKey: "BD7fXudObgHwjzX_crRsNMPi5OW6txgyCXRIi_kPfBLd0G1NNGe-uoG9m7qT4T0FQrTmtHHAE5_YK4WOO6ln98A",
         );
         print("FCM Token: $_fcmToken");
 
