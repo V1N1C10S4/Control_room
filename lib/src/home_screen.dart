@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   String? _fcmToken;
+  final Set<String> _displayedBanners = {};
 
   @override
   void initState() {
@@ -91,8 +92,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _listenForTripStatusChanges() {
     final tripRequestsRef = _databaseReference.child('trip_requests');
 
-    // Attach a listener to the trip_requests node
     tripRequestsRef.onChildChanged.listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        _handleStatusChange(event.snapshot.key, tripData);
+      }
+    });
+
+    // Include onChildAdded for "pending" status to capture new entries
+    tripRequestsRef.onChildAdded.listen((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
         _handleStatusChange(event.snapshot.key, tripData);
@@ -100,13 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+ // Updated _handleStatusChange function
   void _handleStatusChange(String? tripId, Map<dynamic, dynamic> tripData) {
     if (tripData.containsKey('status') && tripId != null) {
+      // Check if a banner for this trip ID has already been shown
+      if (_displayedBanners.contains(tripId)) return;
+
       final String status = tripData['status'];
       final String userName = tripData['userName'] ?? 'Usuario desconocido';
       final String driver = tripData['driver'] ?? 'Conductor desconocido';
 
-      String message;
+      String? message;
 
       switch (status) {
         case 'pending':
@@ -130,6 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
         default:
           return; // No action for unhandled statuses
       }
+
+      // Mark the banner as displayed
+      _displayedBanners.add(tripId);
 
       // Show the banner notification
       _showBannerNotification(message);

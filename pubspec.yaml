@@ -71,7 +71,7 @@ flutter:
   assets:
     - images/milipol_logo.png
     - assets/sounds/emergency_alert.mp3
-    - assets/sounds/notification.wav
+    - assets/sounds/notification.mp3
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
