@@ -39,9 +39,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForTokenRefresh();
   }
 
+  // Step 1: Initialize and fetch the FCM token
   Future<void> _initializeFCM() async {
     try {
-      // Request notification permissions
       NotificationSettings settings = await _messaging.requestPermission(
         alert: true,
         badge: true,
@@ -50,14 +50,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         print("Notification permission granted.");
-
-        // Retrieve the FCM token for the device
         _fcmToken = await _messaging.getToken(
-          vapidKey: "BD7fXudObgHwjzX_crRsNMPi5OW6txgyCXRIi_kPfBLd0G1NNGe-uoG9m7qT4T0FQrTmtHHAE5_YK4WOO6ln98A",
+          vapidKey: "YOUR_PUBLIC_VAPID_KEY",
         );
+        print("FCM Token: $_fcmToken");
+
+        // Proceed to save the token only if it exists
         if (_fcmToken != null) {
-          print("Initial FCM Token: $_fcmToken");
-          await _updateTokenInDatabase(_fcmToken!);
+          await _prepareDatabaseNode();
+          await _uploadTokenToDatabase(_fcmToken!);
         }
       } else {
         print("Notification permission not granted.");
@@ -67,59 +68,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _listenForTokenRefresh() {
-    // Listen for FCM token refresh events
-    _messaging.onTokenRefresh.listen((newToken) async {
-      print("FCM Token refreshed: $newToken");
-      setState(() {
-        _fcmToken = newToken;
-      });
-      await _updateTokenInDatabase(newToken);
-    });
-  }
-
-  Future<void> _updateTokenInDatabase(String token) async {
+  // Step 2: Prepare the database node for the token if it doesn't exist
+  Future<void> _prepareDatabaseNode() async {
     try {
       final controlRoomRef = _databaseReference.child('controlroom/${widget.usuario}');
+      final snapshot = await controlRoomRef.once(); // Use `.once()` to read the data only once.
 
-      // Check if the "controlroom/${usuario}" node exists
-      final snapshot = await controlRoomRef.get();
-      if (!snapshot.exists) {
-        // Create the node if it doesn't exist
+      if (snapshot.snapshot.value == null) {
         await controlRoomRef.set({
-          'fcmToken_2': token,
           'city': widget.region,
+          'fcmToken_2': '',
         });
-        Fluttertoast.showToast(
-          msg: "Token and city created in database.",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
-      } else {
-        // Update the token and city if the node exists
-        await controlRoomRef.update({
-          'fcmToken_2': token,
-          'city': widget.region,
-        });
-        Fluttertoast.showToast(
-          msg: "Token and city updated in database.",
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.blue,
-          textColor: Colors.white,
-        );
+        print("Database node prepared for ${widget.usuario}.");
       }
     } catch (e) {
       Fluttertoast.showToast(
-        msg: "Error updating token in database: $e",
+        msg: "Error preparing database node: $e",
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.red,
         textColor: Colors.white,
       );
     }
+  }
+
+  // Step 3: Upload the token to the database
+  Future<void> _uploadTokenToDatabase(String token) async {
+    try {
+      final controlRoomRef = _databaseReference.child('controlroom/${widget.usuario}');
+      await controlRoomRef.update({'fcmToken_2': token});
+
+      Fluttertoast.showToast(
+        msg: "Token updated successfully in database.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error uploading token: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  // Step 4: Listen for FCM token refresh events
+  void _listenForTokenRefresh() {
+    _messaging.onTokenRefresh.listen((newToken) async {
+      print("FCM Token refreshed: $newToken");
+      setState(() {
+        _fcmToken = newToken;
+      });
+      await _uploadTokenToDatabase(newToken);
+    });
   }
 
   // Función para cerrar sesión
