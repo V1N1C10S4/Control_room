@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'trip_request_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
@@ -89,17 +90,35 @@ class _HomeScreenState extends State<HomeScreen> {
           'fcmToken_2': token,
           'city': widget.region,
         });
-        print("Token and city created in database.");
+        Fluttertoast.showToast(
+          msg: "Token and city created in database.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
       } else {
         // Update the token and city if the node exists
         await controlRoomRef.update({
           'fcmToken_2': token,
           'city': widget.region,
         });
-        print("Token and city updated in database.");
+        Fluttertoast.showToast(
+          msg: "Token and city updated in database.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.blue,
+          textColor: Colors.white,
+        );
       }
     } catch (e) {
-      print("Error updating token in database: $e");
+      Fluttertoast.showToast(
+        msg: "Error updating token in database: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
     }
   }
 
