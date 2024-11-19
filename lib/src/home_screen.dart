@@ -37,6 +37,71 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initializeFCM();
     _listenForTokenRefresh();
+    _listenForTripStatusChanges();
+  }
+
+  void _listenForTripStatusChanges() {
+    final tripRequestsRef = _databaseReference.child('trip_requests');
+
+    // Attach a listener to the trip_requests node
+    tripRequestsRef.onChildChanged.listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        _handleStatusChange(event.snapshot.key, tripData);
+      }
+    });
+  }
+
+  void _handleStatusChange(String? tripId, Map<dynamic, dynamic> tripData) {
+    if (tripData.containsKey('status') && tripId != null) {
+      final String status = tripData['status'];
+      final String userName = tripData['userName'] ?? 'Usuario desconocido';
+      final String driver = tripData['driver'] ?? 'Conductor desconocido';
+
+      String message;
+
+      switch (status) {
+        case 'pending':
+          message = "Nueva solicitud de viaje detectada de $userName ($tripId)";
+          break;
+        case 'started':
+          message = "El viaje de $userName ($tripId) y $driver ha comenzado";
+          break;
+        case 'passenger reached':
+          message = "El conductor $driver ha llegado con el pasajero $userName ($tripId)";
+          break;
+        case 'picked up passenger':
+          message = "El pasajero $userName ha sido recogido ($tripId)";
+          break;
+        case 'trip finished':
+          message = "El viaje de $userName ($tripId) ha finalizado con éxito!";
+          break;
+        case 'trip cancelled':
+          message = "$userName ($tripId) ha cancelado su viaje";
+          break;
+        default:
+          return; // No action for unhandled statuses
+      }
+
+      // Show the banner notification
+      _showBannerNotification(message);
+    }
+  }
+
+  void _showBannerNotification(String message) {
+    final snackBar = SnackBar(
+      content: Text(
+        message,
+        style: const TextStyle(fontSize: 16, color: Colors.white),
+      ),
+      duration: const Duration(seconds: 3),
+      backgroundColor: Colors.blue,
+    );
+
+    // Ensure the context is still valid before showing
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    }
   }
 
   // Step 1: Initialize and fetch the FCM token
