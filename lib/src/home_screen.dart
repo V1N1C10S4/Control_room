@@ -33,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   String? _fcmToken;
   final Set<String> _displayedBanners = {};
+  final Set<String> _processedTripIds = {};
 
   @override
   void initState() {
@@ -95,30 +96,28 @@ class _HomeScreenState extends State<HomeScreen> {
     tripRequestsRef.onChildChanged.listen((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
-        _handleStatusChange(event.snapshot.key, tripData);
-      }
-    });
+        final String? tripId = event.snapshot.key;
 
-    // Include onChildAdded for "pending" status to capture new entries
-    tripRequestsRef.onChildAdded.listen((DatabaseEvent event) {
-      if (event.snapshot.value != null) {
-        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
-        _handleStatusChange(event.snapshot.key, tripData);
+        // Only process changes if the tripId is not yet processed or the status changed
+        if (tripId != null && (!_processedTripIds.contains(tripId) || tripData['status'] == 'pending')) {
+          _handleStatusChange(tripId, tripData);
+          _processedTripIds.add(tripId); // Mark as processed
+        }
       }
     });
   }
 
- // Updated _handleStatusChange function
-  void _handleStatusChange(String? tripId, Map<dynamic, dynamic> tripData) {
-    if (tripData.containsKey('status') && tripId != null) {
-      // Check if a banner for this trip ID has already been shown
-      if (_displayedBanners.contains(tripId)) return;
+  void _handleStatusChange(String tripId, Map<dynamic, dynamic> tripData) {
+    final String? status = tripData['status'];
+    final String userName = tripData['userName'] ?? 'Usuario desconocido';
+    final String driver = tripData['driver'] ?? 'Conductor desconocido';
 
-      final String status = tripData['status'];
-      final String userName = tripData['userName'] ?? 'Usuario desconocido';
-      final String driver = tripData['driver'] ?? 'Conductor desconocido';
+    // Ensure `status` exists and handle only new updates
+    if (status != null) {
+      // Allow `pending` to be shown even if already displayed
+      if (status != 'pending' && _displayedBanners.contains(tripId)) return;
 
-      String? message;
+      String message;
 
       switch (status) {
         case 'pending':
@@ -140,15 +139,17 @@ class _HomeScreenState extends State<HomeScreen> {
           message = "$userName ($tripId) ha cancelado su viaje";
           break;
         default:
-          return; // No action for unhandled statuses
+          return; // Ignore unhandled statuses
       }
 
-      // Mark the banner as displayed
-      _displayedBanners.add(tripId);
-
-      // Show the banner notification
+      // Show banner and play sound
       _showBannerNotification(message);
       _playNotificationSound();
+
+      // Mark as displayed for statuses other than `pending`
+      if (status != 'pending') {
+        _displayedBanners.add(tripId);
+      }
     }
   }
 
