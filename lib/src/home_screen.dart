@@ -32,8 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   String? _fcmToken;
-  final Set<String> _displayedBanners = {};
-  final Set<String> _processedTripIds = {};
+  final Set<String> _shownStatuses = {};
 
   @override
   void initState() {
@@ -90,39 +89,58 @@ class _HomeScreenState extends State<HomeScreen> {
     await player.play(AssetSource('sounds/emergency_alert.mp3'));
   }
 
+  // Maneja el caso específico de "pending" para nuevas entradas.
+  void _handlePendingTrip(String? tripId, Map<dynamic, dynamic> tripData) {
+    if (tripData.containsKey('status') && tripId != null) {
+      final String status = tripData['status'];
+
+      // Solo maneja "pending" al detectar una entrada nueva.
+      if (status == 'pending' && !_shownStatuses.contains('$tripId-pending')) {
+        final String userName = tripData['userName'] ?? 'Usuario desconocido';
+        String message = "Nueva solicitud de viaje detectada de $userName ($tripId)";
+        
+        _showBannerNotification(message);
+        _playNotificationSound();
+        
+        // Marca el banner de "pending" como mostrado.
+        _shownStatuses.add('$tripId-pending');
+      }
+    }
+  }
+
   void _listenForTripStatusChanges() {
     final tripRequestsRef = _databaseReference.child('trip_requests');
 
+    // Escucha entradas nuevas con "status: pending".
+    tripRequestsRef.onChildAdded.listen((DatabaseEvent event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        _handlePendingTrip(event.snapshot.key, tripData);
+      }
+    });
+
+    // Escucha cambios en los estados de las entradas existentes.
     tripRequestsRef.onChildChanged.listen((DatabaseEvent event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
-        final String? tripId = event.snapshot.key;
-
-        // Only process changes if the tripId is not yet processed or the status changed
-        if (tripId != null && (!_processedTripIds.contains(tripId) || tripData['status'] == 'pending')) {
-          _handleStatusChange(tripId, tripData);
-          _processedTripIds.add(tripId); // Mark as processed
-        }
+        _handleStatusChange(event.snapshot.key, tripData);
       }
     });
   }
 
-  void _handleStatusChange(String tripId, Map<dynamic, dynamic> tripData) {
-    final String? status = tripData['status'];
-    final String userName = tripData['userName'] ?? 'Usuario desconocido';
-    final String driver = tripData['driver'] ?? 'Conductor desconocido';
+  // Maneja los cambios de estado en entradas existentes.
+  void _handleStatusChange(String? tripId, Map<dynamic, dynamic> tripData) {
+    if (tripData.containsKey('status') && tripId != null) {
+      final String status = tripData['status'];
 
-    // Ensure `status` exists and handle only new updates
-    if (status != null) {
-      // Allow `pending` to be shown even if already displayed
-      if (status != 'pending' && _displayedBanners.contains(tripId)) return;
+      // Evita mostrar banners repetidos para el mismo estado de un tripId.
+      if (_shownStatuses.contains('$tripId-$status')) return;
+
+      final String userName = tripData['userName'] ?? 'Usuario desconocido';
+      final String driver = tripData['driver'] ?? 'Conductor desconocido';
 
       String message;
-
       switch (status) {
-        case 'pending':
-          message = "Nueva solicitud de viaje detectada de $userName ($tripId)";
-          break;
         case 'started':
           message = "El viaje de $userName ($tripId) y $driver ha comenzado";
           break;
@@ -139,20 +157,18 @@ class _HomeScreenState extends State<HomeScreen> {
           message = "$userName ($tripId) ha cancelado su viaje";
           break;
         default:
-          return; // Ignore unhandled statuses
+          return; // No hacer nada para estados no manejados.
       }
 
-      // Show banner and play sound
       _showBannerNotification(message);
       _playNotificationSound();
 
-      // Mark as displayed for statuses other than `pending`
-      if (status != 'pending') {
-        _displayedBanners.add(tripId);
-      }
+      // Marca el estado como mostrado.
+      _shownStatuses.add('$tripId-$status');
     }
   }
 
+  // Muestra una notificación tipo banner.
   void _showBannerNotification(String message) {
     final snackBar = SnackBar(
       content: Text(
@@ -163,7 +179,6 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.blue,
     );
 
-    // Ensure the context is still valid before showing
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
