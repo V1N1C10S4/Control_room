@@ -38,8 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initializeFCM();
     _listenForTokenRefresh();
-    _listenForTripStatusChanges();
     _listenForEmergencies();
+    _listenForTripStatusChanges();
   }
 
   void _listenForEmergencies() {
