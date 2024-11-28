@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UpdateDriverScreen extends StatefulWidget {
   final String usuario;
@@ -29,13 +29,13 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
   @override
   void initState() {
     super.initState();
-    _ciudadController.text = widget.driverData['Ciudad'];
-    _infoVehiculoController.text = widget.driverData['InfoVehiculo'];
-    _numeroSupervisorController.text = widget.driverData['NumeroSupervisor'];
-    _numeroTelefonoController.text = widget.driverData['NumeroTelefono'];
-    _estatusController.text = widget.driverData['Estatus'];
-    _placasController.text = widget.driverData['Placas'];
-    _nombreSupervisorController.text = widget.driverData['NombreSupervisor'];
+    _ciudadController.text = widget.driverData['Ciudad'] ?? '';
+    _infoVehiculoController.text = widget.driverData['InfoVehiculo'] ?? '';
+    _numeroSupervisorController.text = widget.driverData['NumeroSupervisor'] ?? '';
+    _numeroTelefonoController.text = widget.driverData['NumeroTelefono'] ?? '';
+    _estatusController.text = widget.driverData['Estatus'] ?? '';
+    _placasController.text = widget.driverData['Placas'] ?? '';
+    _nombreSupervisorController.text = widget.driverData['NombreSupervisor'] ?? '';
   }
 
   @override
@@ -84,9 +84,11 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
   }
 
   void _updateDriverData() {
-    DatabaseReference driverRef = FirebaseDatabase.instance.ref().child('Conductores').child(widget.driverKey);
+    // Referencia al documento del conductor en Firestore
+    final driverRef = FirebaseFirestore.instance.collection('Conductores').doc(widget.driverKey);
 
-    driverRef.update({
+    // Datos actualizados
+    final updatedData = {
       'Ciudad': _ciudadController.text,
       'InfoVehiculo': _infoVehiculoController.text,
       'NumeroSupervisor': _numeroSupervisorController.text,
@@ -94,15 +96,21 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
       'Estatus': _estatusController.text,
       'Placas': _placasController.text,
       'NombreSupervisor': _nombreSupervisorController.text,
-    }).then((_) {
+    };
+
+    // Actualizar documento en Firestore
+    driverRef.update(updatedData).then((_) {
+      // Mostrar mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Datos actualizados exitosamente')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context); // Regresa a la pantalla anterior
     }).catchError((error) {
+      // Mostrar mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al actualizar los datos: $error')),
       );
+      debugPrint('Error al actualizar los datos: $error');
     });
   }
 
