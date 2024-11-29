@@ -1,3 +1,4 @@
+import 'package:control_room/src/user_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -530,36 +531,77 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
             if (widget.isSupervisor)
               Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromRGBO(150, 190, 65, 1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DriverManagementScreen(
-                          usuario: widget.usuario,
-                          region: widget.region,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromRGBO(150, 190, 65, 1), // Verde militar
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => DriverManagementScreen(
+                                usuario: widget.usuario,
+                                region: widget.region,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.settings, size: 50, color: Colors.white),
+                            SizedBox(height: 10),
+                            Text(
+                              'Gestión de Conductores y Vehículos',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
                         ),
                       ),
-                    );
-                  },
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.settings, size: 50, color: Colors.white),
-                      SizedBox(height: 10),
-                      Text(
-                        'Gestión de Conductores y Vehículos',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white),
+                    ),
+                    const SizedBox(width: 16), // Espacio entre los botones
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde diferente
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => UserManagementScreen(
+                                usuario: widget.usuario,
+                                region: widget.region,
+                                isSupervisor: widget.isSupervisor,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.people, size: 50, color: Colors.white), // Icono de usuarios
+                            SizedBox(height: 10),
+                            Text(
+                              'Gestión de Usuarios',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
           ],
