@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'update_user_screen.dart';
+import 'create_user_screen.dart';
 
 class UserManagementScreen extends StatefulWidget {
   final String usuario;
@@ -34,6 +36,55 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _allUsers = snapshot.docs;
         _applySearch();
       });
+    });
+  }
+
+  void _confirmAndDeleteUser(String userId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar eliminación'),
+          content: const Text('¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cerrar el cuadro de diálogo
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Botón rojo para "Cancelar"
+              ),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.white)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _deleteUser(userId);
+                Navigator.of(context).pop(); // Cerrar el cuadro de diálogo tras confirmar
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar para "Confirmar"
+              ),
+              child: const Text('Confirmar', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteUser(String userId) {
+    // Referencia al documento del usuario en Firestore
+    FirebaseFirestore.instance.collection('Usuarios').doc(userId).delete().then((_) {
+      // Mostrar un mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario eliminado exitosamente.')),
+      );
+    }).catchError((error) {
+      // Mostrar un mensaje de error en caso de fallo
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al eliminar el usuario: $error')),
+      );
+      debugPrint('Error al eliminar el usuario: $error');
     });
   }
 
@@ -120,17 +171,43 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             'Ciudad: ${userData['Ciudad'] ?? 'Sin Ciudad'}\n'
                             'Teléfono: ${userData['NumeroTelefono'] ?? 'Sin Teléfono'}',
                           ),
-                          trailing: ElevatedButton(
-                            onPressed: () {
-                              _showUpdateUserDialog(user.id, userData);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar
-                            ),
-                            child: const Text(
-                              'Actualizar estado',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                          trailing: Wrap(
+                            spacing: 8, // Espaciado entre botones
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UpdateUserScreen(
+                                        usuario: widget.usuario,
+                                        userId: user.id,
+                                        userData: userData,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar
+                                ),
+                                child: const Text(
+                                  'Actualizar estado',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  _confirmAndDeleteUser(user.id); // Llamada a la lógica de eliminación
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red, // Botón rojo
+                                ),
+                                child: const Text(
+                                  'Eliminar usuario',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -139,12 +216,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => UserCreationScreen(
+                usuario: widget.usuario,
+                isSupervisor: widget.isSupervisor,
+                region: widget.region,
+              ),
+            ),
+          );
+        },
+        backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar
+        child: const Icon(Icons.add, color: Colors.white),
+        tooltip: 'Crear Usuario',
+      ),
     );
-  }
-
-  void _showUpdateUserDialog(String userId, Map<String, dynamic> userData) {
-    // Aquí puedes implementar un cuadro de diálogo o navegación para editar al usuario
-    print('Actualizar usuario con ID: $userId');
-    // Implementar lógica de actualización.
   }
 }
