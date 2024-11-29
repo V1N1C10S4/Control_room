@@ -21,6 +21,7 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
   final _userNameController = TextEditingController();
   final _ciudadController = TextEditingController();
   final _numeroTelefonoController = TextEditingController();
+  final _fotoPerfilController = TextEditingController();
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
     _userNameController.text = widget.userData['NombreUsuario'] ?? '';
     _ciudadController.text = widget.userData['Ciudad'] ?? '';
     _numeroTelefonoController.text = widget.userData['NumeroTelefono'] ?? '';
+    _fotoPerfilController.text = widget.userData['FotoPerfil'] ?? '';
   }
 
   @override
@@ -35,6 +37,7 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
     _userNameController.dispose();
     _ciudadController.dispose();
     _numeroTelefonoController.dispose();
+    _fotoPerfilController.dispose();
     super.dispose();
   }
 
@@ -77,9 +80,10 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
 
     // Datos actualizados
     final updatedData = {
-      'NombreUsuario': _userNameController.text,
-      'Ciudad': _ciudadController.text,
-      'NumeroTelefono': _numeroTelefonoController.text,
+      'NombreUsuario': _userNameController.text.trim(),
+      'Ciudad': _ciudadController.text.trim(),
+      'NumeroTelefono': _numeroTelefonoController.text.trim(),
+      'FotoPerfil': _fotoPerfilController.text.trim(),
     };
 
     // Actualizar documento en Firestore
@@ -126,6 +130,13 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
             TextField(
               controller: _numeroTelefonoController,
               decoration: const InputDecoration(labelText: 'Número de Teléfono'),
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _fotoPerfilController,
+              decoration: const InputDecoration(labelText: 'FotoPerfil (URL)'),
+              keyboardType: TextInputType.url,
             ),
             const SizedBox(height: 20),
             ElevatedButton(

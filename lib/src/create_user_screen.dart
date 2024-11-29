@@ -27,6 +27,7 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
   final TextEditingController _numeroTelefonoController = TextEditingController();
 
   bool _isSaving = false;
+  bool _isPasswordVisible = false; // Nueva variable para controlar la visibilidad
 
   void _saveUser() async {
     if (_formKey.currentState!.validate()) {
@@ -143,8 +144,20 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _contrasenaController,
-                decoration: const InputDecoration(labelText: 'Contraseña'),
-                obscureText: true,
+                obscureText: !_isPasswordVisible, // Usa la variable para controlar la visibilidad
+                decoration: InputDecoration(
+                  labelText: 'Contraseña',
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  ),
+                ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'Por favor, ingrese una Contraseña';
