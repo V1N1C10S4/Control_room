@@ -25,6 +25,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
   final _estatusController = TextEditingController();
   final _placasController = TextEditingController();
   final _nombreSupervisorController = TextEditingController();
+  final _fotoPerfilController = TextEditingController(); // Nuevo controlador para FotoPerfil
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
     _estatusController.text = widget.driverData['Estatus'] ?? '';
     _placasController.text = widget.driverData['Placas'] ?? '';
     _nombreSupervisorController.text = widget.driverData['NombreSupervisor'] ?? '';
+    _fotoPerfilController.text = widget.driverData['FotoPerfil'] ?? ''; // Inicializar con el valor actual
   }
 
   @override
@@ -47,6 +49,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
     _estatusController.dispose();
     _placasController.dispose();
     _nombreSupervisorController.dispose();
+    _fotoPerfilController.dispose(); // Liberar el controlador
     super.dispose();
   }
 
@@ -96,6 +99,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
       'Estatus': _estatusController.text,
       'Placas': _placasController.text,
       'NombreSupervisor': _nombreSupervisorController.text,
+      'FotoPerfil': _fotoPerfilController.text, // Incluir FotoPerfil
     };
 
     // Actualizar documento en Firestore
@@ -162,6 +166,11 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
             TextField(
               controller: _numeroSupervisorController,
               decoration: const InputDecoration(labelText: 'Número del Supervisor'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _fotoPerfilController,
+              decoration: const InputDecoration(labelText: 'URL de la Foto de Perfil'), // Nuevo campo
             ),
             const SizedBox(height: 20),
             ElevatedButton(

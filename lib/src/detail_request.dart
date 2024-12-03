@@ -141,12 +141,12 @@ class DetailRequestScreen extends StatelessWidget {
               'Número de mascotas: ${tripRequest['pets'] ?? 'No especificado'}',
               style: const TextStyle(fontSize: 20),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 8),
             Text(
               'Número de sillas para bebés: ${tripRequest['babySeats'] ?? 'No especificado'}',
               style: const TextStyle(fontSize: 20),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

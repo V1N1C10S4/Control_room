@@ -42,7 +42,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
         finishedTrips.sort((a, b) {
           final finishedAtA = a['finished_at'] != null ? DateTime.parse(a['finished_at']) : DateTime.now();
           final finishedAtB = b['finished_at'] != null ? DateTime.parse(b['finished_at']) : DateTime.now();
-          return finishedAtA.compareTo(finishedAtB);
+          return finishedAtB.compareTo(finishedAtA);
         });
 
         setState(() {

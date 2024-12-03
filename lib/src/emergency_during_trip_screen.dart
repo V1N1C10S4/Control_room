@@ -236,7 +236,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                   fontSize: 16,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Text(
                 'Sillas para bebés: ${trip['babySeats'] ?? 0}',
                 style: const TextStyle(
