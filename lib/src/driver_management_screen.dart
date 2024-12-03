@@ -31,7 +31,12 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
   void _fetchDrivers() {
     FirebaseFirestore.instance.collection('Conductores').snapshots().listen((snapshot) {
       setState(() {
-        _allDrivers = snapshot.docs;
+        _allDrivers = snapshot.docs.where((driver) {
+          // Filtra los conductores por la misma región del operador
+          final driverData = driver.data();
+          final ciudad = (driverData['Ciudad'] ?? '').toString().toLowerCase();
+          return ciudad == widget.region.toLowerCase();
+        }).toList();
         _applySearch();
       });
     });

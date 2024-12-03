@@ -33,7 +33,11 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void _fetchUsers() {
     FirebaseFirestore.instance.collection('Usuarios').snapshots().listen((snapshot) {
       setState(() {
-        _allUsers = snapshot.docs;
+        // Filtra los usuarios según la región del operador
+        _allUsers = snapshot.docs.where((doc) {
+          final data = doc.data();
+          return data['Ciudad']?.toLowerCase() == widget.region.toLowerCase();
+        }).toList();
         _applySearch();
       });
     });
