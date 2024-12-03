@@ -28,6 +28,7 @@ class CancelledTripsScreen extends StatelessWidget {
           'luggage': trip['luggage']?.toString() ?? 'NA',
           'passengers': trip['passengers']?.toString() ?? 'NA',
           'pets': trip['pets']?.toString() ?? 'NA',
+          'babySeats': trip['babySeats']?.toString() ?? 'NA',
           'started_at': trip['started_at'] != null ? _formatDateTime(trip['started_at']) : 'NA',
           'passenger_reached_at': trip['passenger_reached_at'] != null
               ? _formatDateTime(trip['passenger_reached_at'])
@@ -125,6 +126,7 @@ class CancelledTripsScreen extends StatelessWidget {
                       Text('Equipaje: ${trip['luggage']}'),
                       Text('Pasajeros: ${trip['passengers']}'),
                       Text('Mascotas: ${trip['pets']}'),
+                      Text('Sillas para bebés: ${trip['babySeats']}'),
                       Text('Inicio: ${trip['started_at']}'),
                       Text('Pasajero alcanzado: ${trip['passenger_reached_at']}'),
                       Text('Recogido: ${trip['picked_up_passenger_at']}'),

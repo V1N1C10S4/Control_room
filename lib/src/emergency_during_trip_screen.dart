@@ -237,6 +237,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 ),
               ),
               const SizedBox(height: 16),
+              Text(
+                'Sillas para bebés: ${trip['babySeats'] ?? 0}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

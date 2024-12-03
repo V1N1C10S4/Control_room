@@ -165,6 +165,14 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
+                            'Sillas para bebés: ${trip['babySeats'] ?? 0}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
                             'Solicitado: $createdAt',
                             style: const TextStyle(fontSize: 16),
                           ),
