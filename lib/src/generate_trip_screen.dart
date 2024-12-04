@@ -326,19 +326,29 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           ),
           onChanged: onChanged,
         ),
-        ListView.builder(
-          shrinkWrap: true,
-          itemCount: predictions.length,
-          itemBuilder: (context, index) {
-            final prediction = predictions[index];
-            return ListTile(
-              title: Text(prediction['description']),
-              onTap: () {
-                _getPlaceDetails(prediction['place_id'], isPickup);
+        if (predictions.isNotEmpty)
+          Container(
+            height: 200, // Define una altura fija para las predicciones
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: predictions.length,
+              itemBuilder: (context, index) {
+                final prediction = predictions[index];
+                return ListTile(
+                  title: Text(prediction['description']),
+                  onTap: () {
+                    _getPlaceDetails(prediction['place_id'], isPickup);
+                  },
+                );
               },
-            );
-          },
-        ),
+            ),
+          ),
       ],
     );
   }
