@@ -36,7 +36,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? selectedUserId;
 
   static const String googleApiKey = 'AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
-
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
@@ -336,7 +335,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
             ),
             child: ListView.builder(
               shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
+              physics: const NeverScrollableScrollPhysics(),
               itemCount: predictions.length,
               itemBuilder: (context, index) {
                 final prediction = predictions[index];
