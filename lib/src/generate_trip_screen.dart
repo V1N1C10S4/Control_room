@@ -37,6 +37,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   static const String googleApiKey = 'AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
 
+  List<Map<String, dynamic>> _pickupPredictions = [];
+  List<Map<String, dynamic>> _destinationPredictions = [];
+
   @override
   void initState() {
     super.initState();
@@ -64,28 +67,30 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     return [];
   }
 
-  Future<void> _selectPlace(String input, bool isPickup) async {
-    final predictions = await _getPlacePredictions(input);
-
-    if (predictions.isEmpty) {
-      return;
+  void _onPickupSearchChanged(String input) async {
+    if (input.isNotEmpty) {
+      final predictions = await _getPlacePredictions(input);
+      setState(() {
+        _pickupPredictions = predictions;
+      });
+    } else {
+      setState(() {
+        _pickupPredictions = [];
+      });
     }
+  }
 
-    showDialog(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: Text('Seleccione una ubicación'),
-        children: predictions.map((prediction) {
-          return SimpleDialogOption(
-            onPressed: () {
-              Navigator.pop(context); // Cerrar el diálogo
-              _getPlaceDetails(prediction['place_id'], isPickup);
-            },
-            child: Text(prediction['description']),
-          );
-        }).toList(),
-      ),
-    );
+  void _onDestinationSearchChanged(String input) async {
+    if (input.isNotEmpty) {
+      final predictions = await _getPlacePredictions(input);
+      setState(() {
+        _destinationPredictions = predictions;
+      });
+    } else {
+      setState(() {
+        _destinationPredictions = [];
+      });
+    }
   }
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
@@ -102,14 +107,16 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           _pickupLocation = latLng;
           _pickupAddress = data['result']['formatted_address'];
           _pickupController.text = _pickupAddress ?? '';
+          _pickupPredictions = [];
           _markers.add(Marker(markerId: MarkerId('pickup'), position: latLng));
         } else {
           _destinationLocation = latLng;
           _destinationAddress = data['result']['formatted_address'];
           _destinationController.text = _destinationAddress ?? '';
+          _destinationPredictions = [];
           _markers.add(Marker(markerId: MarkerId('destination'), position: latLng));
         }
-        _drawPolyline(); // Dibuja la ruta entre puntos
+        _drawPolyline();
       });
     }
   }
@@ -191,6 +198,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       _destinationLocation = null;
       _pickupAddress = null;
       _destinationAddress = null;
+      _pickupPredictions = [];
+      _destinationPredictions = [];
       _markers.clear();
       _polylines.clear();
       selectedUserId = null;
@@ -233,9 +242,21 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              _buildLocationField(_pickupController, 'Punto de Recogida', true),
+              _buildLocationField(
+                controller: _pickupController,
+                label: 'Punto de Recogida',
+                onChanged: _onPickupSearchChanged,
+                predictions: _pickupPredictions,
+                isPickup: true,
+              ),
               const SizedBox(height: 16),
-              _buildLocationField(_destinationController, 'Destino', false),
+              _buildLocationField(
+                controller: _destinationController,
+                label: 'Destino',
+                onChanged: _onDestinationSearchChanged,
+                predictions: _destinationPredictions,
+                isPickup: false,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -265,7 +286,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 height: 300,
                 child: GoogleMap(
                   initialCameraPosition: const CameraPosition(
-                    target: LatLng(19.432608, -99.133209),
+                    target: LatLng(19.432608, -99.133209), // Ciudad de México
                     zoom: 12,
                   ),
                   markers: _markers,
@@ -287,22 +308,38 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     );
   }
 
-  Widget _buildLocationField(TextEditingController controller, String label, bool isPickup) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(),
-      ),
-      onTap: () async {
-        final input = await showDialog<String>(
-          context: context,
-          builder: (_) => _AutocompleteDialog(),
-        );
-        if (input != null) {
-          await _selectPlace(input, isPickup);
-        }
-      },
+  Widget _buildLocationField({
+    required TextEditingController controller,
+    required String label,
+    required Function(String) onChanged,
+    required List<Map<String, dynamic>> predictions,
+    required bool isPickup,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: label,
+            border: OutlineInputBorder(),
+          ),
+          onChanged: onChanged,
+        ),
+        ListView.builder(
+          shrinkWrap: true,
+          itemCount: predictions.length,
+          itemBuilder: (context, index) {
+            final prediction = predictions[index];
+            return ListTile(
+              title: Text(prediction['description']),
+              onTap: () {
+                _getPlaceDetails(prediction['place_id'], isPickup);
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -316,26 +353,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           border: OutlineInputBorder(),
         ),
       ),
-    );
-  }
-}
-
-class _AutocompleteDialog extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final controller = TextEditingController();
-    return AlertDialog(
-      title: Text('Buscar Lugar'),
-      content: TextField(
-        controller: controller,
-        decoration: InputDecoration(hintText: 'Ingrese el lugar'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, controller.text),
-          child: Text('Buscar'),
-        ),
-      ],
     );
   }
 }
