@@ -54,7 +54,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
     String url =
-      'https://cors-anywhere.herokuapp.com/https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$googleApiKey';
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$googleApiKey';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
