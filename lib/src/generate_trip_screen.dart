@@ -35,7 +35,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   List<QueryDocumentSnapshot<Map<String, dynamic>>> users = [];
   String? selectedUserId;
 
-  static const String googleApiKey = 'AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+  static const String googleApiKey = 'AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g';
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
