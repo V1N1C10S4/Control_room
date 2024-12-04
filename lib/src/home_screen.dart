@@ -612,8 +612,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity, // Ocupa todo el renglón
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue, // Color azul
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
+                      padding: const EdgeInsets.symmetric(vertical: 24.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -629,11 +629,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.map, size: 24, color: Colors.white), // Ícono que representa un viaje
+                        Icon(Icons.map, size: 28, color: Colors.white), // Ícono que representa un viaje
                         SizedBox(width: 8),
                         Text(
                           'Generar Viaje',
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                          style: TextStyle(color: Colors.white, fontSize: 22),
                         ),
                       ],
                     ),

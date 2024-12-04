@@ -12,6 +12,9 @@ class GenerateTripScreen extends StatelessWidget {
           style: TextStyle(color: Colors.white), // Título blanco
         ),
         backgroundColor: Colors.blue, // Color del AppBar
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: const Center(
         child: Text(
