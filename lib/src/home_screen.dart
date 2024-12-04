@@ -12,6 +12,7 @@ import 'driver_management_screen.dart';
 import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
+import 'generate_trip_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -602,6 +603,41 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+              ),
+            if (widget.isSupervisor) // Solo mostrar el botón si es supervisor
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: SizedBox(
+                  width: double.infinity, // Ocupa todo el renglón
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue, // Color azul
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GenerateTripScreen(),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.map, size: 24, color: Colors.white), // Ícono que representa un viaje
+                        SizedBox(width: 8),
+                        Text(
+                          'Generar Viaje',
+                          style: TextStyle(color: Colors.white, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
           ],
