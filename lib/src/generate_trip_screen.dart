@@ -11,7 +11,7 @@ class GenerateTripScreen extends StatelessWidget {
           'Generar Viaje',
           style: TextStyle(color: Colors.white), // Título blanco
         ),
-        backgroundColor: Colors.blue, // Color del AppBar
+        backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
