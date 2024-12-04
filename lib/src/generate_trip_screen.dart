@@ -54,7 +54,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
     String url =
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$googleApiKey';
+        'https://us-central1-appenitaxiusuarios.cloudfunctions.net/proxyPlacesAPI?input=$input';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -94,7 +94,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
     String url =
-        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$googleApiKey';
+        'https://us-central1-appenitaxiusuarios.cloudfunctions.net/proxyPlacesAPI?place_id=$placeId';
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
@@ -215,6 +215,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       appBar: AppBar(
         title: const Text('Generar Viaje', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: SingleChildScrollView(
         child: Padding(
