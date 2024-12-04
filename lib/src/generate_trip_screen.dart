@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -27,8 +28,14 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   int babySeats = 0;
 
   final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
+  final List<LatLng> _polylineCoordinates = [];
+  PolylinePoints polylinePoints = PolylinePoints();
+
   List<QueryDocumentSnapshot<Map<String, dynamic>>> users = [];
   String? selectedUserId;
+
+  static const String googleApiKey = 'AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
 
   @override
   void initState() {
@@ -45,7 +52,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
     String url =
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=YOUR_GOOGLE_MAPS_API_KEY';
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$googleApiKey';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -64,7 +71,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       return;
     }
 
-    // Mostrar diálogo con las sugerencias
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
@@ -84,7 +90,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
     String url =
-        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=YOUR_GOOGLE_MAPS_API_KEY';
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$googleApiKey';
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
@@ -103,6 +109,35 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           _destinationController.text = _destinationAddress ?? '';
           _markers.add(Marker(markerId: MarkerId('destination'), position: latLng));
         }
+        _drawPolyline(); // Dibuja la ruta entre puntos
+      });
+    }
+  }
+
+  Future<void> _drawPolyline() async {
+    if (_pickupLocation == null || _destinationLocation == null) return;
+
+    String url =
+        'https://maps.googleapis.com/maps/api/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=$googleApiKey';
+    final response = await http.get(Uri.parse(url));
+    final data = json.decode(response.body);
+
+    if (data['status'] == 'OK') {
+      List<PointLatLng> points =
+          polylinePoints.decodePolyline(data['routes'][0]['overview_polyline']['points']);
+      setState(() {
+        _polylineCoordinates.clear();
+        for (var point in points) {
+          _polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+
+        _polylines.clear();
+        _polylines.add(Polyline(
+          polylineId: PolylineId('route'),
+          points: _polylineCoordinates,
+          color: Colors.blue,
+          width: 5,
+        ));
       });
     }
   }
@@ -157,6 +192,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       _pickupAddress = null;
       _destinationAddress = null;
       _markers.clear();
+      _polylines.clear();
       selectedUserId = null;
       passengers = 1;
       luggage = 0;
@@ -169,10 +205,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Generar Viaje',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Generar Viaje', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
       ),
       body: SingleChildScrollView(
@@ -181,10 +214,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Seleccione un Usuario',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
               DropdownButtonFormField<String>(
                 value: selectedUserId,
                 items: users
@@ -200,88 +229,51 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 },
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'Seleccione un usuario',
+                  labelText: 'Usuario',
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _pickupController,
-                decoration: InputDecoration(
-                  labelText: 'Punto de Recogida',
-                  hintText: 'Ingrese el punto de recogida',
-                  border: OutlineInputBorder(),
-                ),
-                onTap: () async {
-                  final input = await showDialog<String>(
-                    context: context,
-                    builder: (_) => _AutocompleteDialog(),
-                  );
-                  if (input != null) {
-                    await _selectPlace(input, true);
-                  }
-                },
+              _buildLocationField(_pickupController, 'Punto de Recogida', true),
+              const SizedBox(height: 16),
+              _buildLocationField(_destinationController, 'Destino', false),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildNumericField('Pasajeros', (value) {
+                    passengers = int.tryParse(value) ?? 1;
+                  }),
+                  const SizedBox(width: 16),
+                  _buildNumericField('Equipaje', (value) {
+                    luggage = int.tryParse(value) ?? 0;
+                  }),
+                ],
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _destinationController,
-                decoration: InputDecoration(
-                  labelText: 'Destino',
-                  hintText: 'Ingrese el destino',
-                  border: OutlineInputBorder(),
-                ),
-                onTap: () async {
-                  final input = await showDialog<String>(
-                    context: context,
-                    builder: (_) => _AutocompleteDialog(),
-                  );
-                  if (input != null) {
-                    await _selectPlace(input, false);
-                  }
-                },
+              Row(
+                children: [
+                  _buildNumericField('Mascotas', (value) {
+                    pets = int.tryParse(value) ?? 0;
+                  }),
+                  const SizedBox(width: 16),
+                  _buildNumericField('Sillas para Bebés', (value) {
+                    babySeats = int.tryParse(value) ?? 0;
+                  }),
+                ],
               ),
               const SizedBox(height: 16),
               Container(
                 height: 300,
                 child: GoogleMap(
                   initialCameraPosition: const CameraPosition(
-                    target: LatLng(19.432608, -99.133209), // Ciudad de México
+                    target: LatLng(19.432608, -99.133209),
                     zoom: 12,
                   ),
                   markers: _markers,
+                  polylines: _polylines,
                   onMapCreated: (GoogleMapController controller) {
                     _mapController.complete(controller);
                   },
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        passengers = int.tryParse(value) ?? 1;
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Pasajeros',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        luggage = int.tryParse(value) ?? 0;
-                      },
-                      decoration: const InputDecoration(
-                        labelText: 'Equipaje',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -290,6 +282,38 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationField(TextEditingController controller, String label, bool isPickup) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(),
+      ),
+      onTap: () async {
+        final input = await showDialog<String>(
+          context: context,
+          builder: (_) => _AutocompleteDialog(),
+        );
+        if (input != null) {
+          await _selectPlace(input, isPickup);
+        }
+      },
+    );
+  }
+
+  Widget _buildNumericField(String label, Function(String) onChanged) {
+    return Expanded(
+      child: TextField(
+        keyboardType: TextInputType.number,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
         ),
       ),
     );
