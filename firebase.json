@@ -70,6 +70,8 @@
   },
   "functions": [
     {
+      "timeoutSeconds": 300,
+      "memory": "512MB",
       "source": "functions",
       "codebase": "default",
       "ignore": [
