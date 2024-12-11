@@ -35,7 +35,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   List<QueryDocumentSnapshot<Map<String, dynamic>>> users = [];
   String? selectedUserId;
 
-  static const String googleApiKey = 'AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g';
+  static const String proxyBaseUrl = 'https://militripproxy-cxqf3xgxz-vinicio-santoyo-cuevas-projects.vercel.app';
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
@@ -53,8 +53,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
-    String url =
-        'https://us-central1-appenitaxiusuarios.cloudfunctions.net/proxyPlacesAPI?input=$input';
+    String url = '$proxyBaseUrl/proxyPlacesAPI?input=$input';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -93,8 +92,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
-    String url =
-        'https://us-central1-appenitaxiusuarios.cloudfunctions.net/proxyPlacesAPI?place_id=$placeId';
+    String url = '$proxyBaseUrl/proxyPlacesAPI?place_id=$placeId';
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
@@ -124,7 +122,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
     String url =
-        'https://maps.googleapis.com/maps/api/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=$googleApiKey';
+        proxyBaseUrl;
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
