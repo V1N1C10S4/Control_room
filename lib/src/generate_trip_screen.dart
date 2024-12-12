@@ -36,7 +36,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? selectedUserId;
 
   static const String proxyBaseUrl =
-      'https://militripproxy-h5qwkmxc9-vinicio-santoyo-cuevas-projects.vercel.app';
+      'https://militripproxy-wnbwka7vz-vinicio-santoyo-cuevas-projects.vercel.app';
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
