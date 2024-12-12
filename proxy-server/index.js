@@ -6,16 +6,15 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configurar CORS para permitir solicitudes desde tu dominio específico
+// Configurar CORS
 app.use(
   cors({
-    origin: "https://appenitaxiusuarios.web.app", // Sustituye por el dominio de tu app
-    methods: "GET,POST",
-    allowedHeaders: "Content-Type",
+    origin: ["https://appenitaxiusuarios.web.app"], // Dominios permitidos
+    methods: ["GET"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Ruta del proxy
 app.get("/proxyPlacesAPI", async (req, res) => {
   const input = req.query.input;
   const placeId = req.query.place_id;
@@ -30,13 +29,18 @@ app.get("/proxyPlacesAPI", async (req, res) => {
 
   try {
     const response = await axios.get(url);
-    res.setHeader("Access-Control-Allow-Origin", "https://appenitaxiusuarios.web.app"); // Permitir solicitudes desde tu dominio
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // Configurar cabeceras para solicitudes CORS
+    res.setHeader("Access-Control-Allow-Origin", "https://appenitaxiusuarios.web.app");
+    res.setHeader("Access-Control-Allow-Methods", "GET");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
     res.json(response.data);
   } catch (error) {
-    console.error("Error al realizar la solicitud a Google Places API:", error.message);
-    res.status(500).json({ error: "Error interno del servidor" });
+    console.error("Error al realizar la solicitud:", error.message);
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data || "Error interno del servidor",
+    });
   }
 });
 

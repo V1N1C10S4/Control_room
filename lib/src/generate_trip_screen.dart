@@ -36,7 +36,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? selectedUserId;
 
   static const String proxyBaseUrl =
-      'https://militripproxy-wnbwka7vz-vinicio-santoyo-cuevas-projects.vercel.app';
+      'https://militripproxy-g54eh881h-vinicio-santoyo-cuevas-projects.vercel.app';
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
@@ -55,7 +55,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
-    String url = '$proxyBaseUrl/proxyPlacesAPI?input=$input';
+    String url =
+        'https://militripproxy-g54eh881h-vinicio-santoyo-cuevas-projects.vercel.app/proxyPlacesAPI?input=$input';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
