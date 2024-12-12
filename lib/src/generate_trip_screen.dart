@@ -35,7 +35,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   List<QueryDocumentSnapshot<Map<String, dynamic>>> users = [];
   String? selectedUserId;
 
-  static const String proxyBaseUrl = 'https://militripproxy-cxqf3xgxz-vinicio-santoyo-cuevas-projects.vercel.app';
+  static const String proxyBaseUrl =
+      'https://militripproxy-cxqf3xgxz-vinicio-santoyo-cuevas-projects.vercel.app';
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
@@ -46,7 +47,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<void> _loadUsersFromFirestore() async {
-    final snapshot = await FirebaseFirestore.instance.collection('Usuarios').get();
+    final snapshot =
+        await FirebaseFirestore.instance.collection('Usuarios').get();
     setState(() {
       users = snapshot.docs;
     });
@@ -111,7 +113,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           _destinationAddress = data['result']['formatted_address'];
           _destinationController.text = _destinationAddress ?? '';
           _destinationPredictions = [];
-          _markers.add(Marker(markerId: MarkerId('destination'), position: latLng));
+          _markers.add(
+              Marker(markerId: MarkerId('destination'), position: latLng));
         }
         _drawPolyline();
       });
@@ -122,13 +125,13 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
     String url =
-        proxyBaseUrl;
+        'https://maps.googleapis.com/maps/api/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g';
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
     if (data['status'] == 'OK') {
-      List<PointLatLng> points =
-          polylinePoints.decodePolyline(data['routes'][0]['overview_polyline']['points']);
+      List<PointLatLng> points = polylinePoints
+          .decodePolyline(data['routes'][0]['overview_polyline']['points']);
       setState(() {
         _polylineCoordinates.clear();
         for (var point in points) {
