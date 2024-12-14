@@ -13,6 +13,6 @@
       }
     ],
     "env": {
-      "PLACES_API_KEY": "@places_api_key"
+      "PLACES_API_KEY": "PLACES_API_KEY"
     }
   }
