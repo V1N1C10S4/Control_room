@@ -56,7 +56,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
     String url =
-        'https://militripproxy-pd9vww2ms-vinicio-santoyo-cuevas-projects.vercel.app/proxyPlacesAPI?input=$input';
+        'https://34.120.209.209.nip.io/militripproxy/place/autocomplete/json?input=$input&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
