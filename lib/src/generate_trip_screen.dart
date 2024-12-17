@@ -5,6 +5,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_database/firebase_database.dart';
 
 class GenerateTripScreen extends StatefulWidget {
   const GenerateTripScreen({Key? key}) : super(key: key);
@@ -34,11 +35,19 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   List<QueryDocumentSnapshot<Map<String, dynamic>>> users = [];
   String? selectedUserId;
+  String? userName;
+  String? city;
+
 
   static const String proxyBaseUrl =
       "https://34.120.209.209.nip.io/militripproxy";
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
+
+  // Información del viaje
+  String? _distanceText;
+  String? _durationText;
+  String? _arrivalTimeText;
 
   @override
   void initState() {
@@ -147,28 +156,54 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   Future<void> _drawPolyline() async {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
+    // Construir la URL completa usando el proxy
     String url =
         '$proxyBaseUrl/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
     final response = await http.get(Uri.parse(url));
-    final data = json.decode(response.body);
 
-    if (data['status'] == 'OK') {
-      List<PointLatLng> points = polylinePoints
-          .decodePolyline(data['routes'][0]['overview_polyline']['points']);
-      setState(() {
-        _polylineCoordinates.clear();
-        for (var point in points) {
-          _polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-        }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
 
-        _polylines.clear();
-        _polylines.add(Polyline(
-          polylineId: PolylineId('route'),
-          points: _polylineCoordinates,
-          color: Colors.blue,
-          width: 5,
-        ));
-      });
+      if (data['status'] == 'OK') {
+        // Extraer información adicional: distancia, duración y hora de llegada
+        final route = data['routes'][0]['legs'][0];
+        final distanceText = route['distance']['text'];
+        final durationText = route['duration']['text'];
+        final durationValue = route['duration']['value'];
+        final arrivalTime = DateTime.now().add(Duration(seconds: durationValue));
+        final arrivalTimeText =
+            "${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')}";
+
+        // Decodificar los puntos del polyline
+        List<PointLatLng> points = polylinePoints
+            .decodePolyline(data['routes'][0]['overview_polyline']['points']);
+
+        setState(() {
+          // Limpiar y agregar los puntos de la polyline
+          _polylineCoordinates.clear();
+          for (var point in points) {
+            _polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+          }
+
+          // Configurar la polyline en el mapa
+          _polylines.clear();
+          _polylines.add(Polyline(
+            polylineId: PolylineId('route'),
+            points: _polylineCoordinates,
+            color: Colors.blue,
+            width: 5,
+          ));
+
+          // Actualizar las variables de información del viaje
+          _distanceText = distanceText;
+          _durationText = durationText;
+          _arrivalTimeText = arrivalTimeText;
+        });
+      } else {
+        print("Error en la respuesta de la API: ${data['status']}");
+      }
+    } else {
+      print("Error en la solicitud: ${response.statusCode}");
     }
   }
 
@@ -180,8 +215,32 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       return;
     }
 
+    // Inicializa el campo fcmToken como nulo
+    String? fcmToken;
+
+    // Buscar coincidencias en Firebase Realtime Database
+    final DatabaseReference databaseRef = FirebaseDatabase.instance.ref('trip_requests');
+    try {
+      final snapshot = await databaseRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value['userName'] == userName) { // Comparar userName
+            fcmToken = value['fcmToken']; // Copiar el fcmToken si hay coincidencia
+            print("FCM Token encontrado: $fcmToken");
+            return; // Rompe el bucle una vez encontrada la coincidencia
+          }
+        });
+      }
+    } catch (e) {
+      print("Error al buscar FCM Token: $e");
+    }
+
+    // Crear la solicitud de viaje con el fcmToken si fue encontrado
     final tripData = {
       'userId': selectedUserId,
+      'userName': userName,
+      'city': city,
       'pickup': {
         'latitude': _pickupLocation!.latitude,
         'longitude': _pickupLocation!.longitude,
@@ -199,9 +258,11 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       'status': 'pending',
       'created_at': DateTime.now().toIso8601String(),
       'emergency': false,
+      if (fcmToken != null) 'fcmToken': fcmToken, // Añadir fcmToken solo si existe
     };
 
-    FirebaseFirestore.instance.collection('trip_requests').add(tripData).then((_) {
+    // Guardar en Firebase Realtime Database
+    databaseRef.push().set(tripData).then((_) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Solicitud de viaje creada exitosamente.'),
       ));
@@ -230,6 +291,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       luggage = 0;
       pets = 0;
       babySeats = 0;
+      _distanceText = null;
+      _durationText = null;
+      _arrivalTimeText = null;
     });
   }
 
@@ -251,15 +315,17 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
             children: [
               DropdownButtonFormField<String>(
                 value: selectedUserId,
-                items: users
-                    .map((user) => DropdownMenuItem(
-                          value: user.id,
-                          child: Text(user['NombreUsuario']),
-                        ))
-                    .toList(),
+                items: users.map((user) => DropdownMenuItem(
+                      value: user.id,
+                      child: Text(user['NombreUsuario']), // Mostrar el nombre del usuario
+                    )).toList(),
                 onChanged: (value) {
                   setState(() {
-                    selectedUserId = value;
+                    selectedUserId = value; // ID del usuario seleccionado
+                    // Buscar el documento del usuario seleccionado
+                    final selectedUser = users.firstWhere((user) => user.id == value);
+                    userName = selectedUser['NombreUsuario']; // Capturar NombreUsuario
+                    city = selectedUser['Ciudad']; // Capturar Ciudad
                   });
                 },
                 decoration: const InputDecoration(
@@ -308,19 +374,72 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              Container(
-                height: 300,
-                child: GoogleMap(
-                  initialCameraPosition: const CameraPosition(
-                    target: LatLng(19.432608, -99.133209), // Ciudad de México
-                    zoom: 12,
+              Stack(
+                children: [
+                  Container(
+                    height: 300,
+                    child: GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(19.432608, -99.133209), // Ciudad de México
+                        zoom: 12,
+                      ),
+                      markers: _markers,
+                      polylines: _polylines,
+                      onMapCreated: (GoogleMapController controller) {
+                        _mapController.complete(controller);
+                      },
+                    ),
                   ),
-                  markers: _markers,
-                  polylines: _polylines,
-                  onMapCreated: (GoogleMapController controller) {
-                    _mapController.complete(controller);
-                  },
-                ),
+                if (_distanceText != null &&
+                    _durationText != null &&
+                    _arrivalTimeText != null)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 4.0,
+                            spreadRadius: 1.0,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Distancia: $_distanceText",
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Duración: $_durationText",
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "Hora estimada de llegada: $_arrivalTimeText",
+                            style: const TextStyle(
+                              fontSize: 14.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               ElevatedButton(
