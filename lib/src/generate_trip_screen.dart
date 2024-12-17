@@ -95,30 +95,45 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
-    String url = '$proxyBaseUrl/proxyPlacesAPI?place_id=$placeId';
-    final response = await http.get(Uri.parse(url));
-    final data = json.decode(response.body);
+    // Construir la URL completa para Google Places a través de tu proxy
+    String url =
+        '$proxyBaseUrl/place/details/json?place_id=$placeId&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+    
+    try {
+      final response = await http.get(Uri.parse(url));
 
-    if (data['status'] == 'OK') {
-      final location = data['result']['geometry']['location'];
-      final latLng = LatLng(location['lat'], location['lng']);
-      setState(() {
-        if (isPickup) {
-          _pickupLocation = latLng;
-          _pickupAddress = data['result']['formatted_address'];
-          _pickupController.text = _pickupAddress ?? '';
-          _pickupPredictions = [];
-          _markers.add(Marker(markerId: MarkerId('pickup'), position: latLng));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK') {
+          final location = data['result']['geometry']['location'];
+          final latLng = LatLng(location['lat'], location['lng']);
+
+          setState(() {
+            if (isPickup) {
+              _pickupLocation = latLng;
+              _pickupAddress = data['result']['formatted_address'];
+              _pickupController.text = _pickupAddress ?? '';
+              _pickupPredictions = [];
+              _markers.add(Marker(markerId: MarkerId('pickup'), position: latLng));
+            } else {
+              _destinationLocation = latLng;
+              _destinationAddress = data['result']['formatted_address'];
+              _destinationController.text = _destinationAddress ?? '';
+              _destinationPredictions = [];
+              _markers.add(
+                  Marker(markerId: MarkerId('destination'), position: latLng));
+            }
+            _drawPolyline();
+          });
         } else {
-          _destinationLocation = latLng;
-          _destinationAddress = data['result']['formatted_address'];
-          _destinationController.text = _destinationAddress ?? '';
-          _destinationPredictions = [];
-          _markers.add(
-              Marker(markerId: MarkerId('destination'), position: latLng));
+          print("Error en la respuesta de la API: ${data['status']}");
         }
-        _drawPolyline();
-      });
+      } else {
+        print("Error en la solicitud: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Excepción en la solicitud: $e");
     }
   }
 
