@@ -267,6 +267,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         content: Text('Solicitud de viaje creada exitosamente.'),
       ));
       _resetForm();
+
     }).catchError((error) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text('Error al enviar la solicitud: $error'),

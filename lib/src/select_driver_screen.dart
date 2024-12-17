@@ -121,7 +121,6 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
 
       _logger.i('Driver assigned successfully.');
 
-      // Volver a la pantalla de solicitudes de viaje
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(

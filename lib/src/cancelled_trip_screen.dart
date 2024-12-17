@@ -37,6 +37,7 @@ class CancelledTripsScreen extends StatelessWidget {
               ? _formatDateTime(trip['picked_up_passenger_at'])
               : 'NA',
           'city': trip['city'] ?? 'NA',
+          'emergency_at': trip['emergency_at'] != null ? _formatDateTime(trip['emergency_at']) : null, // Captura emergency_at si existe
         };
       }).toList();
 
@@ -44,15 +45,15 @@ class CancelledTripsScreen extends StatelessWidget {
       trips = trips
           .where((trip) => trip['city'] == region)
           .toList()
-          ..sort((a, b) {
-            final createdAtA = a['created_at'] != 'NA'
-                ? DateFormat('dd/MM/yyyy HH:mm').parse(a['created_at'])
-                : DateTime.now();
-            final createdAtB = b['created_at'] != 'NA'
-                ? DateFormat('dd/MM/yyyy HH:mm').parse(b['created_at'])
-                : DateTime.now();
-            return createdAtB.compareTo(createdAtA); // Ordenar de más reciente a más antiguo
-          });
+        ..sort((a, b) {
+          final createdAtA = a['created_at'] != 'NA'
+              ? DateFormat('dd/MM/yyyy HH:mm').parse(a['created_at'])
+              : DateTime.now();
+          final createdAtB = b['created_at'] != 'NA'
+              ? DateFormat('dd/MM/yyyy HH:mm').parse(b['created_at'])
+              : DateTime.now();
+          return createdAtB.compareTo(createdAtA); // Ordenar de más reciente a más antiguo
+        });
 
       return trips;
     }
@@ -130,6 +131,14 @@ class CancelledTripsScreen extends StatelessWidget {
                       Text('Inicio: ${trip['started_at']}'),
                       Text('Pasajero alcanzado: ${trip['passenger_reached_at']}'),
                       Text('Recogido: ${trip['picked_up_passenger_at']}'),
+                      if (trip['emergency_at'] != null)
+                        Text(
+                          'Emergencia: ${trip['emergency_at']}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                     ],
                   ),
                 ),

@@ -34,8 +34,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
         })
         .where((trip) =>
             trip['status'] == 'trip finished' &&
-            trip['city']?.toLowerCase() == widget.region.toLowerCase() &&
-            !trip.containsKey('emergency_at')) // Excluir viajes con 'emergency_at'
+            trip['city']?.toLowerCase() == widget.region.toLowerCase()) // No excluir emergency_at
         .toList();
 
         // Ordenar los viajes terminados por el campo "finished_at"
@@ -95,6 +94,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                 final String passengerReachedAt = _formatDateTime(trip['passenger_reached_at']);
                 final String pickedUpPassengerAt = _formatDateTime(trip['picked_up_passenger_at']);
                 final String finishedAt = _formatDateTime(trip['finished_at']);
+                final String emergencyAt = _formatDateTime(trip['emergency_at']);
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -192,6 +192,14 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Finalizado: $finishedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
+                          if (trip.containsKey('emergency_at') && trip['emergency_at'] != null)
+                            Text(
+                              'Emergencia: $emergencyAt',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                         ],
                       ),
                     ),
