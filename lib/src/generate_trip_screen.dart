@@ -115,14 +115,21 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
               _pickupAddress = data['result']['formatted_address'];
               _pickupController.text = _pickupAddress ?? '';
               _pickupPredictions = [];
-              _markers.add(Marker(markerId: MarkerId('pickup'), position: latLng));
+              _markers.add(Marker(
+                markerId: MarkerId('pickup'),
+                position: latLng,
+                icon: BitmapDescriptor.defaultMarker, // Color por defecto (rojo)
+              ));
             } else {
               _destinationLocation = latLng;
               _destinationAddress = data['result']['formatted_address'];
               _destinationController.text = _destinationAddress ?? '';
               _destinationPredictions = [];
-              _markers.add(
-                  Marker(markerId: MarkerId('destination'), position: latLng));
+              _markers.add(Marker(
+                markerId: MarkerId('destination'),
+                position: latLng,
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue), // Azul
+              ));
             }
             _drawPolyline();
           });
@@ -141,7 +148,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
     String url =
-        'https://maps.googleapis.com/maps/api/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g';
+        '$proxyBaseUrl/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
     final response = await http.get(Uri.parse(url));
     final data = json.decode(response.body);
 
