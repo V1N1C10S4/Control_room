@@ -61,9 +61,16 @@ class _HomeScreenState extends State<HomeScreen> {
     if (tripData.containsKey('emergency') && tripId != null) {
       final bool isEmergency = tripData['emergency'] == true;
       final String userName = tripData['userName'] ?? 'Usuario desconocido';
+      final String tripCity = tripData['city'] ?? '';
+
+      // Filtrar por región antes de mostrar la notificación
+      if (tripCity != widget.region) {
+        return; // Ignorar emergencias de otras regiones
+      }
 
       if (isEmergency) {
-        String message = "¡¡¡Emergencia detectada!!! En viaje de $userName ($tripId), se requiere atención inmediata";
+        String message =
+            "¡¡¡Emergencia detectada!!! En viaje de $userName ($tripId), se requiere atención inmediata";
         _showEmergencyBanner(message);
         _playEmergencyAlert();
       }
@@ -91,20 +98,24 @@ class _HomeScreenState extends State<HomeScreen> {
     await player.play(AssetSource('sounds/emergency_alert.mp3'));
   }
 
-  // Maneja el caso específico de "pending" para nuevas entradas.
   void _handlePendingTrip(String? tripId, Map<dynamic, dynamic> tripData) {
     if (tripData.containsKey('status') && tripId != null) {
       final String status = tripData['status'];
+      final String tripCity = tripData['city'] ?? '';
 
-      // Solo maneja "pending" al detectar una entrada nueva.
+      // Filtrar por región antes de mostrar la notificación
+      if (tripCity != widget.region) {
+        return; // Ignorar notificaciones de otras regiones
+      }
+
       if (status == 'pending' && !_shownStatuses.contains('$tripId-pending')) {
         final String userName = tripData['userName'] ?? 'Usuario desconocido';
-        String message = "Nueva solicitud de viaje detectada de $userName ($tripId)";
-        
+        String message = "Nueva solicitud de viaje detectada de $userName ($tripId) en $tripCity";
+
         _showBannerNotification(message);
         _playNotificationSound();
-        
-        // Marca el banner de "pending" como mostrado.
+
+        // Marca el banner como mostrado
         _shownStatuses.add('$tripId-pending');
       }
     }
@@ -134,8 +145,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleStatusChange(String? tripId, Map<dynamic, dynamic> tripData) {
     if (tripData.containsKey('status') && tripId != null) {
       final String status = tripData['status'];
+      final String tripCity = tripData['city'] ?? '';
 
-      // Evita mostrar banners repetidos para el mismo estado de un tripId.
+      // Filtrar por región antes de mostrar la notificación
+      if (tripCity != widget.region) {
+        return; // Ignorar cambios de estado de otras regiones
+      }
+
+      // Evitar notificaciones repetidas para el mismo estado
       if (_shownStatuses.contains('$tripId-$status')) return;
 
       final String userName = tripData['userName'] ?? 'Usuario desconocido';
@@ -159,13 +176,13 @@ class _HomeScreenState extends State<HomeScreen> {
           message = "$userName ($tripId) ha cancelado su viaje";
           break;
         default:
-          return; // No hacer nada para estados no manejados.
+          return; // No hacer nada para estados no manejados
       }
 
       _showBannerNotification(message);
       _playNotificationSound();
 
-      // Marca el estado como mostrado.
+      // Marca el estado como mostrado
       _shownStatuses.add('$tripId-$status');
     }
   }
