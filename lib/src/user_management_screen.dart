@@ -115,7 +115,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Gestión de Usuarios',
+          'Gestión de Pasajeros',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar

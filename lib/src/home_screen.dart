@@ -611,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Icon(Icons.people, size: 50, color: Colors.white), // Icono de usuarios
                             SizedBox(height: 10),
                             Text(
-                              'Gestión de Usuarios',
+                              'Gestión de Pasajeros',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: Colors.white),
                             ),
