@@ -199,9 +199,86 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
         markerId: const MarkerId('destination'),
         position: destination,
         infoWindow: const InfoWindow(title: 'Destino'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     });
+  }
+
+  Future<void> _zoomToBothMarkers() async {
+    final GoogleMapController controller = await _mapController.future;
+
+    if (_markers.length >= 2) {
+      LatLngBounds bounds = LatLngBounds(
+        southwest: LatLng(
+          _markers.first.position.latitude < _markers.last.position.latitude
+              ? _markers.first.position.latitude
+              : _markers.last.position.latitude,
+          _markers.first.position.longitude < _markers.last.position.longitude
+              ? _markers.first.position.longitude
+              : _markers.last.position.longitude,
+        ),
+        northeast: LatLng(
+          _markers.first.position.latitude > _markers.last.position.latitude
+              ? _markers.first.position.latitude
+              : _markers.last.position.latitude,
+          _markers.first.position.longitude > _markers.last.position.longitude
+              ? _markers.first.position.longitude
+              : _markers.last.position.longitude,
+        ),
+      );
+
+      controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+    }
+  }
+
+  Future<void> _zoomToPickup() async {
+    final GoogleMapController controller = await _mapController.future;
+    try {
+      Marker pickupMarker = _markers.firstWhere(
+        (marker) => marker.markerId.value == 'pickup',
+      );
+
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: pickupMarker.position,
+            zoom: 18, // Zoom profundo
+          ),
+        ),
+      );
+    } catch (e) {
+      _logger.e("Pickup marker not found: $e");
+      Fluttertoast.showToast(
+        msg: "Error: Pickup marker not found",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _zoomToDestination() async {
+    final GoogleMapController controller = await _mapController.future;
+    try {
+      Marker destinationMarker = _markers.firstWhere(
+        (marker) => marker.markerId.value == 'destination',
+      );
+
+      controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: destinationMarker.position,
+            zoom: 18, // Zoom profundo
+          ),
+        ),
+      );
+    } catch (e) {
+      _logger.e("Destination marker not found: $e");
+      Fluttertoast.showToast(
+        msg: "Error: Destination marker not found",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    }
   }
 
   @override
@@ -267,22 +344,99 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 32),
-            SizedBox(
-              height: 250,
-              child: GoogleMap(
-                initialCameraPosition: const CameraPosition(
-                  target: LatLng(19.432608, -99.133209),
-                  zoom: 12,
+
+            // Google Map con controles y leyenda
+            Stack(
+              children: [
+                SizedBox(
+                  height: 280,
+                  child: GoogleMap(
+                    initialCameraPosition: const CameraPosition(
+                      target: LatLng(19.432608, -99.133209),
+                      zoom: 12,
+                    ),
+                    markers: _markers,
+                    polylines: _polylines,
+                    zoomControlsEnabled: false, // Deshabilitar controles predeterminados
+                    onMapCreated: (GoogleMapController controller) {
+                      _mapController.complete(controller);
+                    },
+                  ),
                 ),
-                markers: _markers,
-                polylines: _polylines,
-                zoomControlsEnabled: true,
-                onMapCreated: (GoogleMapController controller) {
-                  _mapController.complete(controller);
-                },
-              ),
+
+                // Leyenda de los colores
+                Positioned(
+                  bottom: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: Row(
+                      children: [
+                        Column(
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on,
+                                    color: Colors.green),
+                                const SizedBox(width: 8),
+                                const Text('Punto de partida'),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on,
+                                    color: Colors.blue),
+                                const SizedBox(width: 8),
+                                const Text('Destino'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Botones de control de mapa
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Column(
+                    children: [
+                      FloatingActionButton(
+                        onPressed: _zoomToBothMarkers,
+                        mini: true,
+                        backgroundColor: Colors.white,
+                        child: const Icon(Icons.fit_screen, color: Colors.black),
+                      ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton(
+                        onPressed: _zoomToPickup,
+                        mini: true,
+                        backgroundColor: Colors.white,
+                        child: const Icon(Icons.my_location, color: Colors.green),
+                      ),
+                      const SizedBox(height: 8),
+                      FloatingActionButton(
+                        onPressed: _zoomToDestination,
+                        mini: true,
+                        backgroundColor: Colors.white,
+                        child: const Icon(Icons.my_location, color: Colors.blue),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+
             const SizedBox(height: 32),
+
+            // Botones de acción
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -292,8 +446,10 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0)),
                   ),
                   child: const Text(
                     'Autorizar viaje',
@@ -306,8 +462,10 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 16.0),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20.0)),
                   ),
                   child: const Text(
                     'Denegar viaje',
