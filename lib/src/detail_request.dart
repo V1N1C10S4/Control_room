@@ -357,51 +357,12 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                     ),
                     markers: _markers,
                     polylines: _polylines,
-                    zoomControlsEnabled: false, // Deshabilitar controles predeterminados
+                    zoomControlsEnabled: true,
                     onMapCreated: (GoogleMapController controller) {
                       _mapController.complete(controller);
                     },
                   ),
                 ),
-
-                // Leyenda de los colores
-                Positioned(
-                  bottom: 10,
-                  left: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: Row(
-                      children: [
-                        Column(
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.location_on,
-                                    color: Colors.green),
-                                const SizedBox(width: 8),
-                                const Text('Punto de partida'),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.location_on,
-                                    color: Colors.blue),
-                                const SizedBox(width: 8),
-                                const Text('Destino'),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 // Botones de control de mapa
                 Positioned(
                   top: 10,
@@ -418,15 +379,17 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                       FloatingActionButton(
                         onPressed: _zoomToPickup,
                         mini: true,
-                        backgroundColor: Colors.white,
-                        child: const Icon(Icons.my_location, color: Colors.green),
+                        backgroundColor: Colors.red,
+                        child: const Text("1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       FloatingActionButton(
                         onPressed: _zoomToDestination,
                         mini: true,
-                        backgroundColor: Colors.white,
-                        child: const Icon(Icons.my_location, color: Colors.blue),
+                        backgroundColor: Colors.red,
+                        child: const Text("2", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
