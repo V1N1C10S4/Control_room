@@ -493,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => EmergencyDuringTripScreen(region: widget.region, usuario: widget.usuario,),
+                            builder: (context) => EmergencyDuringTripScreen(region: widget.region),
                           ),
                         );
                       },
