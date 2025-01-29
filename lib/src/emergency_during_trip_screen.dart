@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmergencyDuringTripScreen extends StatefulWidget {
   final String region;
+  final String usuario;
 
-  const EmergencyDuringTripScreen({super.key, required this.region});
+  const EmergencyDuringTripScreen({super.key, required this.region, required this.usuario,});
 
   @override
   State<EmergencyDuringTripScreen> createState() =>
@@ -18,11 +20,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
   final Logger _logger = Logger();
   List<Map<dynamic, dynamic>> _inProgressEmergencies = [];
   List<Map<dynamic, dynamic>> _resolvedEmergencies = [];
+  String? _telefonoPasajero;
+  String? _telefonoConductor;
 
   @override
   void initState() {
     super.initState();
     _fetchEmergencyTrips();
+    _fetchPassengerPhone();
   }
 
   void _fetchEmergencyTrips() {
@@ -44,6 +49,11 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         .forEach((trip) {
           if (trip['emergency'] == true) {
             inProgress.add(trip);
+
+            if (trip.containsKey('driver')) {
+              _fetchDriverPhone(trip['driver']);
+            }
+            
           } else {
             resolved.add(trip);
           }
@@ -138,6 +148,46 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         ],
       ),
     );
+  }
+
+  void _fetchPassengerPhone() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> userDoc =
+          await FirebaseFirestore.instance.collection("Usuarios").doc(widget.usuario).get();
+
+      if (userDoc.exists) {
+        String telefonoPasajero = userDoc.data()?["NumeroTelefono"] ?? "Desconocido";
+        print("Teléfono del pasajero: $telefonoPasajero");
+
+        setState(() {
+          _telefonoPasajero = telefonoPasajero;
+        });
+      } else {
+        print("No se encontró el usuario en la base de datos.");
+      }
+    } catch (error) {
+      print("Error al obtener el teléfono del pasajero: $error");
+    }
+  }
+
+  void _fetchDriverPhone(String driverId) async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> driverDoc =
+          await FirebaseFirestore.instance.collection("Conductores").doc(driverId).get();
+
+      if (driverDoc.exists) {
+        String telefonoConductor = driverDoc.data()?["NumeroTelefono"] ?? "Desconocido";
+        print("Teléfono del conductor: $telefonoConductor");
+
+        setState(() {
+          _telefonoConductor = telefonoConductor;
+        });
+      } else {
+        print("No se encontró el conductor en la base de datos.");
+      }
+    } catch (error) {
+      print("Error al obtener el teléfono del conductor: $error");
+    }
   }
 
   Widget _buildEmergencyCard(Map<dynamic, dynamic> trip, bool isInProgress) {
@@ -239,6 +289,22 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               const SizedBox(height: 8),
               Text(
                 'Sillas para bebés: ${trip['babySeats'] ?? 0}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Teléfono del pasajero: $_telefonoPasajero',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Teléfono Conductor: ${_telefonoConductor ?? "No disponible"}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
