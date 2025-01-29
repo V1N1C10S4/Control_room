@@ -38,6 +38,9 @@ class CancelledTripsScreen extends StatelessWidget {
               : 'NA',
           'city': trip['city'] ?? 'NA',
           'emergency_at': trip['emergency_at'] != null ? _formatDateTime(trip['emergency_at']) : null, // Captura emergency_at si existe
+          'telefonoPasajero': trip.containsKey('telefonoPasajero') && trip['telefonoPasajero'] != null && trip['telefonoPasajero'].toString().trim().isNotEmpty
+            ? trip['telefonoPasajero']
+            : "No disponible",
         };
       }).toList();
 
@@ -124,6 +127,7 @@ class CancelledTripsScreen extends StatelessWidget {
                       Text('Hasta: ${trip['destination']}'),
                       Text('Conductor: ${trip['driver']}'),
                       Text('Pasajero: ${trip['userName']}'),
+                      Text('Teléfono del pasajero: ${trip['telefonoPasajero']}'),
                       Text('Equipaje: ${trip['luggage']}'),
                       Text('Pasajeros: ${trip['passengers']}'),
                       Text('Mascotas: ${trip['pets']}'),
