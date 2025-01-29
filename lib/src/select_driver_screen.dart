@@ -107,20 +107,37 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
 
   void _assignDriver(String driverId) async {
     try {
-      // Actualizar el conductor en Firestore
+      // 🔹 1️⃣ Recuperar la información del conductor desde Firestore
+      DocumentSnapshot<Map<String, dynamic>> driverDoc =
+          await FirebaseFirestore.instance.collection('Conductores').doc(driverId).get();
+
+      if (!driverDoc.exists) {
+        _logger.e('Error: El documento del conductor no existe.');
+        return;
+      }
+
+      Map<String, dynamic>? driverData = driverDoc.data();
+      String telefonoConductor = driverData?["NumeroTelefono"] ?? "No disponible";
+
+      // 🔹 2️⃣ Actualizar el estado del conductor en Firestore
       await FirebaseFirestore.instance.collection('Conductores').doc(driverId).update({
         'Viaje': true,
       });
 
-      // Actualizar el estado del viaje y añadir el conductor en RealTime Database
-      final DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref().child('trip_requests').child(widget.tripRequest['id']);
+      // 🔹 3️⃣ Actualizar el estado del viaje y añadir el conductor + teléfono en Realtime Database
+      final DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref()
+          .child('trip_requests')
+          .child(widget.tripRequest['id']);
+
       await tripRequestRef.update({
         'status': 'in progress',
         'driver': driverId,
+        'TelefonoConductor': telefonoConductor, // ✅ Guardar el número de teléfono
       });
 
-      _logger.i('Driver assigned successfully.');
+      _logger.i('Driver assigned successfully with phone number: $telefonoConductor.');
 
+      // 🔹 4️⃣ Navegar de regreso a HomeScreen
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(

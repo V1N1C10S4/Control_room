@@ -150,6 +150,11 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
       ? trip['telefonoPasajero']
       : "No disponible";
 
+    // ✅ Verificar si el número del conductor existe, de lo contrario mostrar "No disponible"
+    String telefonoConductor = trip.containsKey('TelefonoConductor') && trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().trim().isNotEmpty
+        ? trip['TelefonoConductor']
+        : "No disponible";
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Card(
@@ -172,6 +177,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               const SizedBox(height: 8),
               Text(
                 'Conductor: ${trip['driver'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Teléfono del conductor: $telefonoConductor',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
