@@ -145,6 +145,11 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
     final latitude = emergencyLocation?['latitude']?.toString() ?? 'N/A';
     final longitude = emergencyLocation?['longitude']?.toString() ?? 'N/A';
 
+    // Verificar si el número del pasajero existe, de lo contrario mostrar "No disponible"
+    String telefonoPasajero = trip.containsKey('telefonoPasajero') && trip['telefonoPasajero'] != null && trip['telefonoPasajero'].toString().trim().isNotEmpty
+      ? trip['telefonoPasajero']
+      : "No disponible";
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Card(
@@ -175,6 +180,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               const SizedBox(height: 8),
               Text(
                 'Usuario: ${trip['userName'] ?? 'N/A'}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Teléfono del pasajero: $telefonoPasajero',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
