@@ -92,48 +92,50 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar acción'),
-        content: const Text(
-            '¿Estás seguro de que quieres marcar esta emergencia como atendida?'),
+        content: const Text('¿Estás seguro de que quieres marcar esta emergencia como atendida?'),
         actions: [
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red, // Botón rojo
+              backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.0),
               ),
             ),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white), // Texto blanco
-            ),
+            child: const Text('Cancelar', style: TextStyle(color: Colors.white)),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
               try {
-                await _databaseReference
-                    .child('trip_requests')
-                    .child(tripId)
-                    .update({'emergency': false});
-                _logger.i('Emergencia atendida para el viaje $tripId.');
-                _fetchEmergencyTrips(); // Refrescar la lista de emergencias
+                DateTime now = DateTime.now();
+                final tripSnapshot = await _databaseReference.child('trip_requests').child(tripId).get();
+                final Map<dynamic, dynamic>? tripData = tripSnapshot.value as Map<dynamic, dynamic>?;
+
+                // Verificar si 'attended_at' ya existe para no sobrescribirlo
+                if (tripData == null || !tripData.containsKey('attended_at')) {
+                  await _databaseReference.child('trip_requests').child(tripId).update({
+                    'emergency': false,
+                    'attended_at': now.toIso8601String(), 
+                  });
+                  _logger.i('Emergencia atendida para el viaje $tripId.');
+                  _fetchEmergencyTrips();
+                } else {
+                  _logger.w('La emergencia ya había sido atendida anteriormente.');
+                }
               } catch (error) {
                 _logger.e('Error al actualizar emergencia: $error');
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green, // Botón verde
+              backgroundColor: Colors.green,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10.0),
               ),
             ),
-            child: const Text(
-              'Confirmar',
-              style: TextStyle(color: Colors.white), // Texto blanco
-            ),
+            child: const Text('Confirmar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -154,6 +156,19 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
     String telefonoConductor = trip.containsKey('TelefonoConductor') && trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().trim().isNotEmpty
         ? trip['TelefonoConductor']
         : "No disponible";
+
+    // Obtener tiempo transcurrido si la emergencia ya fue atendida
+    String tiempoAtencion = "No disponible";
+    if (!isInProgress && trip.containsKey('emergency_at') && trip.containsKey('attended_at')) {
+      try {
+        DateTime emergencyTime = DateTime.parse(trip['emergency_at']);
+        DateTime attendedTime = DateTime.parse(trip['attended_at']);
+        Duration diferencia = attendedTime.difference(emergencyTime);
+        tiempoAtencion = "${diferencia.inMinutes} min"; // Convertir a minutos
+      } catch (e) {
+        tiempoAtencion = "Error en formato de fecha";
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -270,6 +285,18 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                   fontSize: 16,
                 ),
               ),
+              if (!isInProgress) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Atendida en: ${_formatDateTime(trip['attended_at'])}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tiempo de atención: $tiempoAtencion',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                ),
+              ],
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
