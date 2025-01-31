@@ -23,6 +23,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   LatLng? _destinationLocation;
   String? _pickupAddress;
   String? _destinationAddress;
+  String? userPhone;
   int passengers = 1;
   int luggage = 0;
   int pets = 0;
@@ -241,6 +242,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       'userId': selectedUserId,
       'userName': userName,
       'city': city,
+      'telefonoPasajero': userPhone ?? "No disponible",
       'pickup': {
         'latitude': _pickupLocation!.latitude,
         'longitude': _pickupLocation!.longitude,
@@ -320,7 +322,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                       value: user.id,
                       child: Text(user['NombreUsuario']), // Mostrar el nombre del usuario
                     )).toList(),
-                onChanged: (value) {
+                onChanged: (value) async {
                   setState(() {
                     selectedUserId = value; // ID del usuario seleccionado
                     // Buscar el documento del usuario seleccionado
@@ -328,6 +330,15 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                     userName = selectedUser['NombreUsuario']; // Capturar NombreUsuario
                     city = selectedUser['Ciudad']; // Capturar Ciudad
                   });
+                      // ✅ Obtener el teléfono del pasajero desde Firestore
+                  DocumentSnapshot<Map<String, dynamic>> userDoc =
+                      await FirebaseFirestore.instance.collection('Usuarios').doc(value).get();
+
+                  if (userDoc.exists) {
+                    setState(() {
+                      userPhone = userDoc.data()?['Telefono'] ?? "No disponible";
+                    });
+                  }
                 },
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
