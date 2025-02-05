@@ -120,22 +120,22 @@ class TripRequestScreenState extends State<TripRequestScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Pickup: ${tripRequest['pickup']}',
+                                  'Punto de partida: ${tripRequest['pickup']}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Destination: ${tripRequest['destination']}',
+                                  'Destino: ${tripRequest['destination']}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Status: ${tripRequest['status']}',
+                                  'Estatus: ${tripRequest['status']}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'User: ${tripRequest['userId']}',
+                                  'Pasajero solicitante: ${tripRequest['userId']}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),

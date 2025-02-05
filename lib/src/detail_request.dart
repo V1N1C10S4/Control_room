@@ -310,17 +310,17 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Pickup: ${widget.tripRequest['pickup']}',
+              'Punto de partida: ${widget.tripRequest['pickup']}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
             Text(
-              'Destination: ${widget.tripRequest['destination']}',
+              'Destino: ${widget.tripRequest['destination']}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),
             Text(
-              'Status: ${widget.tripRequest['status']}',
+              'Estatus: ${widget.tripRequest['status']}',
               style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 16),

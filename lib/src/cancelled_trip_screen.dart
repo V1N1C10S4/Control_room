@@ -132,9 +132,9 @@ class CancelledTripsScreen extends StatelessWidget {
                       Text('Pasajeros: ${trip['passengers']}'),
                       Text('Mascotas: ${trip['pets']}'),
                       Text('Sillas para bebés: ${trip['babySeats']}'),
-                      Text('Inicio: ${trip['started_at']}'),
-                      Text('Pasajero alcanzado: ${trip['passenger_reached_at']}'),
-                      Text('Recogido: ${trip['picked_up_passenger_at']}'),
+                      Text('Conductor asignado: ${trip['started_at']}'),
+                      Text('Conductor en sitio: ${trip['passenger_reached_at']}'),
+                      Text('Inicio de viaje: ${trip['picked_up_passenger_at']}'),
                       if (trip['emergency_at'] != null)
                         Text(
                           'Emergencia: ${trip['emergency_at']}',

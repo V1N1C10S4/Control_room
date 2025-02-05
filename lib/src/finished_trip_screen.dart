@@ -177,15 +177,15 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Iniciado: $startedAt',
+                            'Conductor asignado: $startedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Pasajero alcanzado: $passengerReachedAt',
+                            'Conductor en sitio: $passengerReachedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Pasajero recogido: $pickedUpPassengerAt',
+                            'Inicio de viaje: $pickedUpPassengerAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(

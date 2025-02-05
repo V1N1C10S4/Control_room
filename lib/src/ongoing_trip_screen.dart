@@ -173,15 +173,15 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Iniciado: $startedAt',
+                            'Conductor asignado: $startedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Pasajero alcanzado: $passengerReachedAt',
+                            'Conductor en sitio: $passengerReachedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Pasajero recogido: $pickedUpPassengerAt',
+                            'Inicio de viaje: $pickedUpPassengerAt',
                             style: const TextStyle(fontSize: 16),
                           ),
                         ],
