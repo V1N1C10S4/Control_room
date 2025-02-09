@@ -38,6 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _pendingCount = 0;
   int _authorizedCount = 0;
   int _inProgressCount = 0;
+  int _startedCount = 0;
+  int _passengerReachedCount = 0;
+  int _pickedUpPassengerCount = 0;
+  int _emergencyCount = 0;
+  int _cancelledTripsCount = 0;
 
   @override
   void initState() {
@@ -47,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForEmergencies();
     _listenForTripStatusChanges();
     _listenForTripRequests();
+    _listenForOngoingTrips();
+    _listenForEmergenciesCounter();
+    _listenForCancelledTrips();
   }
 
   void _listenForEmergencies() {
@@ -328,6 +336,78 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _listenForOngoingTrips() {
+    final tripRequestsRef = _databaseReference.child('trip_requests');
+
+    tripRequestsRef.onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        final data = event.snapshot.value as Map<dynamic, dynamic>;
+
+        int started = 0;
+        int passengerReached = 0;
+        int pickedUp = 0;
+
+        data.forEach((key, value) {
+          if (value is Map) {
+            final String status = value['status'] ?? '';
+            final String tripCity = value['city'] ?? '';
+
+            // Filtrar por la región del usuario
+            if (tripCity == widget.region) {
+              if (status == 'started') {
+                started++;
+              } else if (status == 'passenger reached') {
+                passengerReached++;
+              } else if (status == 'picked up passenger') {
+                pickedUp++;
+              }
+            }
+          }
+        });
+
+        // Actualizar el estado con los nuevos valores
+        setState(() {
+          _startedCount = started;
+          _passengerReachedCount = passengerReached;
+          _pickedUpPassengerCount = pickedUp;
+        });
+      }
+    });
+  }
+
+  void _listenForEmergenciesCounter() {
+    final tripRequestsRef = _databaseReference.child('trip_requests');
+
+    tripRequestsRef.onChildChanged.listen((event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        bool isEmergency = tripData['emergency'] == true;
+        setState(() {
+          if (isEmergency) {
+            _emergencyCount++;
+          } else {
+            _emergencyCount = (_emergencyCount > 0) ? _emergencyCount - 1 : 0;
+          }
+        });
+      }
+    });
+  }
+
+  void _listenForCancelledTrips() {
+    final tripRequestsRef = _databaseReference.child('trip_requests');
+
+    tripRequestsRef.onChildAdded.listen((event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
+        if (tripData['status'] == "trip cancelled") {
+          setState(() {
+            _cancelledTripsCount++;
+          });
+        }
+      }
+    });
+  }
+
   Widget _buildStatusBubble(int count, Color color, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
@@ -348,6 +428,39 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildNotificationBubble(int count) {
+    if (count == 0) return SizedBox(); // Si el contador es 0, no muestra la burbuja.
+
+    return Positioned(
+      top: 10,
+      right: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1),
+          ],
+        ),
+        child: Text(
+          count > 9 ? '9+' : count.toString(), // Muestra "9+" si el valor es mayor a 9
+          style: const TextStyle(
+            color: Colors.red,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _resetCancelledTripsCount() {
+    setState(() {
+      _cancelledTripsCount = 0;
+    });
   }
 
   // Función para cerrar sesión
@@ -443,35 +556,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => OngoingTripScreen(
-                                    usuario: widget.usuario,
-                                    region: widget.region,
-                                  )),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.directions_run, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Viajes en Progreso',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
+                    child: Stack(
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
                           ),
-                        ],
-                      ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OngoingTripScreen(
+                                  usuario: widget.usuario,
+                                  region: widget.region,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.directions_run, size: 50, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Viajes en Progreso',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Indicadores de estados de viajes en progreso
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car), // Viaje iniciado
+                              _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place), // Conductor llegó
+                              _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.airplane_ticket), // Pasajero abordó
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -554,64 +685,75 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[300], // Color rojo tenue
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                    child: Stack(
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[300], // Color rojo tenue
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EmergencyDuringTripScreen(region: widget.region),
+                              ),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.warning, size: 50, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Emergencias',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EmergencyDuringTripScreen(region: widget.region),
-                          ),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.warning, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Emergencias',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
+                        _buildNotificationBubble(_emergencyCount),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                    child: Stack(
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            _resetCancelledTripsCount(); // Reinicia el contador al entrar
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CancelledTripsScreen(region: widget.region),
+                              ),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cancel, size: 50, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Viajes Cancelados',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CancelledTripsScreen(region: widget.region),
-                          ),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.cancel, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Viajes Cancelados',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
+                        _buildNotificationBubble(_cancelledTripsCount),
+                      ],
                     ),
                   ),
                 ],
