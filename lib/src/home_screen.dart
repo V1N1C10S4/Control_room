@@ -35,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   String? _fcmToken;
   final Set<String> _shownStatuses = {};
+  int _pendingCount = 0;
+  int _authorizedCount = 0;
+  int _inProgressCount = 0;
 
   @override
   void initState() {
@@ -43,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForTokenRefresh();
     _listenForEmergencies();
     _listenForTripStatusChanges();
+    _listenForTripRequests();
   }
 
   void _listenForEmergencies() {
@@ -296,6 +300,56 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _listenForTripRequests() {
+    _databaseReference.child('trip_requests').onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        final data = event.snapshot.value as Map<dynamic, dynamic>;
+
+        int pending = 0;
+        int authorized = 0;
+        int inProgress = 0;
+
+        data.forEach((key, value) {
+          if (value['city'] == widget.region) { // Filtrar por región
+            String status = value['status'] ?? '';
+
+            if (status == 'pending') pending++;
+            else if (status == 'authorized') authorized++;
+            else if (status == 'in progress') inProgress++;
+          }
+        });
+
+        setState(() {
+          _pendingCount = pending;
+          _authorizedCount = authorized;
+          _inProgressCount = inProgress;
+        });
+      }
+    });
+  }
+
+  Widget _buildStatusBubble(int count, Color color, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 4),
+          Text(
+            count > 9 ? '9+' : '$count',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Función para cerrar sesión
   void _cerrarSesion(BuildContext context) {
     Navigator.pushAndRemoveUntil(
@@ -337,36 +391,54 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                    child: Stack(
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TripRequestScreen(
+                                  usuario: widget.usuario,
+                                  isSupervisor: widget.isSupervisor,
+                                  region: widget.region,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.directions_car, size: 50, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Solicitudes de Viajes',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TripRequestScreen(
-                                usuario: widget.usuario,
-                                isSupervisor: widget.isSupervisor,
-                                region: widget.region),
+                        // Contador para solicitudes pendientes, autorizado y en progreso
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (_pendingCount > 0) _buildStatusBubble(_pendingCount, Colors.red, Icons.new_releases),
+                              if (_authorizedCount > 0) _buildStatusBubble(_authorizedCount, Colors.orange, Icons.check_circle),
+                              if (_inProgressCount > 0) _buildStatusBubble(_inProgressCount, Colors.blue, Icons.directions_run),
+                            ],
                           ),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.directions_car, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Solicitudes de Viajes',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),
