@@ -434,12 +434,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (count == 0) return SizedBox(); // Si el contador es 0, no muestra la burbuja.
 
     return Positioned(
-      top: 10,
-      right: 10,
+      top: -5,
+      right: -5,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.red,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1),
@@ -448,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Text(
           count > 9 ? '9+' : count.toString(), // Muestra "9+" si el valor es mayor a 9
           style: const TextStyle(
-            color: Colors.red,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 14,
           ),
@@ -538,7 +538,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // Contador para solicitudes pendientes, autorizado y en progreso
                         Positioned(
                           top: 8,
                           right: 8,
@@ -589,16 +588,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // Indicadores de estados de viajes en progreso
                         Positioned(
                           top: 8,
                           right: 8,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car), // Viaje iniciado
-                              _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place), // Conductor llegó
-                              _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.airplane_ticket), // Pasajero abordó
+                              _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car),
+                              _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place),
+                              _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.airplane_ticket),
                             ],
                           ),
                         ),
