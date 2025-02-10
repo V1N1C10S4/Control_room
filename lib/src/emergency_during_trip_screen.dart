@@ -170,6 +170,12 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
       }
     }
 
+    String emergencyReason = trip.containsKey('emergency_reason') &&
+            trip['emergency_reason'] != null &&
+            trip['emergency_reason'].toString().trim().isNotEmpty
+        ? trip['emergency_reason']
+        : "N/A";
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Card(
@@ -251,6 +257,16 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+                // ✅ Mostrar la razón de la emergencia en ROJO
+              Text(
+                'Causa de emergencia: $emergencyReason',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.red, // 🔴 Texto en rojo
                 ),
               ),
               const SizedBox(height: 8),
