@@ -69,6 +69,93 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
     return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
   }
 
+  void _showCancelDialog(String tripId) {
+    TextEditingController reasonController = TextEditingController();
+    bool isConfirmButtonEnabled = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Cancelar Viaje'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Ingrese el motivo de cancelación:'),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 3,
+                    onChanged: (text) {
+                      setState(() {
+                        isConfirmButtonEnabled = text.trim().isNotEmpty;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Escriba el motivo aquí...',
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: isConfirmButtonEnabled
+                      ? () {
+                          Navigator.pop(context);
+                          _cancelTrip(tripId, reasonController.text.trim());
+                        }
+                      : null,
+                  child: const Text('Confirmar', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _cancelTrip(String tripId, String reason) async {
+    try {
+      await _databaseReference.child('trip_requests').child(tripId).update({
+        'status': 'trip cancelled',
+        'cancellation_reason': reason,
+      });
+
+      // Eliminar el viaje de la lista de viajes en progreso
+      setState(() {
+        _ongoingTrips.removeWhere((trip) => trip['id'] == tripId);
+      });
+
+      // Confirmación visual
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('El viaje ha sido cancelado correctamente.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _logger.i('Viaje $tripId cancelado con motivo: $reason');
+    } catch (error) {
+      _logger.e('Error al cancelar el viaje $tripId: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cancelar el viaje. Inténtelo de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -183,6 +270,11 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           Text(
                             'Inicio de viaje: $pickedUpPassengerAt',
                             style: const TextStyle(fontSize: 16),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => _showCancelDialog(trip['id']),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            child: const Text('Cancelar Viaje', style: TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
