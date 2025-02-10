@@ -41,6 +41,9 @@ class CancelledTripsScreen extends StatelessWidget {
           'telefonoPasajero': trip.containsKey('telefonoPasajero') && trip['telefonoPasajero'] != null && trip['telefonoPasajero'].toString().trim().isNotEmpty
             ? trip['telefonoPasajero']
             : "No disponible",
+          'cancellation_reason': trip.containsKey('cancellation_reason') && trip['cancellation_reason'] != null && trip['cancellation_reason'].toString().trim().isNotEmpty
+            ? trip['cancellation_reason']
+            : "N/A", // Si no existe o está vacío, muestra 'N/A'
         };
       }).toList();
 
@@ -143,6 +146,14 @@ class CancelledTripsScreen extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                      Text(
+                        'Motivo de cancelación: ${trip['cancellation_reason']}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
                     ],
                   ),
                 ),
