@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _pickedUpPassengerCount = 0;
   int _emergencyCount = 0;
   int _cancelledTripsCount = 0;
+  Set<String> _seenCancelledTrips = {};
 
   @override
   void initState() {
@@ -399,9 +400,14 @@ class _HomeScreenState extends State<HomeScreen> {
     tripRequestsRef.onChildAdded.listen((event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
-        if (tripData['status'] == "trip cancelled") {
+        String? tripId = event.snapshot.key; // Obtener el ID del viaje
+
+        if (tripData['status'] == "trip cancelled" && tripId != null) {
           setState(() {
-            _cancelledTripsCount++;
+            if (!_seenCancelledTrips.contains(tripId)) {
+              _cancelledTripsCount++; // Solo contar si es un viaje nuevo
+              _seenCancelledTrips.add(tripId); // Marcarlo como visto
+            }
           });
         }
       }
@@ -460,6 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _resetCancelledTripsCount() {
     setState(() {
       _cancelledTripsCount = 0;
+      _seenCancelledTrips.clear(); // Vaciar la lista de viajes visualizados
     });
   }
 

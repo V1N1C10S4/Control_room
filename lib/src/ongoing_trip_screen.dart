@@ -36,8 +36,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
             (trip['status'] == 'started' ||
             trip['status'] == 'passenger reached' ||
             trip['status'] == 'picked up passenger') &&
-            trip['city']?.toLowerCase() == widget.region.toLowerCase() &&
-            !trip.containsKey('emergency_at')) // Excluir viajes con 'emergency_at'
+            trip['city']?.toLowerCase() == widget.region.toLowerCase())
         .toList();
 
         // Ordenar los viajes según el campo "started_at"
@@ -79,42 +78,75 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Cancelar Viaje'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Ingrese el motivo de cancelación:'),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: reasonController,
-                    maxLines: 3,
-                    onChanged: (text) {
-                      setState(() {
-                        isConfirmButtonEnabled = text.trim().isNotEmpty;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      hintText: 'Escriba el motivo aquí...',
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              title: const Text(
+                'Cancelar Viaje',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8, // 80% del ancho de la pantalla
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Ingrese el motivo de cancelación:',
+                      style: TextStyle(fontSize: 18),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: reasonController,
+                      maxLines: 3,
+                      onChanged: (text) {
+                        setState(() {
+                          isConfirmButtonEnabled = text.trim().isNotEmpty;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        hintText: 'Escriba el motivo aquí...',
+                        filled: true,
+                        fillColor: Colors.grey[200], // Color de fondo claro
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actionsAlignment: MainAxisAlignment.spaceEvenly,
+              actions: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
                     ),
                   ),
-                ],
-              ),
-              actions: [
-                TextButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('Cancelar'),
+                  child: const Text('Cancelar', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
-                TextButton(
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
                   onPressed: isConfirmButtonEnabled
                       ? () {
                           Navigator.pop(context);
                           _cancelTrip(tripId, reasonController.text.trim());
                         }
                       : null,
-                  child: const Text('Confirmar', style: TextStyle(color: Colors.red)),
+                  child: const Text('Confirmar', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ],
             );
@@ -177,12 +209,6 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
               itemCount: _ongoingTrips.length,
               itemBuilder: (context, index) {
                 final trip = _ongoingTrips[index];
-
-                // Formatear las fechas de started_at, passenger_reached_at, y picked_up_passenger_at
-                final String startedAt = _formatDateTime(trip['started_at']);
-                final String passengerReachedAt = _formatDateTime(trip['passenger_reached_at']);
-                final String pickedUpPassengerAt = _formatDateTime(trip['picked_up_passenger_at']);
-
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   child: Card(
@@ -204,7 +230,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'User: ${trip['userName'] ?? 'N/A'}', // Usando userName
+                            'User: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
@@ -213,12 +239,11 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}', // Usando placeName
+                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
-                          const SizedBox(height: 8),
                           Text(
-                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}', // Usando placeName
+                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -259,22 +284,48 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          if (trip.containsKey('emergency_at')) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              '🚨 Emergencia reportada: ${_formatDateTime(trip['emergency_at'])}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red, // Resaltar la emergencia en rojo
+                              ),
+                            ),
+                          ],
                           Text(
-                            'Conductor asignado: $startedAt',
+                            'Conductor asignado: ${_formatDateTime(trip['started_at'])}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Conductor en sitio: $passengerReachedAt',
+                            'Conductor en sitio: ${_formatDateTime(trip['passenger_reached_at'])}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Inicio de viaje: $pickedUpPassengerAt',
+                            'Inicio de viaje: ${_formatDateTime(trip['picked_up_passenger_at'])}',
                             style: const TextStyle(fontSize: 16),
                           ),
-                          ElevatedButton(
-                            onPressed: () => _showCancelDialog(trip['id']),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                            child: const Text('Cancelar Viaje', style: TextStyle(color: Colors.white)),
+
+                          // Espacio adicional antes del botón
+                          const SizedBox(height: 16),
+
+                          // Botón alineado en la esquina inferior derecha
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () => _showCancelDialog(trip['id']),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                child: const Text('Cancelar Viaje', style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
                           ),
                         ],
                       ),
