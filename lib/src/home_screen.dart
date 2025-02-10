@@ -57,6 +57,48 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForCancelledTrips();
   }
 
+  Widget _buildButtonWithIndicator({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    required int count,
+  }) {
+    return Expanded(
+      child: Stack(
+        children: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.0),
+              ),
+            ),
+            onPressed: onTap,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 50, color: Colors.white),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          if (count > 0) // Solo mostrar si hay notificaciones
+            Positioned(
+              top: 8,
+              right: 8,
+              child: _buildNotificationBubble(count),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _listenForEmergencies() {
     final tripRequestsRef = _databaseReference.child('trip_requests');
 
@@ -431,27 +473,19 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildNotificationBubble(int count) {
-    if (count == 0) return SizedBox(); // Si el contador es 0, no muestra la burbuja.
-
-    return Positioned(
-      top: -5,
-      right: -5,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(color: Colors.black26, blurRadius: 4, spreadRadius: 1),
-          ],
-        ),
-        child: Text(
-          count > 9 ? '9+' : count.toString(), // Muestra "9+" si el valor es mayor a 9
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+      ),
+      child: Text(
+        count > 9 ? '9+' : count.toString(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
         ),
       ),
     );
@@ -506,37 +540,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
+                        _buildButtonWithIndicator(
+                          title: 'Solicitudes de Viajes',
+                          icon: Icons.directions_car,
+                          color: const Color.fromRGBO(152, 192, 131, 1),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TripRequestScreen(
+                                usuario: widget.usuario,
+                                isSupervisor: widget.isSupervisor,
+                                region: widget.region,
+                              ),
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TripRequestScreen(
-                                  usuario: widget.usuario,
-                                  isSupervisor: widget.isSupervisor,
-                                  region: widget.region,
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.directions_car, size: 50, color: Colors.white),
-                              SizedBox(height: 10),
-                              Text(
-                                'Solicitudes de Viajes',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                          count: _pendingCount, // Indicador de solicitudes de viajes
                         ),
                         Positioned(
                           top: 8,
@@ -557,36 +575,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
+                        _buildButtonWithIndicator(
+                          title: 'Viajes en Progreso',
+                          icon: Icons.directions_run,
+                          color: const Color.fromRGBO(207, 215, 107, 1),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OngoingTripScreen(
+                                usuario: widget.usuario,
+                                region: widget.region,
+                              ),
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OngoingTripScreen(
-                                  usuario: widget.usuario,
-                                  region: widget.region,
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.directions_run, size: 50, color: Colors.white),
-                              SizedBox(height: 10),
-                              Text(
-                                'Viajes en Progreso',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                          count: _startedCount, // Indicador de viajes en progreso
                         ),
                         Positioned(
                           top: 8,
@@ -685,33 +687,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[300], // Color rojo tenue
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
+                        _buildButtonWithIndicator(
+                          title: 'Emergencias',
+                          icon: Icons.warning,
+                          color: Colors.red[300]!, // Color rojo tenue
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EmergencyDuringTripScreen(region: widget.region),
                             ),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => EmergencyDuringTripScreen(region: widget.region),
-                              ),
-                            );
-                          },
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.warning, size: 50, color: Colors.white),
-                              SizedBox(height: 10),
-                              Text(
-                                'Emergencias',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                          count: _emergencyCount, // Indicador de emergencias
                         ),
                         _buildNotificationBubble(_emergencyCount),
                       ],
@@ -721,14 +707,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Stack(
                       children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                          ),
-                          onPressed: () {
+                        _buildButtonWithIndicator(
+                          title: 'Viajes Cancelados',
+                          icon: Icons.cancel,
+                          color: const Color.fromRGBO(255, 99, 71, 1), // Rojo tomate
+                          onTap: () {
                             _resetCancelledTripsCount(); // Reinicia el contador al entrar
                             Navigator.push(
                               context,
@@ -737,18 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           },
-                          child: const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.cancel, size: 50, color: Colors.white),
-                              SizedBox(height: 10),
-                              Text(
-                                'Viajes Cancelados',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
+                          count: _cancelledTripsCount, // Indicador de viajes cancelados
                         ),
                         _buildNotificationBubble(_cancelledTripsCount),
                       ],
