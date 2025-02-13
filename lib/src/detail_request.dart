@@ -30,6 +30,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
+  List<LatLng> _stops = []; 
 
   // URL base del proxy para consultas a la API de Google
   static const String proxyBaseUrl = "https://34.120.209.209.nip.io/militripproxy";
@@ -37,7 +38,12 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeMap();
+    _setupTripData();
+  }
+
+  Future<void> _setupTripData() async {
+    await _extractStopsFromTripRequest(); // ✅ Esperar a que se carguen las paradas
+    _initializeMap(); // ✅ Ahora sí inicializamos el mapa con los datos completos
   }
 
   void _initializeMap() async {
@@ -45,8 +51,13 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     final destinationCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['destination']);
 
     if (pickupCoordinates != null && destinationCoordinates != null) {
-      _addMarkers(pickupCoordinates, destinationCoordinates);
-      _drawPolyline(pickupCoordinates, destinationCoordinates);
+      setState(() {
+        _addMarkers(pickupCoordinates, destinationCoordinates);
+        _addStopMarkers(_stops); // 🟡 Agregar marcadores de paradas
+      });
+
+      // Trazar la ruta incluyendo las paradas
+      _fetchRouteWithStops(pickupCoordinates, _stops, destinationCoordinates);
     }
   }
 
@@ -144,44 +155,22 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     }
   }
 
-  Future<void> _drawPolyline(LatLng pickupCoordinates, LatLng destinationCoordinates) async {
-    final String url =
-        '$proxyBaseUrl/directions/json?origin=${pickupCoordinates.latitude},${pickupCoordinates.longitude}&destination=${destinationCoordinates.latitude},${destinationCoordinates.longitude}&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+  Future<void> _extractStopsFromTripRequest() async {
+    List<LatLng> stops = [];
 
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          List<PointLatLng> points = PolylinePoints()
-              .decodePolyline(data['routes'][0]['overview_polyline']['points']);
-
-          setState(() {
-            _polylines.clear();
-            _polylines.add(Polyline(
-              polylineId: const PolylineId('route'),
-              points: points.map((point) => LatLng(point.latitude, point.longitude)).toList(),
-              color: Colors.blue,
-              width: 5,
-            ));
-          });
-        } else {
-          throw Exception('Directions API error: ${data['status']}');
+    for (var i = 0; i < 10; i++) {
+      String stopKey = i == 0 ? 'stop' : 'stop$i';
+      if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
+        var stopData = widget.tripRequest[stopKey];
+        if (stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+          stops.add(LatLng(stopData['latitude'], stopData['longitude']));
         }
-      } else {
-        throw Exception('HTTP request failed with status: ${response.statusCode}');
       }
-    } catch (e) {
-      _logger.e('Error al trazar la ruta: $e');
-      Fluttertoast.showToast(
-        msg: 'Error al trazar la ruta: $e',
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 14.0,
-      );
     }
+
+    setState(() {
+      _stops = stops; // ✅ Actualizar _stops una vez estén listas todas las paradas
+    });
   }
 
   void _addMarkers(LatLng pickup, LatLng destination) {
@@ -195,6 +184,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       ));
 
+      _addStopMarkers(_stops);
+
       _markers.add(Marker(
         markerId: const MarkerId('destination'),
         position: destination,
@@ -204,31 +195,104 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     });
   }
 
-  Future<void> _zoomToBothMarkers() async {
-    final GoogleMapController controller = await _mapController.future;
-
-    if (_markers.length >= 2) {
-      LatLngBounds bounds = LatLngBounds(
-        southwest: LatLng(
-          _markers.first.position.latitude < _markers.last.position.latitude
-              ? _markers.first.position.latitude
-              : _markers.last.position.latitude,
-          _markers.first.position.longitude < _markers.last.position.longitude
-              ? _markers.first.position.longitude
-              : _markers.last.position.longitude,
-        ),
-        northeast: LatLng(
-          _markers.first.position.latitude > _markers.last.position.latitude
-              ? _markers.first.position.latitude
-              : _markers.last.position.latitude,
-          _markers.first.position.longitude > _markers.last.position.longitude
-              ? _markers.first.position.longitude
-              : _markers.last.position.longitude,
+  void _addStopMarkers(List<LatLng> stops) {
+    for (int i = 0; i < stops.length; i++) {
+      _markers.add(
+        Marker(
+          markerId: MarkerId('stop$i'),
+          position: stops[i],
+          infoWindow: InfoWindow(title: 'Parada ${i + 1}'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
         ),
       );
-
-      controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
     }
+  }
+
+  Future<void> _fetchRouteWithStops(LatLng pickup, List<LatLng> stops, LatLng destination) async {
+    _polylines.clear(); // Limpiar rutas previas
+
+    // Trazar ruta desde pickup hasta la primera parada
+    LatLng prevPoint = pickup;
+    for (int i = 0; i < stops.length; i++) {
+      await _fetchPolylineSegment(prevPoint, stops[i], 'segment$i');
+      prevPoint = stops[i];
+    }
+
+    // Trazar ruta desde la última parada hasta el destino
+    await _fetchPolylineSegment(prevPoint, destination, 'finalSegment');
+  }
+
+  Future<void> _fetchPolylineSegment(LatLng start, LatLng end, String segmentId) async {
+    String url =
+        '$proxyBaseUrl/directions/json?origin=${start.latitude},${start.longitude}'
+        '&destination=${end.latitude},${end.longitude}'
+        '&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        List<PointLatLng> points =
+            PolylinePoints().decodePolyline(data['routes'][0]['overview_polyline']['points']);
+
+        setState(() {
+          _polylines.add(Polyline(
+            polylineId: PolylineId(segmentId),
+            color: Colors.blue,
+            width: 5,
+            points: points.map((point) => LatLng(point.latitude, point.longitude)).toList(),
+          ));
+        });
+      }
+    }
+  }
+
+  Widget _buildLocationButtons() {
+    return Container(
+      height: 250, // ✅ Definir altura para evitar que ocupe toda la pantalla
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            FloatingActionButton(
+              onPressed: _zoomToPickup,
+              mini: true,
+              backgroundColor: Colors.red,
+              child: const Text("1", style: TextStyle(fontSize: 18, color: Colors.white)),
+            ),
+            for (int i = 0; i < _stops.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: FloatingActionButton(
+                  onPressed: () => _zoomToStop(i),
+                  mini: true,
+                  backgroundColor: Colors.orange,
+                  child: Text("${i + 2}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                ),
+              ),
+            FloatingActionButton(
+              onPressed: _zoomToDestination,
+              mini: true,
+              backgroundColor: Colors.red,
+              child: Text("${_stops.length + 2}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _zoomToStop(int index) async {
+    final GoogleMapController controller = await _mapController.future;
+    final LatLng stop = _stops[index]; // ✅ Asegurar que stop es de tipo LatLng
+
+    controller.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(stop.latitude, stop.longitude), // ✅ Usar las propiedades correctas
+          zoom: 18,
+        ),
+      ),
+    );
   }
 
   Future<void> _zoomToPickup() async {
@@ -367,32 +431,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                 Positioned(
                   top: 10,
                   right: 10,
-                  child: Column(
-                    children: [
-                      FloatingActionButton(
-                        onPressed: _zoomToBothMarkers,
-                        mini: true,
-                        backgroundColor: Colors.white,
-                        child: const Icon(Icons.fit_screen, color: Colors.black),
-                      ),
-                      const SizedBox(height: 8),
-                      FloatingActionButton(
-                        onPressed: _zoomToPickup,
-                        mini: true,
-                        backgroundColor: Colors.red,
-                        child: const Text("1", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      FloatingActionButton(
-                        onPressed: _zoomToDestination,
-                        mini: true,
-                        backgroundColor: Colors.red,
-                        child: const Text("2", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _buildLocationButtons(),
                 ),
               ],
             ),
