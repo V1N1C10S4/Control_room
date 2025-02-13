@@ -28,12 +28,24 @@ class TripRequestScreenState extends State<TripRequestScreen> {
   void _fetchTripRequests() {
     _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
+
       if (data != null) {
         final List<Map<dynamic, dynamic>> tripRequests = data.entries.map((entry) {
           final Map<dynamic, dynamic> request = Map<dynamic, dynamic>.from(entry.value as Map);
           request['id'] = entry.key;
           request['pickup'] = request['pickup']['placeName'] ?? 'NA';
           request['destination'] = request['destination']['placeName'] ?? 'NA';
+
+          // 🔍 Extraer las paradas dinámicamente
+          List<String> stopsList = [];
+          for (int i = 1; i <= 5; i++) { // 🔹 Soporta hasta 5 paradas (puedes cambiar el límite)
+            if (request.containsKey('stop$i') && request['stop$i'] != null) {
+              stopsList.add("Parada $i: ${request['stop$i']['placeName']}");
+            }
+          }
+
+          request['stopsList'] = stopsList; // Guardar en la estructura del request
+
           return request;
         })
         .where((request) =>
@@ -42,7 +54,7 @@ class TripRequestScreenState extends State<TripRequestScreen> {
         .toList();
 
         setState(() {
-          _tripRequests = tripRequests.reversed.toList(); // Invertir el orden para mostrar primero las solicitudes más recientes
+          _tripRequests = tripRequests.reversed.toList(); // 🔄 Mostrar los más recientes primero
         });
       } else {
         setState(() {
@@ -123,6 +135,17 @@ class TripRequestScreenState extends State<TripRequestScreen> {
                                   'Punto de partida: ${tripRequest['pickup']}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
+                                const SizedBox(height: 8),
+                                // 🔹 Mostrar dinámicamente las paradas intermedias
+                                if (tripRequest['stopsList'] != null)
+                                  for (var stop in tripRequest['stopsList'])
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                      child: Text(
+                                        stop,
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Destino: ${tripRequest['destination']}',
