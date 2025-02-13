@@ -361,55 +361,79 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Usuario: ${widget.tripRequest['userId']}',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            // 🔹 Se añadió un Expanded con scroll para la información textual
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Usuario: ${widget.tripRequest['userId']}',
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Nombre del usuario: ${widget.tripRequest['userName']}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Punto de partida: ${widget.tripRequest['pickup']}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 16),
+                    // 🔹 Iterar sobre las paradas y agregarlas a la lista de información
+                    if (_stops.isNotEmpty)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: List.generate(_stops.length, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              'Parada ${index + 1}: ${widget.tripRequest['stop${index == 0 ? '' : index}']['placeName']}',
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                          );
+                        }),
+                      ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Destino: ${widget.tripRequest['destination']}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Estatus: ${widget.tripRequest['status']}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Número de pasajeros: ${widget.tripRequest['passengers'] ?? 'No especificado'}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Cantidad de equipaje: ${widget.tripRequest['luggage'] ?? 'No especificado'}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Número de mascotas: ${widget.tripRequest['pets'] ?? 'No especificado'}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Número de sillas para bebés: ${widget.tripRequest['babySeats'] ?? 'No especificado'}',
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Nombre del usuario: ${widget.tripRequest['userName']}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Punto de partida: ${widget.tripRequest['pickup']}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Destino: ${widget.tripRequest['destination']}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Estatus: ${widget.tripRequest['status']}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Número de pasajeros: ${widget.tripRequest['passengers'] ?? 'No especificado'}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Cantidad de equipaje: ${widget.tripRequest['luggage'] ?? 'No especificado'}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Número de mascotas: ${widget.tripRequest['pets'] ?? 'No especificado'}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Número de sillas para bebés: ${widget.tripRequest['babySeats'] ?? 'No especificado'}',
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 32),
 
-            // Google Map con controles y leyenda
+            // 🔹 Mapa y botones fijos
             Stack(
               children: [
                 SizedBox(
@@ -427,18 +451,17 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                     },
                   ),
                 ),
-                // Botones de control de mapa
                 Positioned(
                   top: 10,
                   right: 10,
-                  child: _buildLocationButtons(),
+                  child: _buildLocationButtons(), // 🔹 Botones de ubicación dinámicos
                 ),
               ],
             ),
 
             const SizedBox(height: 32),
 
-            // Botones de acción
+            // 🔹 Botones de acción siguen fijos en la parte inferior
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -448,10 +471,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
                   ),
                   child: const Text(
                     'Autorizar viaje',
@@ -464,10 +485,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20.0)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
                   ),
                   child: const Text(
                     'Denegar viaje',
