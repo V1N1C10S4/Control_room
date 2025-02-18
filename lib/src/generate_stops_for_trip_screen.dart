@@ -136,6 +136,33 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Cancelar', style: TextStyle(color: Colors.white)),
               ),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _stopLocationsTemp.clear();
+                    _stopAddressesTemp.clear();
+                    _markers.clear();
+
+                    // Guardar solo cuando el usuario lo confirme
+                    for (var stop in _tempStopsData) {
+                      final latLng = LatLng(stop['latitude'], stop['longitude']);
+                      _stopLocationsTemp.add(latLng);
+                      _stopAddressesTemp.add(stop['placeName']);
+
+                      _markers.add(Marker(
+                        markerId: MarkerId('stop${_stopLocationsTemp.length}'),
+                        position: latLng,
+                        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                      ));
+                    }
+                  });
+
+                  // Cerrar pantalla y enviar datos a GenerateTripScreen
+                  Navigator.pop(context, _tempStopsData);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Eliminar Paradas', style: TextStyle(color: Colors.white)),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -169,7 +196,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              if (index < _stopLocationsTemp.length)
+              if (index < _tempStopsData.length)
                 ElevatedButton(
                   onPressed: () => _zoomToMarker(index),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -256,12 +283,23 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
           setState(() {
             _stopControllers[index].text = address;
             _stopPredictions[index] = [];
-            _tempStopsData.add({
-              'latitude': latLng.latitude,
-              'longitude': latLng.longitude,
-              'placeName': address,
-            });
+            
+            // Solo se guardan temporalmente
+            if (index >= _tempStopsData.length) {
+              _tempStopsData.add({
+                'latitude': latLng.latitude,
+                'longitude': latLng.longitude,
+                'placeName': address,
+              });
+            } else {
+              _tempStopsData[index] = {
+                'latitude': latLng.latitude,
+                'longitude': latLng.longitude,
+                'placeName': address,
+              };
+            }
 
+            // Agregar un nuevo campo si estamos en la última barra
             if (index == _stopControllers.length - 1) {
               _addNewStopField();
             }
