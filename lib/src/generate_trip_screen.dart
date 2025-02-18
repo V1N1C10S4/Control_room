@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_database/firebase_database.dart';
+import 'generate_stops_for_trip_screen.dart';
 
 class GenerateTripScreen extends StatefulWidget {
   const GenerateTripScreen({Key? key}) : super(key: key);
@@ -38,6 +39,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? selectedUserId;
   String? userName;
   String? city;
+  List<Map<String, dynamic>> _selectedStops = [];
 
 
   static const String proxyBaseUrl =
@@ -100,6 +102,25 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     } else {
       setState(() {
         _destinationPredictions = [];
+      });
+    }
+  }
+
+  /// Navega a la pantalla de selección de paradas y actualiza la lista cuando regrese
+  Future<void> _navigateToStopsScreen() async {
+    final stops = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GenerateStopsForTripScreen(
+          existingStops: _selectedStops, // Pasar las paradas actuales
+        ),
+      ),
+    );
+
+    // Si el usuario seleccionó paradas y regresó, actualiza la lista
+    if (stops != null && stops is List<Map<String, dynamic>>) {
+      setState(() {
+        _selectedStops = stops;
       });
     }
   }
@@ -210,7 +231,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<void> _sendTripRequest() async {
     if (selectedUserId == null || _pickupLocation == null || _destinationLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Seleccione el usuario, el punto de recogida y el destino.'),
       ));
       return;
@@ -237,7 +258,19 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       print("Error al buscar FCM Token: $e");
     }
 
-    // Crear la solicitud de viaje con el fcmToken si fue encontrado
+    // 🔹 Generar las paradas en formato "stop1", "stop2", ..., "stopN"
+    Map<String, dynamic> stopsData = {};
+    for (int i = 0; i < _selectedStops.length; i++) {
+      if (_selectedStops[i]['placeName'] != null && _selectedStops[i]['placeName'].isNotEmpty) {
+        stopsData['stop${i + 1}'] = {
+          'latitude': _selectedStops[i]['latitude'],
+          'longitude': _selectedStops[i]['longitude'],
+          'placeName': _selectedStops[i]['placeName'],
+        };
+      }
+    }
+
+    // 🔥 Crear la solicitud de viaje con las paradas incluidas
     final tripData = {
       'userId': selectedUserId,
       'userName': userName,
@@ -253,6 +286,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         'longitude': _destinationLocation!.longitude,
         'placeName': _destinationAddress ?? '',
       },
+      ...stopsData, // 🔥 Incluir paradas como campos independientes (stop1, stop2, etc.)
       'passengers': passengers,
       'luggage': luggage,
       'pets': pets,
@@ -265,7 +299,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
     // Guardar en Firebase Realtime Database
     databaseRef.push().set(tripData).then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Solicitud de viaje creada exitosamente.'),
       ));
       _resetForm();
@@ -454,6 +488,22 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 ],
               ),
               const SizedBox(height: 16),
+              if (_selectedStops.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Paradas:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ..._selectedStops.asMap().entries.map((entry) {
+                      final index = entry.key + 1;
+                      final stop = entry.value;
+                      return ListTile(
+                        leading: Text('#$index'),
+                        title: Text(stop['placeName']),
+                        subtitle: Text('Lat: ${stop['latitude']}, Lng: ${stop['longitude']}'),
+                      );
+                    }).toList(),
+                  ],
+                ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween, // Espaciado uniforme
                 children: [
@@ -473,15 +523,14 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                   const SizedBox(width: 8), // Espaciado entre botones
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Lógica futura para añadir paradas
-                      },
+                      onPressed:
+                        _navigateToStopsScreen,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green, // Botón verde
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text(
-                        'Añadir Parada',
+                        'Añadir Paradas',
                         style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                     ),
