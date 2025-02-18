@@ -112,13 +112,17 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => GenerateStopsForTripScreen(
-          existingStops: _selectedStops, // Pasar las paradas actuales
+          existingStops: _selectedStops, // Pasar paradas guardadas
         ),
       ),
     );
 
-    // Si el usuario seleccionó paradas y regresó, actualiza la lista
-    if (stops != null && stops is List<Map<String, dynamic>>) {
+    // ✅ Si stops está vacío, limpiar la lista global
+    if (stops == null || stops.isEmpty) {
+      setState(() {
+        _selectedStops.clear();
+      });
+    } else {
       setState(() {
         _selectedStops = stops;
       });
