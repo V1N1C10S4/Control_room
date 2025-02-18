@@ -454,9 +454,55 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _sendTripRequest,
-                child: const Text('Crear Solicitud de Viaje'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Espaciado uniforme
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _sendTripRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue, // Botón original
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        'Crear Solicitud de Viaje',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8), // Espaciado entre botones
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Lógica futura para añadir paradas
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green, // Botón verde
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        'Añadir Parada',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8), // Espaciado entre botones
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Lógica futura para programar un viaje
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange, // Botón naranja
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text(
+                        'Programar Viaje',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
