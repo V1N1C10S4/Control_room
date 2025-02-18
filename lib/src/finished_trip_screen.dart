@@ -117,7 +117,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'User: ${trip['userName'] ?? 'N/A'}', // Usando userName
+                            'User: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
@@ -126,12 +126,21 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}', // Usando placeName
+                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
+
+                          // 🔹 Mostrar todas las paradas intermedias en orden
+                          for (int i = 1; trip.containsKey('stop$i'); i++) 
+                            Text(
+                              'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+
+                          const SizedBox(height: 8),
                           Text(
-                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}', // Usando placeName
+                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -188,16 +197,38 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Inicio de viaje: $pickedUpPassengerAt',
                             style: const TextStyle(fontSize: 16),
                           ),
+
+                          // 🔹 Registrar los tiempos de cada parada
+                          for (int i = 1; trip.containsKey('stop$i'); i++) ...[
+                            if (trip.containsKey('stop${i}_reached_at'))
+                              Text(
+                                'Llegada a parada $i: ${_formatDateTime(trip['stop${i}_reached_at'])}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            if (trip.containsKey('stop${i}_waiting_at'))
+                              Text(
+                                'Esperando en la parada $i: ${_formatDateTime(trip['stop${i}_waiting_at'])}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            if (trip.containsKey('stop${i}_continue_at'))
+                              Text(
+                                'Viaje continúa desde parada $i: ${_formatDateTime(trip['stop${i}_continue_at'])}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                          ],
+
                           Text(
                             'Finalizado: $finishedAt',
                             style: const TextStyle(fontSize: 16),
                           ),
+
                           if (trip.containsKey('emergency_at') && trip['emergency_at'] != null)
                             Text(
                               'Emergencia: $emergencyAt',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.red,
                               ),
                             ),
                         ],

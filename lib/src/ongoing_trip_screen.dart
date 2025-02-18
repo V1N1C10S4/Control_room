@@ -35,7 +35,10 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
         .where((trip) =>
             (trip['status'] == 'started' ||
             trip['status'] == 'passenger reached' ||
-            trip['status'] == 'picked up passenger') &&
+            trip['status'] == 'picked up passenger' ||
+            trip['status'] == 'stop_reached' ||
+            trip['status'] == 'stop_waiting' ||
+            trip['status'] == 'stop_continue') &&
             trip['city']?.toLowerCase() == widget.region.toLowerCase())
         .toList();
 
@@ -242,6 +245,15 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
+                          
+                          // Mostrar las paradas dinámicamente
+                          for (int i = 1; i <= 5; i++)
+                            if (trip.containsKey('stop$i'))
+                              Text(
+                                'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                          
                           Text(
                             'Destination: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
@@ -291,7 +303,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.red, // Resaltar la emergencia en rojo
+                                color: Colors.red,
                               ),
                             ),
                           ],
@@ -307,11 +319,26 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             'Inicio de viaje: ${_formatDateTime(trip['picked_up_passenger_at'])}',
                             style: const TextStyle(fontSize: 16),
                           ),
-
+                          
+                          // Mostrar tiempos de paradas
+                          if (trip.containsKey('stop_reached_at'))
+                            Text(
+                              'Llegada a parada: ${_formatDateTime(trip['stop_reached_at'])}',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          if (trip.containsKey('stop_waiting_at'))
+                            Text(
+                              'Esperando en la parada: ${_formatDateTime(trip['stop_waiting_at'])}',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          if (trip.containsKey('stop_continue_at'))
+                            Text(
+                              'Viaje continúa: ${_formatDateTime(trip['stop_continue_at'])}',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          
                           // Espacio adicional antes del botón
                           const SizedBox(height: 16),
-
-                          // Botón alineado en la esquina inferior derecha
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [

@@ -121,12 +121,19 @@ class CancelledTripsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Solicitud #${trips.length - index}', // Enumeración descendente
+                        'Solicitud #${trips.length - index}',
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text('Creado el: ${trip['created_at']}'),
                       Text('Desde: ${trip['pickup']}'),
+
+                      // 🔹 Agregar paradas dinámicamente
+                      for (int i = 1; trip.containsKey('stop$i'); i++)
+                        Text('Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}'),
+
+                      if (trip.containsKey('stop1')) const SizedBox(height: 8), // Espaciado si hay paradas
+
                       Text('Hasta: ${trip['destination']}'),
                       Text('Conductor: ${trip['driver']}'),
                       Text('Pasajero: ${trip['userName']}'),
@@ -138,6 +145,15 @@ class CancelledTripsScreen extends StatelessWidget {
                       Text('Conductor asignado: ${trip['started_at']}'),
                       Text('Conductor en sitio: ${trip['passenger_reached_at']}'),
                       Text('Inicio de viaje: ${trip['picked_up_passenger_at']}'),
+
+                      // 🔹 Registrar cambios de estado de paradas si existen
+                      for (int i = 1; trip.containsKey('stop_reached_at_$i'); i++)
+                        Text('Llegada a parada $i: ${trip['stop_reached_at_$i']}'),
+                      for (int i = 1; trip.containsKey('stop_waiting_at_$i'); i++)
+                        Text('Esperando en parada $i: ${trip['stop_waiting_at_$i']}'),
+                      for (int i = 1; trip.containsKey('stop_continue_at_$i'); i++)
+                        Text('Viaje continúa desde parada $i: ${trip['stop_continue_at_$i']}'),
+
                       if (trip['emergency_at'] != null)
                         Text(
                           'Emergencia: ${trip['emergency_at']}',

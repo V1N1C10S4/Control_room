@@ -397,7 +397,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                           );
                         }),
                       ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     Text(
                       'Destino: ${widget.tripRequest['destination']}',
                       style: const TextStyle(fontSize: 20),

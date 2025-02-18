@@ -236,6 +236,14 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              ...[
+                for (int i = 1; trip.containsKey('stop$i'); i++)
+                  Text(
+                    'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                if (trip.containsKey('stop1')) const SizedBox(height: 8), // ✅ Solo añade espacio si hay paradas
+              ],
               Text(
                 'Destino: ${trip['destination']?['placeName'] ?? 'N/A'}',
                 style: const TextStyle(

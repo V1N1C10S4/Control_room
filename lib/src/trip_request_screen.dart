@@ -36,21 +36,28 @@ class TripRequestScreenState extends State<TripRequestScreen> {
           request['pickup'] = request['pickup']['placeName'] ?? 'NA';
           request['destination'] = request['destination']['placeName'] ?? 'NA';
 
-          // 🔍 Extraer las paradas dinámicamente
+          // 🔍 Extraer todas las paradas
           List<String> stopsList = [];
-          for (int i = 1; i <= 5; i++) { // 🔹 Soporta hasta 5 paradas (puedes cambiar el límite)
+
+          // 🛑 Si hay una parada única en "stop"
+          if (request.containsKey('stop') && request['stop'] != null) {
+            stopsList.add("Parada: ${request['stop']['placeName']}");
+          }
+
+          // 🔄 Iterar sobre posibles paradas numeradas (stop1, stop2...)
+          for (int i = 1; i <= 5; i++) {
             if (request.containsKey('stop$i') && request['stop$i'] != null) {
               stopsList.add("Parada $i: ${request['stop$i']['placeName']}");
             }
           }
 
-          request['stopsList'] = stopsList; // Guardar en la estructura del request
+          request['stopsList'] = stopsList; // Guardar la lista corregida
 
           return request;
         })
         .where((request) =>
             (request['status'] == 'pending' || request['status'] == 'authorized') &&
-            request['city']?.toString().toLowerCase() == widget.region.toLowerCase()) // Filtro por región
+            request['city']?.toString().toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
         .toList();
 
         setState(() {
