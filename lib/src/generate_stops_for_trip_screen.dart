@@ -16,8 +16,9 @@ class GenerateStopsForTripScreen extends StatefulWidget {
 class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
   final List<TextEditingController> _stopControllers = [];
-  final List<LatLng> _stopLocations = [];
-  final List<String> _stopAddresses = [];
+  final List<LatLng> _stopLocationsTemp = []; // Solo almacenamiento temporal
+  final List<String> _stopAddressesTemp = [];
+  final List<Map<String, dynamic>> _tempStopsData = [];
   final Set<Marker> _markers = {};
 
   static const String proxyBaseUrl = "https://34.120.209.209.nip.io/militripproxy";
@@ -29,26 +30,49 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
     _initializeStops();
   }
 
+  Future<void> _zoomToMarker(int index) async {
+    if (index < _stopLocationsTemp.length) {
+      final controller = await _mapController.future;
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(_stopLocationsTemp[index], 16),
+      );
+    }
+  }
+
   void _initializeStops() {
     if (widget.existingStops != null && widget.existingStops!.isNotEmpty) {
       for (var stop in widget.existingStops!) {
         final latLng = LatLng(stop['latitude'], stop['longitude']);
-        _stopLocations.add(latLng);
-        _stopAddresses.add(stop['placeName'] ?? "Ubicación desconocida");
+        _stopLocationsTemp.add(latLng);
+        _stopAddressesTemp.add(stop['placeName'] ?? "Ubicación desconocida");
 
         _stopControllers.add(TextEditingController(text: stop['placeName'] ?? ''));
         _stopPredictions.add([]);
 
         _markers.add(Marker(
-          markerId: MarkerId('stop${_stopLocations.length}'),
+          markerId: MarkerId('stop${_stopLocationsTemp.length}'),
           position: latLng,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         ));
+
+        _tempStopsData.add({
+          'latitude': latLng.latitude,
+          'longitude': latLng.longitude,
+          'placeName': stop['placeName'] ?? '',
+        });
       }
-    } else {
+    }
+    // Agregar la primera barra de búsqueda si no hay paradas existentes
+    if (_stopControllers.isEmpty) {
+      _addNewStopField();
+    }
+  }
+
+  void _addNewStopField() {
+    setState(() {
       _stopControllers.add(TextEditingController());
       _stopPredictions.add([]);
-    }
+    });
   }
 
   @override
@@ -77,15 +101,14 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
               ),
             ),
           ),
-          // ✅ Reducimos el tamaño del mapa horizontalmente
           Container(
             height: 250,
-            padding: const EdgeInsets.symmetric(horizontal: 16), // Márgenes laterales
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12), // Bordes redondeados
+              borderRadius: BorderRadius.circular(12),
               child: GoogleMap(
                 initialCameraPosition: const CameraPosition(
-                  target: LatLng(19.432608, -99.133209), // CDMX
+                  target: LatLng(19.432608, -99.133209),
                   zoom: 12,
                 ),
                 markers: _markers,
@@ -101,15 +124,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
             children: [
               ElevatedButton(
                 onPressed: () {
-                  List<Map<String, dynamic>> stopsData = [];
-                  for (int i = 0; i < _stopLocations.length; i++) {
-                    stopsData.add({
-                      'latitude': _stopLocations[i].latitude,
-                      'longitude': _stopLocations[i].longitude,
-                      'placeName': _stopAddresses[i],
-                    });
-                  }
-                  Navigator.pop(context, stopsData);
+                  Navigator.pop(context, _tempStopsData);
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Guardar Paradas', style: TextStyle(color: Colors.white)),
@@ -154,7 +169,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              if (index < _stopLocations.length)
+              if (index < _stopLocationsTemp.length)
                 ElevatedButton(
                   onPressed: () => _zoomToMarker(index),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
@@ -178,7 +193,9 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                     title: Text(prediction['description']),
                     onTap: () {
                       _getStopDetails(prediction['place_id'], index);
-                      _stopPredictions[index] = []; // ✅ Ocultar lista de predicciones
+                      setState(() {
+                        _stopPredictions[index] = [];
+                      });
                     },
                   );
                 },
@@ -237,26 +254,22 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
           final address = data['result']['formatted_address'];
 
           setState(() {
-            _stopLocations.add(latLng);
-            _stopAddresses.add(address);
             _stopControllers[index].text = address;
-            _stopPredictions[index] = []; // ✅ Ocultar predicciones
+            _stopPredictions[index] = [];
+            _tempStopsData.add({
+              'latitude': latLng.latitude,
+              'longitude': latLng.longitude,
+              'placeName': address,
+            });
 
-            _markers.add(Marker(
-              markerId: MarkerId('stop$index'),
-              position: latLng,
-              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-            ));
+            if (index == _stopControllers.length - 1) {
+              _addNewStopField();
+            }
           });
         }
       }
     } catch (e) {
       print("Error al obtener detalles del lugar: $e");
     }
-  }
-
-  Future<void> _zoomToMarker(int index) async {
-    final controller = await _mapController.future;
-    controller.animateCamera(CameraUpdate.newLatLngZoom(_stopLocations[index], 16));
   }
 }
