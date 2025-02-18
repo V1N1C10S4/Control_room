@@ -141,24 +141,15 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                   setState(() {
                     _stopLocationsTemp.clear();
                     _stopAddressesTemp.clear();
+                    _tempStopsData.clear();
+                    _stopControllers.clear();
+                    _stopPredictions.clear();
                     _markers.clear();
-
-                    // Guardar solo cuando el usuario lo confirme
-                    for (var stop in _tempStopsData) {
-                      final latLng = LatLng(stop['latitude'], stop['longitude']);
-                      _stopLocationsTemp.add(latLng);
-                      _stopAddressesTemp.add(stop['placeName']);
-
-                      _markers.add(Marker(
-                        markerId: MarkerId('stop${_stopLocationsTemp.length}'),
-                        position: latLng,
-                        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                      ));
-                    }
+                    _addNewStopField(); // Añadir una barra de búsqueda vacía después de borrar todo
                   });
 
-                  // Cerrar pantalla y enviar datos a GenerateTripScreen
-                  Navigator.pop(context, _tempStopsData);
+                  // ✅ Asegurar que al regresar no se envíen paradas antiguas
+                  Navigator.pop(context, []);
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                 child: const Text('Eliminar Paradas', style: TextStyle(color: Colors.white)),
@@ -283,8 +274,8 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
           setState(() {
             _stopControllers[index].text = address;
             _stopPredictions[index] = [];
-            
-            // Solo se guardan temporalmente
+
+            // Verifica si ya existe la parada en _tempStopsData
             if (index >= _tempStopsData.length) {
               _tempStopsData.add({
                 'latitude': latLng.latitude,
@@ -298,6 +289,13 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                 'placeName': address,
               };
             }
+
+            // ✅ Agregar el marcador inmediatamente
+            _markers.add(Marker(
+              markerId: MarkerId('stop$index'),
+              position: latLng,
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            ));
 
             // Agregar un nuevo campo si estamos en la última barra
             if (index == _stopControllers.length - 1) {
