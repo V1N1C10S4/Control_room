@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GenerateStopsForTripScreen extends StatefulWidget {
-  final List<Map<String, dynamic>>? existingStops; // Recibe las paradas anteriores si existen
+  final List<Map<String, dynamic>>? existingStops;
 
   const GenerateStopsForTripScreen({Key? key, this.existingStops}) : super(key: key);
 
@@ -21,7 +21,6 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
   final Set<Marker> _markers = {};
 
   static const String proxyBaseUrl = "https://34.120.209.209.nip.io/militripproxy";
-
   List<List<Map<String, dynamic>>> _stopPredictions = [];
 
   @override
@@ -47,7 +46,6 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
         ));
       }
     } else {
-      // Si no hay paradas existentes, agregar la primera barra de búsqueda vacía
       _stopControllers.add(TextEditingController());
       _stopPredictions.add([]);
     }
@@ -79,17 +77,22 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
               ),
             ),
           ),
+          // ✅ Reducimos el tamaño del mapa horizontalmente
           Container(
-            height: 300,
-            child: GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(19.432608, -99.133209), // CDMX
-                zoom: 12,
+            height: 250,
+            padding: const EdgeInsets.symmetric(horizontal: 16), // Márgenes laterales
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12), // Bordes redondeados
+              child: GoogleMap(
+                initialCameraPosition: const CameraPosition(
+                  target: LatLng(19.432608, -99.133209), // CDMX
+                  zoom: 12,
+                ),
+                markers: _markers,
+                onMapCreated: (GoogleMapController controller) {
+                  _mapController.complete(controller);
+                },
               ),
-              markers: _markers,
-              onMapCreated: (GoogleMapController controller) {
-                _mapController.complete(controller);
-              },
             ),
           ),
           const SizedBox(height: 16),
@@ -140,6 +143,12 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                   decoration: InputDecoration(
                     labelText: 'Parada ${index + 1}',
                     border: OutlineInputBorder(),
+                    suffixIcon: _stopControllers[index].text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _clearStopField(index),
+                          )
+                        : null,
                   ),
                   onChanged: (input) => _onStopSearchChanged(input, index),
                 ),
@@ -169,6 +178,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                     title: Text(prediction['description']),
                     onTap: () {
                       _getStopDetails(prediction['place_id'], index);
+                      _stopPredictions[index] = []; // ✅ Ocultar lista de predicciones
                     },
                   );
                 },
@@ -177,6 +187,13 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
         ],
       ),
     );
+  }
+
+  void _clearStopField(int index) {
+    setState(() {
+      _stopControllers[index].clear();
+      _stopPredictions[index] = [];
+    });
   }
 
   void _onStopSearchChanged(String input, int index) async {
@@ -223,17 +240,13 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
             _stopLocations.add(latLng);
             _stopAddresses.add(address);
             _stopControllers[index].text = address;
+            _stopPredictions[index] = []; // ✅ Ocultar predicciones
 
             _markers.add(Marker(
               markerId: MarkerId('stop$index'),
               position: latLng,
               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
             ));
-
-            if (index == _stopControllers.length - 1) {
-              _stopControllers.add(TextEditingController());
-              _stopPredictions.add([]);
-            }
           });
         }
       }
