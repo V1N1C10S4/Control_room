@@ -369,12 +369,12 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Usuario: ${widget.tripRequest['userId']}',
+                      'Pasajero: ${widget.tripRequest['userId']}',
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Nombre del usuario: ${widget.tripRequest['userName']}',
+                      'Nombre del pasajero: ${widget.tripRequest['userName']}',
                       style: const TextStyle(fontSize: 20),
                     ),
                     const SizedBox(height: 16),

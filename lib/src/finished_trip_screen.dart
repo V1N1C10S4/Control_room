@@ -117,16 +117,16 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'User: ${trip['userName'] ?? 'N/A'}',
+                            'Pasajero: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Driver: ${trip['driver'] ?? 'N/A'}',
+                            'Conductor: ${trip['driver'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}',
+                            'Punto de partida: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -134,18 +134,18 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                           // 🔹 Mostrar todas las paradas intermedias en orden
                           for (int i = 1; trip.containsKey('stop$i'); i++) 
                             Text(
-                              'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                              'Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
                               style: const TextStyle(fontSize: 16),
                             ),
 
                           const SizedBox(height: 8),
                           Text(
-                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}',
+                            'Destino: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Status: ${trip['status']}',
+                            'Estatus: ${trip['status']}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),

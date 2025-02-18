@@ -233,16 +233,16 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'User: ${trip['userName'] ?? 'N/A'}',
+                            'Pasajero: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           Text(
-                            'Driver: ${trip['driver'] ?? 'N/A'}',
+                            'Conductor: ${trip['driver'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Pickup: ${trip['pickup']['placeName'] ?? 'N/A'}',
+                            'Punto de partida: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           
@@ -250,17 +250,17 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           for (int i = 1; i <= 5; i++)
                             if (trip.containsKey('stop$i'))
                               Text(
-                                'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                                'Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
                                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                           
                           Text(
-                            'Destination: ${trip['destination']['placeName'] ?? 'N/A'}',
+                            'Destino: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Status: ${trip['status']}',
+                            'Estatus: ${trip['status']}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -333,7 +333,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             ),
                           if (trip.containsKey('stop_continue_at'))
                             Text(
-                              'Viaje continúa: ${_formatDateTime(trip['stop_continue_at'])}',
+                              'Viaje continúa desde parada: ${_formatDateTime(trip['stop_continue_at'])}',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                           

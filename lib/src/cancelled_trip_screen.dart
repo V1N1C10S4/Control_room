@@ -126,15 +126,15 @@ class CancelledTripsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text('Creado el: ${trip['created_at']}'),
-                      Text('Desde: ${trip['pickup']}'),
+                      Text('Punto de partida: ${trip['pickup']}'),
 
                       // 🔹 Agregar paradas dinámicamente
                       for (int i = 1; trip.containsKey('stop$i'); i++)
-                        Text('Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}'),
+                        Text('Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}'),
 
                       if (trip.containsKey('stop1')) const SizedBox(height: 8), // Espaciado si hay paradas
 
-                      Text('Hasta: ${trip['destination']}'),
+                      Text('Destino: ${trip['destination']}'),
                       Text('Conductor: ${trip['driver']}'),
                       Text('Pasajero: ${trip['userName']}'),
                       Text('Teléfono del pasajero: ${trip['telefonoPasajero']}'),

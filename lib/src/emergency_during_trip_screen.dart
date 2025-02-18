@@ -213,7 +213,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Usuario: ${trip['userName'] ?? 'N/A'}',
+                'Pasajero: ${trip['userName'] ?? 'N/A'}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -229,7 +229,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Pickup: ${trip['pickup']?['placeName'] ?? 'N/A'}',
+                'Punto de partida: ${trip['pickup']?['placeName'] ?? 'N/A'}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -239,7 +239,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ...[
                 for (int i = 1; trip.containsKey('stop$i'); i++)
                   Text(
-                    'Stop $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                    'Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
                     style: const TextStyle(fontSize: 16),
                   ),
                 if (trip.containsKey('stop1')) const SizedBox(height: 8), // ✅ Solo añade espacio si hay paradas
