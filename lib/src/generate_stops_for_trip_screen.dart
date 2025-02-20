@@ -62,10 +62,9 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
         });
       }
     }
-    // Agregar la primera barra de búsqueda si no hay paradas existentes
-    if (_stopControllers.isEmpty) {
-      _addNewStopField();
-    }
+
+    // 🔹 Siempre agregar una barra de búsqueda vacía adicional al final
+    _addNewStopField();
   }
 
   void _addNewStopField() {
@@ -235,8 +234,14 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
         _stopAddressesTemp.removeAt(index);
       }
 
-      // ✅ Eliminar marcador del mapa
+      // 🔹 Eliminar marcador del mapa
       _markers.removeWhere((marker) => marker.markerId.value == 'stop$index');
+
+      // 🔹 Si es una barra vacía agregada al final, la eliminamos completamente
+      if (index == _stopControllers.length - 1 && _stopControllers.length > 1) {
+        _stopControllers.removeAt(index);
+        _stopPredictions.removeAt(index);
+      }
     });
   }
 
