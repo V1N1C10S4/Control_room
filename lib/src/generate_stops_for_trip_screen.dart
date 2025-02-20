@@ -225,22 +225,24 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
 
   void _clearStopField(int index) {
     setState(() {
-      _stopControllers[index].clear();
-      _stopPredictions[index] = [];
-
+      // 🔥 Eliminar datos de la parada en todas las listas
       if (index < _tempStopsData.length) {
         _tempStopsData.removeAt(index);
         _stopLocationsTemp.removeAt(index);
         _stopAddressesTemp.removeAt(index);
       }
 
-      // 🔹 Eliminar marcador del mapa
+      // 🔥 Eliminar el marcador asociado a la parada
       _markers.removeWhere((marker) => marker.markerId.value == 'stop$index');
 
-      // 🔹 Si es una barra vacía agregada al final, la eliminamos completamente
-      if (index == _stopControllers.length - 1 && _stopControllers.length > 1) {
-        _stopControllers.removeAt(index);
-        _stopPredictions.removeAt(index);
+      // 🔥 Eliminar la barra de búsqueda y su controlador
+      _stopControllers[index].dispose(); // Libera la memoria del TextEditingController
+      _stopControllers.removeAt(index);
+      _stopPredictions.removeAt(index);
+
+      // 🔥 Asegurar que siempre quede al menos una barra vacía
+      if (_stopControllers.isEmpty) {
+        _addNewStopField();
       }
     });
   }
