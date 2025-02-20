@@ -228,6 +228,15 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
     setState(() {
       _stopControllers[index].clear();
       _stopPredictions[index] = [];
+
+      if (index < _tempStopsData.length) {
+        _tempStopsData.removeAt(index);
+        _stopLocationsTemp.removeAt(index);
+        _stopAddressesTemp.removeAt(index);
+      }
+
+      // ✅ Eliminar marcador del mapa
+      _markers.removeWhere((marker) => marker.markerId.value == 'stop$index');
     });
   }
 
@@ -275,29 +284,33 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
             _stopControllers[index].text = address;
             _stopPredictions[index] = [];
 
-            // Verifica si ya existe la parada en _tempStopsData
-            if (index >= _tempStopsData.length) {
-              _tempStopsData.add({
-                'latitude': latLng.latitude,
-                'longitude': latLng.longitude,
-                'placeName': address,
-              });
-            } else {
+            // ✅ Si la parada ya existe en la lista temporal, actualizarla
+            if (index < _tempStopsData.length) {
               _tempStopsData[index] = {
                 'latitude': latLng.latitude,
                 'longitude': latLng.longitude,
                 'placeName': address,
               };
+            } else {
+              _tempStopsData.add({
+                'latitude': latLng.latitude,
+                'longitude': latLng.longitude,
+                'placeName': address,
+              });
+
+              _stopLocationsTemp.add(latLng);
+              _stopAddressesTemp.add(address);
             }
 
-            // ✅ Agregar el marcador inmediatamente
+            // ✅ Remover marcador si ya existía en esa posición antes de agregar el nuevo
+            _markers.removeWhere((marker) => marker.markerId.value == 'stop$index');
             _markers.add(Marker(
               markerId: MarkerId('stop$index'),
               position: latLng,
               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
             ));
 
-            // Agregar un nuevo campo si estamos en la última barra
+            // ✅ Agregar un nuevo campo si estamos en la última barra de búsqueda
             if (index == _stopControllers.length - 1) {
               _addNewStopField();
             }
