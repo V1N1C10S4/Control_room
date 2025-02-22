@@ -125,6 +125,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         _updateStopMarkers();
       }
     });
+
+    // 🔥 Llamar a _drawPolyline() para recalcular la ruta después de actualizar las paradas
+    _drawPolyline();
   }
 
   void _updateStopMarkers() {
