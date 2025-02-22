@@ -129,7 +129,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   void _updateStopMarkers() {
     setState(() {
-      // Eliminar todos los marcadores previos de paradas
+      // Eliminar marcadores de paradas previos
       _markers.removeWhere((marker) => marker.markerId.value.startsWith('stop'));
 
       // Solo agregar marcadores si existen paradas
@@ -146,7 +146,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         }
       }
 
-      // Solo trazar la ruta si hay paradas seleccionadas
+      // 🔥 Redibujar la ruta después de actualizar los marcadores
       _drawPolyline();
     });
   }
@@ -204,7 +204,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   Future<void> _drawPolyline() async {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
-    // Si no hay paradas, la URL se construye sin waypoints
     String waypoints = _selectedStops.isNotEmpty
         ? "&waypoints=" + _selectedStops.map((stop) => "${stop['latitude']},${stop['longitude']}").join('|')
         : "";
@@ -220,16 +219,25 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       final data = json.decode(response.body);
 
       if (data['status'] == 'OK') {
-        final route = data['routes'][0]['legs'][0];
-        final distanceText = route['distance']['text'];
-        final durationText = route['duration']['text'];
-        final durationValue = route['duration']['value'];
-        final arrivalTime = DateTime.now().add(Duration(seconds: durationValue));
-        final arrivalTimeText =
-            "${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')}";
-
         List<PointLatLng> points = polylinePoints
             .decodePolyline(data['routes'][0]['overview_polyline']['points']);
+
+        int totalDistance = 0;
+        int totalDuration = 0;
+
+        // 🔹 Sumar todas las distancias y tiempos de cada tramo
+        for (var leg in data['routes'][0]['legs']) {
+          totalDistance += (leg['distance']['value'] as num).toInt(); // distancia en metros
+          totalDuration += (leg['duration']['value'] as num).toInt(); // duración en segundos
+        }
+
+        // Convertir metros a kilómetros y segundos a minutos
+        double distanceKm = totalDistance / 1000.0;
+        int durationMinutes = (totalDuration / 60).round();
+
+        final arrivalTime = DateTime.now().add(Duration(seconds: totalDuration));
+        final arrivalTimeText =
+            "${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')}";
 
         setState(() {
           _polylineCoordinates.clear();
@@ -245,8 +253,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
             width: 5,
           ));
 
-          _distanceText = distanceText;
-          _durationText = durationText;
+          // 🔥 Mostrar la distancia y duración total del viaje
+          _distanceText = "${distanceKm.toStringAsFixed(1)} km";
+          _durationText = "$durationMinutes min";
           _arrivalTimeText = arrivalTimeText;
         });
       } else {
