@@ -106,27 +106,49 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     }
   }
 
-  /// Navega a la pantalla de selección de paradas y actualiza la lista cuando regrese
   Future<void> _navigateToStopsScreen() async {
     final stops = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GenerateStopsForTripScreen(
-          existingStops: _selectedStops, // Pasar paradas guardadas
+          existingStops: _selectedStops,
         ),
       ),
     );
 
-    // ✅ Si stops está vacío, limpiar la lista global
-    if (stops == null || stops.isEmpty) {
-      setState(() {
+    setState(() {
+      if (stops == null || stops.isEmpty) {
         _selectedStops.clear();
-      });
-    } else {
-      setState(() {
+        _markers.removeWhere((marker) => marker.markerId.value.startsWith('stop'));
+      } else {
         _selectedStops = stops;
-      });
-    }
+        _updateStopMarkers();
+      }
+    });
+  }
+
+  void _updateStopMarkers() {
+    setState(() {
+      // Eliminar todos los marcadores previos de paradas
+      _markers.removeWhere((marker) => marker.markerId.value.startsWith('stop'));
+
+      // Solo agregar marcadores si existen paradas
+      if (_selectedStops.isNotEmpty) {
+        for (int i = 0; i < _selectedStops.length; i++) {
+          final stop = _selectedStops[i];
+          final latLng = LatLng(stop['latitude'], stop['longitude']);
+
+          _markers.add(Marker(
+            markerId: MarkerId('stop${i + 1}'),
+            position: latLng,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          ));
+        }
+      }
+
+      // Solo trazar la ruta si hay paradas seleccionadas
+      _drawPolyline();
+    });
   }
 
   Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
@@ -182,16 +204,22 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   Future<void> _drawPolyline() async {
     if (_pickupLocation == null || _destinationLocation == null) return;
 
-    // Construir la URL completa usando el proxy
+    // Si no hay paradas, la URL se construye sin waypoints
+    String waypoints = _selectedStops.isNotEmpty
+        ? "&waypoints=" + _selectedStops.map((stop) => "${stop['latitude']},${stop['longitude']}").join('|')
+        : "";
+
     String url =
-        '$proxyBaseUrl/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+        '$proxyBaseUrl/directions/json?origin=${_pickupLocation!.latitude},${_pickupLocation!.longitude}'
+        '$waypoints'
+        '&destination=${_destinationLocation!.latitude},${_destinationLocation!.longitude}&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
       if (data['status'] == 'OK') {
-        // Extraer información adicional: distancia, duración y hora de llegada
         final route = data['routes'][0]['legs'][0];
         final distanceText = route['distance']['text'];
         final durationText = route['duration']['text'];
@@ -200,27 +228,23 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         final arrivalTimeText =
             "${arrivalTime.hour}:${arrivalTime.minute.toString().padLeft(2, '0')}";
 
-        // Decodificar los puntos del polyline
         List<PointLatLng> points = polylinePoints
             .decodePolyline(data['routes'][0]['overview_polyline']['points']);
 
         setState(() {
-          // Limpiar y agregar los puntos de la polyline
           _polylineCoordinates.clear();
           for (var point in points) {
             _polylineCoordinates.add(LatLng(point.latitude, point.longitude));
           }
 
-          // Configurar la polyline en el mapa
           _polylines.clear();
           _polylines.add(Polyline(
-            polylineId: PolylineId('route'),
+            polylineId: const PolylineId('route'),
             points: _polylineCoordinates,
             color: Colors.blue,
             width: 5,
           ));
 
-          // Actualizar las variables de información del viaje
           _distanceText = distanceText;
           _durationText = durationText;
           _arrivalTimeText = arrivalTimeText;
