@@ -298,15 +298,26 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       print("Error al buscar FCM Token: $e");
     }
 
-    // 🔹 Generar las paradas en formato "stop1", "stop2", ..., "stopN"
+    // 🔹 Generar las paradas en el formato adecuado con campos numerados
     Map<String, dynamic> stopsData = {};
-    for (int i = 0; i < _selectedStops.length; i++) {
-      if (_selectedStops[i]['placeName'] != null && _selectedStops[i]['placeName'].isNotEmpty) {
-        stopsData['stop${i + 1}'] = {
-          'latitude': _selectedStops[i]['latitude'],
-          'longitude': _selectedStops[i]['longitude'],
-          'placeName': _selectedStops[i]['placeName'],
+
+    if (_selectedStops.isNotEmpty) {
+      if (_selectedStops.length == 1) {
+        // Si solo hay una parada, se guarda directamente con la clave "stop"
+        stopsData['stop'] = {
+          'latitude': _selectedStops[0]['latitude'],
+          'longitude': _selectedStops[0]['longitude'],
+          'placeName': _selectedStops[0]['placeName'],
         };
+      } else {
+        // Si hay más de una parada, asignamos "stop1", "stop2", "stop3", etc.
+        for (int i = 0; i < _selectedStops.length; i++) {
+          stopsData['stop${i + 1}'] = {
+            'latitude': _selectedStops[i]['latitude'],
+            'longitude': _selectedStops[i]['longitude'],
+            'placeName': _selectedStops[i]['placeName'],
+          };
+        }
       }
     }
 
@@ -326,7 +337,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         'longitude': _destinationLocation!.longitude,
         'placeName': _destinationAddress ?? '',
       },
-      ...stopsData, // 🔥 Incluir paradas como campos independientes (stop1, stop2, etc.)
+      ...stopsData, // 🔥 Incluir paradas correctamente formateadas con nombres numerados
       'passengers': passengers,
       'luggage': luggage,
       'pets': pets,
