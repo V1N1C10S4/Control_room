@@ -303,14 +303,14 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
     if (_selectedStops.isNotEmpty) {
       if (_selectedStops.length == 1) {
-        // Si solo hay una parada, se guarda directamente con la clave "stop"
+        // ✅ Si hay exactamente una parada, se guarda con la clave "stop"
         stopsData['stop'] = {
-          'latitude': _selectedStops[0]['latitude'],
-          'longitude': _selectedStops[0]['longitude'],
-          'placeName': _selectedStops[0]['placeName'],
+          'latitude': _selectedStops.first['latitude'],
+          'longitude': _selectedStops.first['longitude'],
+          'placeName': _selectedStops.first['placeName'],
         };
       } else {
-        // Si hay más de una parada, asignamos "stop1", "stop2", "stop3", etc.
+        // ✅ Si hay múltiples paradas, asignamos "stop1", "stop2", "stop3", etc.
         for (int i = 0; i < _selectedStops.length; i++) {
           stopsData['stop${i + 1}'] = {
             'latitude': _selectedStops[i]['latitude'],
@@ -337,7 +337,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         'longitude': _destinationLocation!.longitude,
         'placeName': _destinationAddress ?? '',
       },
-      ...stopsData, // 🔥 Incluir paradas correctamente formateadas con nombres numerados
+      ...stopsData, // ✅ Incluir paradas correctamente formateadas
       'passengers': passengers,
       'luggage': luggage,
       'pets': pets,
@@ -345,7 +345,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       'status': 'pending',
       'created_at': DateTime.now().toIso8601String(),
       'emergency': false,
-      if (fcmToken != null) 'fcmToken': fcmToken, // Añadir fcmToken solo si existe
+      if (fcmToken != null) 'fcmToken': fcmToken, // ✅ Añadir fcmToken solo si existe
     };
 
     // Guardar en Firebase Realtime Database
