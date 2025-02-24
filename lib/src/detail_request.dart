@@ -158,8 +158,17 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   Future<void> _extractStopsFromTripRequest() async {
     List<LatLng> stops = [];
 
-    for (var i = 0; i < 10; i++) {
-      String stopKey = i == 0 ? 'stop' : 'stop$i';
+    // ✅ Primero verificamos si existe una única parada con la clave "stop"
+    if (widget.tripRequest.containsKey('stop') && widget.tripRequest['stop'] != null) {
+      var stopData = widget.tripRequest['stop'];
+      if (stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+        stops.add(LatLng(stopData['latitude'], stopData['longitude']));
+      }
+    }
+
+    // ✅ Luego verificamos si existen múltiples paradas numeradas "stop1", "stop2", ...
+    for (int i = 1; i <= 10; i++) { // 🔥 Comenzamos desde 1 porque "stop" ya fue revisado
+      String stopKey = 'stop$i';
       if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
         var stopData = widget.tripRequest[stopKey];
         if (stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
@@ -169,7 +178,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     }
 
     setState(() {
-      _stops = stops; // ✅ Actualizar _stops una vez estén listas todas las paradas
+      _stops = stops; // ✅ Actualizar _stops con todas las paradas
     });
   }
 
