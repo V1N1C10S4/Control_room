@@ -47,18 +47,23 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   }
 
   void _initializeMap() async {
-    final pickupCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['pickup']);
-    final destinationCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['destination']);
+    LatLng? pickupCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['pickup']);
+    LatLng? destinationCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['destination']);
 
-    if (pickupCoordinates != null && destinationCoordinates != null) {
-      setState(() {
-        _addMarkers(pickupCoordinates, destinationCoordinates);
-        _addStopMarkers(_stops); // 🟡 Agregar marcadores de paradas
-      });
-
-      // Trazar la ruta incluyendo las paradas
-      _fetchRouteWithStops(pickupCoordinates, _stops, destinationCoordinates);
+    if (pickupCoordinates == null || destinationCoordinates == null) {
+      _logger.e("Error: No se pudo obtener las coordenadas de recogida o destino.");
+      return;
     }
+
+    setState(() {
+      _addMarkers(pickupCoordinates, destinationCoordinates);
+      if (_stops.isNotEmpty) {
+        _addStopMarkers(_stops); // 🔥 Agregar paradas solo si existen
+      }
+    });
+
+    // 🔥 Asegurar que la ruta se genere solo si hay datos suficientes
+    _fetchRouteWithStops(pickupCoordinates, _stops, destinationCoordinates);
   }
 
   void _updateTripStatus(BuildContext context, String newStatus) {
@@ -208,10 +213,12 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   }
 
   void _addStopMarkers(List<LatLng> stops) {
+    if (stops.isEmpty) return; // ✅ Evita errores si no hay paradas
+
     for (int i = 0; i < stops.length; i++) {
       _markers.add(
         Marker(
-          markerId: MarkerId('stop$i'),
+          markerId: MarkerId('stop${i + 1}'),
           position: stops[i],
           infoWindow: InfoWindow(title: 'Parada ${i + 1}'),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
