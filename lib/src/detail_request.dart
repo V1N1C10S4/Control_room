@@ -163,28 +163,27 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   Future<void> _extractStopsFromTripRequest() async {
       List<LatLng> stops = [];
 
-      // ✅ Verifica si hay una única parada con la clave "stop"
+      // ✅ Primero verificamos si existe una única parada con la clave "stop"
       if (widget.tripRequest.containsKey('stop') && widget.tripRequest['stop'] != null) {
           var stopData = widget.tripRequest['stop'];
-          if (stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-              stops.add(LatLng(stopData['latitude'], stopData['longitude']));
+          if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+              stops.add(LatLng(stopData['latitude'] ?? 0.0, stopData['longitude'] ?? 0.0));
           }
       } else {
-          // ✅ Si no existe "stop", busca paradas enumeradas (stop1, stop2, stop3...)
-          for (int i = 1; i <= 10; i++) { // Se puede ajustar el límite según sea necesario
+          // ✅ Si no existe "stop", buscar paradas enumeradas (stop1, stop2, ...)
+          for (int i = 1; i <= 10; i++) { // 🔥 Ajusta el límite según sea necesario
               String stopKey = 'stop$i';
               if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
                   var stopData = widget.tripRequest[stopKey];
 
-                  // Asegura que la parada tenga coordenadas antes de agregarla
-                  if (stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-                      stops.add(LatLng(stopData['latitude'], stopData['longitude']));
+                  // ✅ Asegurar que los datos sean válidos
+                  if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+                      stops.add(LatLng(stopData['latitude'] ?? 0.0, stopData['longitude'] ?? 0.0));
                   }
               }
           }
       }
 
-      // ✅ Actualiza la lista de paradas en el estado
       setState(() {
           _stops = stops;
       });
