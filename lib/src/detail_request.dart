@@ -421,7 +421,11 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: List.generate(_stops.length, (index) {
-                          String stopKey = index == 0 ? 'stop' : 'stop${index + 1}';
+                          // 🔹 Primera parada puede ser "stop" o "stop1"
+                          String stopKey = (index == 0 && widget.tripRequest.containsKey('stop'))
+                              ? 'stop'
+                              : 'stop${index + 1}';
+
                           var stopData = widget.tripRequest[stopKey];
 
                           return stopData != null && stopData is Map && stopData.containsKey('placeName')
@@ -432,7 +436,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                                     style: const TextStyle(fontSize: 20),
                                   ),
                                 )
-                              : const SizedBox(); // Si no hay datos, no muestra nada
+                              : const SizedBox();
                         }),
                       ),
                     const SizedBox(height: 8),
