@@ -47,22 +47,31 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   }
 
   void _initializeMap() async {
-    LatLng? pickupCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['pickup']);
-    LatLng? destinationCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['destination']);
+    LatLng? pickupCoordinates;
+    LatLng? destinationCoordinates;
+
+    try {
+      pickupCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['pickup']);
+      destinationCoordinates = await _getCoordinatesFromAddress(widget.tripRequest['destination']);
+    } catch (e) {
+      _logger.e("Error obteniendo coordenadas: $e");
+      return;
+    }
 
     if (pickupCoordinates == null || destinationCoordinates == null) {
       _logger.e("Error: No se pudo obtener las coordenadas de recogida o destino.");
       return;
     }
 
+    if (!mounted) return; // 🔥 Evitar modificar estado si el widget ya no está en pantalla
+
     setState(() {
-      _addMarkers(pickupCoordinates, destinationCoordinates);
+      _addMarkers(pickupCoordinates!, destinationCoordinates!);
       if (_stops.isNotEmpty) {
-        _addStopMarkers(_stops); // 🔥 Agregar paradas solo si existen
+        _addStopMarkers(_stops);
       }
     });
 
-    // 🔥 Asegurar que la ruta se genere solo si hay datos suficientes
     _fetchRouteWithStops(pickupCoordinates, _stops, destinationCoordinates);
   }
 
@@ -161,39 +170,39 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   }
 
   Future<void> _extractStopsFromTripRequest() async {
-      List<LatLng> stops = [];
+    List<LatLng> stops = [];
 
-      // 🔹 Si existe una única parada bajo "stop", la tomamos primero
-      if (widget.tripRequest.containsKey('stop') && widget.tripRequest['stop'] != null) {
-          var stopData = widget.tripRequest['stop'];
-          if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-              stops.add(LatLng(
-                stopData['latitude'] ?? 0.0,
-                stopData['longitude'] ?? 0.0,
-              ));
-          }
-      } 
-
-      // 🔹 Si existen paradas enumeradas (stop1, stop2, ...), las tomamos en orden
-      for (int i = 1; i <= 10; i++) { // 🔥 Ajustar límite si es necesario
-          String stopKey = 'stop$i';
-          if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
-              var stopData = widget.tripRequest[stopKey];
-
-              if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-                  stops.add(LatLng(
-                    stopData['latitude'] ?? 0.0,
-                    stopData['longitude'] ?? 0.0,
-                  ));
-              }
-          }
+    if (widget.tripRequest.containsKey('stop') && widget.tripRequest['stop'] != null) {
+      var stopData = widget.tripRequest['stop'];
+      if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+        stops.add(LatLng(
+          stopData['latitude'] ?? 0.0,
+          stopData['longitude'] ?? 0.0,
+        ));
       }
+    }
 
-      setState(() {
-          _stops = stops;
-      });
+    for (int i = 1; i <= 10; i++) {
+      String stopKey = 'stop$i';
+      if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
+        var stopData = widget.tripRequest[stopKey];
 
-      _logger.d("Paradas extraídas: $_stops"); // ✅ Depuración
+        if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+          stops.add(LatLng(
+            stopData['latitude'] ?? 0.0,
+            stopData['longitude'] ?? 0.0,
+          ));
+        }
+      }
+    }
+
+    if (!mounted) return; // ✅ Evitar errores si el widget fue destruido
+
+    setState(() {
+      _stops = stops;
+    });
+
+    _logger.d("Paradas extraídas: $_stops");
   }
 
   void _addMarkers(LatLng pickup, LatLng destination) {
@@ -408,18 +417,22 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                       style: const TextStyle(fontSize: 20),
                     ),
                     const SizedBox(height: 16),
-                    // 🔹 Iterar sobre las paradas y agregarlas a la lista de información
                     if (_stops.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: List.generate(_stops.length, (index) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'Parada ${index + 1}: ${widget.tripRequest['stop${index == 0 ? '' : index}']['placeName']}',
-                              style: const TextStyle(fontSize: 20),
-                            ),
-                          );
+                          String stopKey = index == 0 ? 'stop' : 'stop${index + 1}';
+                          var stopData = widget.tripRequest[stopKey];
+
+                          return stopData != null && stopData is Map && stopData.containsKey('placeName')
+                              ? Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    'Parada ${index + 1}: ${stopData['placeName']}',
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                )
+                              : const SizedBox(); // Si no hay datos, no muestra nada
                         }),
                       ),
                     const SizedBox(height: 8),
