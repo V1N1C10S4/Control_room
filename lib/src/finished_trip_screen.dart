@@ -130,14 +130,73 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 🔹 Mostrar la parada única si existe
+                              if (trip.containsKey('stop')) ...[
+                                Text(
+                                  'Parada 1: ${trip['stop']['placeName'] ?? 'N/A'}',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                                if (trip.containsKey('stop_reached_at'))
+                                  Text(
+                                    '📍 Llegada a parada: ${_formatDateTime(trip['stop_reached_at'])}',
+                                    style: const TextStyle(fontSize: 14, color: Colors.blue),
+                                  ),
+                                if (trip.containsKey('stop_waiting_at'))
+                                  Text(
+                                    '⏳ En espera en parada: ${_formatDateTime(trip['stop_waiting_at'])}',
+                                    style: const TextStyle(fontSize: 14, color: Colors.orange),
+                                  ),
+                                if (trip.containsKey('stop_continue_at'))
+                                  Text(
+                                    '🚗 Continuando viaje desde parada: ${_formatDateTime(trip['stop_continue_at'])}',
+                                    style: const TextStyle(fontSize: 14, color: Colors.green),
+                                  ),
+                              ],
 
-                          // 🔹 Mostrar todas las paradas intermedias en orden
-                          for (int i = 1; trip.containsKey('stop$i'); i++) 
-                            Text(
-                              'Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                              // 🔹 Si no existe "stop", mostrar "stop1", "stop2", etc.
+                              ...(() {
+                                List<Widget> stops = [];
+                                int stopIndex = trip.containsKey('stop') ? 2 : 1; // Si hay "stop", empezamos en Parada 2
 
+                                for (int i = 1; i <= 5; i++) {
+                                  String stopKey = 'stop$i';
+                                  if (trip.containsKey(stopKey)) {
+                                    stops.add(
+                                      Text(
+                                        'Parada $stopIndex: ${trip[stopKey]['placeName'] ?? 'N/A'}',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                    );
+
+                                    // 🔹 Mostrar los tiempos relacionados con la parada
+                                    if (trip.containsKey('stop${i}_reached_at'))
+                                      stops.add(Text(
+                                        '📍 Llegada a parada: ${_formatDateTime(trip['stop${i}_reached_at'])}',
+                                        style: const TextStyle(fontSize: 14, color: Colors.blue),
+                                      ));
+
+                                    if (trip.containsKey('stop${i}_waiting_at'))
+                                      stops.add(Text(
+                                        '⏳ En espera en parada: ${_formatDateTime(trip['stop${i}_waiting_at'])}',
+                                        style: const TextStyle(fontSize: 14, color: Colors.orange),
+                                      ));
+
+                                    if (trip.containsKey('stop${i}_continue_at'))
+                                      stops.add(Text(
+                                        '🚗 Continuando viaje desde parada: ${_formatDateTime(trip['stop${i}_continue_at'])}',
+                                        style: const TextStyle(fontSize: 14, color: Colors.green),
+                                      ));
+
+                                    stopIndex++; // Incrementamos el índice correctamente
+                                  }
+                                }
+                                return stops;
+                              })(),
+                            ],
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             'Destino: ${trip['destination']['placeName'] ?? 'N/A'}',
