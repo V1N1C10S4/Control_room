@@ -249,19 +249,32 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Mostrar la parada única si existe
-                              if (trip.containsKey('stop')) 
+                              if (trip.containsKey('stop'))
                                 Text(
                                   'Parada 1: ${trip['stop']['placeName'] ?? 'N/A'}',
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
 
                               // Si no existe "stop", buscar "stop1", "stop2", etc.
-                              for (int i = 1, stopIndex = trip.containsKey('stop') ? 2 : 1; i <= 5; i++) 
-                                if (trip.containsKey('stop$i'))
-                                  Text(
-                                    'Parada $stopIndex: ${trip['stop$i']['placeName'] ?? 'N/A'}',
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
+                              // Aquí aseguramos que el stopIndex solo se declare una vez antes del bucle
+                              ...(() {
+                                List<Widget> stops = [];
+                                int stopIndex = trip.containsKey('stop') ? 2 : 1; // Si hay "stop", comenzamos desde Parada 2
+
+                                for (int i = 1; i <= 5; i++) {
+                                  String stopKey = 'stop$i';
+                                  if (trip.containsKey(stopKey)) {
+                                    stops.add(
+                                      Text(
+                                        'Parada $stopIndex: ${trip[stopKey]['placeName'] ?? 'N/A'}',
+                                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                    );
+                                    stopIndex++; // Incrementamos para evitar etiquetas duplicadas
+                                  }
+                                }
+                                return stops;
+                              })(),
                             ],
                           ),
                           Text(
