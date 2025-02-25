@@ -245,15 +245,25 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             'Punto de partida: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
-                          
-                          // Mostrar las paradas dinámicamente
-                          for (int i = 1; i <= 5; i++)
-                            if (trip.containsKey('stop$i'))
-                              Text(
-                                'Parada $i: ${trip['stop$i']['placeName'] ?? 'N/A'}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                          
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Mostrar la parada única si existe
+                              if (trip.containsKey('stop')) 
+                                Text(
+                                  'Parada 1: ${trip['stop']['placeName'] ?? 'N/A'}',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+
+                              // Si no existe "stop", buscar "stop1", "stop2", etc.
+                              for (int i = 1, stopIndex = trip.containsKey('stop') ? 2 : 1; i <= 5; i++) 
+                                if (trip.containsKey('stop$i'))
+                                  Text(
+                                    'Parada $stopIndex: ${trip['stop$i']['placeName'] ?? 'N/A'}',
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                            ],
+                          ),
                           Text(
                             'Destino: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
