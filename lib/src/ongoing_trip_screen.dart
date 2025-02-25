@@ -160,35 +160,36 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
   }
 
   void _cancelTrip(String tripId, String reason) async {
-    try {
-      await _databaseReference.child('trip_requests').child(tripId).update({
-        'status': 'trip cancelled',
-        'cancellation_reason': reason,
-      });
+      try {
+        await _databaseReference.child('trip_requests').child(tripId).update({
+          'status': 'trip cancelled',
+          'cancellation_reason': reason,
+          'reviewed': false,  // ✅ Se agrega para marcarlo como no revisado
+        });
 
-      // Eliminar el viaje de la lista de viajes en progreso
-      setState(() {
-        _ongoingTrips.removeWhere((trip) => trip['id'] == tripId);
-      });
+        // Eliminar el viaje de la lista de viajes en progreso
+        setState(() {
+          _ongoingTrips.removeWhere((trip) => trip['id'] == tripId);
+        });
 
-      // Confirmación visual
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('El viaje ha sido cancelado correctamente.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        // Confirmación visual
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('El viaje ha sido cancelado correctamente.'),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      _logger.i('Viaje $tripId cancelado con motivo: $reason');
-    } catch (error) {
-      _logger.e('Error al cancelar el viaje $tripId: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al cancelar el viaje. Inténtelo de nuevo.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+        _logger.i('Viaje $tripId cancelado con motivo: $reason');
+      } catch (error) {
+        _logger.e('Error al cancelar el viaje $tripId: $error');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cancelar el viaje. Inténtelo de nuevo.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
   }
 
   @override

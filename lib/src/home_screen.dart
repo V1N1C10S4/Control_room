@@ -397,19 +397,29 @@ class _HomeScreenState extends State<HomeScreen> {
   void _listenForCancelledTrips() {
     final tripRequestsRef = _databaseReference.child('trip_requests');
 
-    tripRequestsRef.onChildAdded.listen((event) {
+    tripRequestsRef.onValue.listen((event) {
       if (event.snapshot.value != null) {
-        final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
-        String? tripId = event.snapshot.key; // Obtener el ID del viaje
+        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
 
-        if (tripData['status'] == "trip cancelled" && tripId != null) {
-          setState(() {
-            if (!_seenCancelledTrips.contains(tripId)) {
-              _cancelledTripsCount++; // Solo contar si es un viaje nuevo
-              _seenCancelledTrips.add(tripId); // Marcarlo como visto
+        int unreviewedCount = 0; // Contador de cancelaciones NO revisadas
+
+        data.forEach((key, value) {
+          if (value is Map && value['status'] == "trip cancelled" && value['city'] == widget.region) {
+            bool isReviewed = value.containsKey('reviewed') ? value['reviewed'] == true : false;
+
+            if (!isReviewed) {
+              unreviewedCount++; // Solo cuenta los NO revisados
             }
-          });
-        }
+          }
+        });
+
+        setState(() {
+          _cancelledTripsCount = unreviewedCount;
+        });
+      } else {
+        setState(() {
+          _cancelledTripsCount = 0;
+        });
       }
     });
   }
@@ -743,8 +753,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                 borderRadius: BorderRadius.circular(8.0),
                               ),
                             ),
-                            onPressed: () {
-                              _resetCancelledTripsCount();
+                            onPressed: () async {
+                              // Marcar todos los viajes cancelados como revisados en Firebase
+                              final tripRequestsRef = _databaseReference.child('trip_requests');
+                              final snapshot = await tripRequestsRef.orderByChild('status').equalTo('trip cancelled').get();
+
+                              if (snapshot.exists) {
+                                final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+                                
+                                data.forEach((key, value) {
+                                  if (value is Map && value['city'] == widget.region) {
+                                    tripRequestsRef.child(key).update({'reviewed': true});
+                                  }
+                                });
+                              }
+
+                              _resetCancelledTripsCount(); // Actualiza la UI
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
