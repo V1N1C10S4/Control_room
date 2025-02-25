@@ -163,23 +163,28 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   Future<void> _extractStopsFromTripRequest() async {
       List<LatLng> stops = [];
 
-      // ✅ Primero verificamos si existe una única parada con la clave "stop"
+      // 🔹 Si existe una única parada bajo "stop", la tomamos primero
       if (widget.tripRequest.containsKey('stop') && widget.tripRequest['stop'] != null) {
           var stopData = widget.tripRequest['stop'];
           if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-              stops.add(LatLng(stopData['latitude'] ?? 0.0, stopData['longitude'] ?? 0.0));
+              stops.add(LatLng(
+                stopData['latitude'] ?? 0.0,
+                stopData['longitude'] ?? 0.0,
+              ));
           }
-      } else {
-          // ✅ Si no existe "stop", buscar paradas enumeradas (stop1, stop2, ...)
-          for (int i = 1; i <= 10; i++) { // 🔥 Ajusta el límite según sea necesario
-              String stopKey = 'stop$i';
-              if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
-                  var stopData = widget.tripRequest[stopKey];
+      } 
 
-                  // ✅ Asegurar que los datos sean válidos
-                  if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
-                      stops.add(LatLng(stopData['latitude'] ?? 0.0, stopData['longitude'] ?? 0.0));
-                  }
+      // 🔹 Si existen paradas enumeradas (stop1, stop2, ...), las tomamos en orden
+      for (int i = 1; i <= 10; i++) { // 🔥 Ajustar límite si es necesario
+          String stopKey = 'stop$i';
+          if (widget.tripRequest.containsKey(stopKey) && widget.tripRequest[stopKey] != null) {
+              var stopData = widget.tripRequest[stopKey];
+
+              if (stopData is Map && stopData.containsKey('latitude') && stopData.containsKey('longitude')) {
+                  stops.add(LatLng(
+                    stopData['latitude'] ?? 0.0,
+                    stopData['longitude'] ?? 0.0,
+                  ));
               }
           }
       }
@@ -187,6 +192,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
       setState(() {
           _stops = stops;
       });
+
+      _logger.d("Paradas extraídas: $_stops"); // ✅ Depuración
   }
 
   void _addMarkers(LatLng pickup, LatLng destination) {
