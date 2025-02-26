@@ -13,6 +13,7 @@ import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
 import 'generate_trip_screen.dart';
+import 'messages_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _pickedUpPassengerCount = 0;
   int _emergencyCount = 0;
   int _cancelledTripsCount = 0;
+  int _pendingMessagesCount = 0;
   Set<String> _seenCancelledTrips = {};
 
   @override
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForOngoingTrips();
     _listenForEmergenciesCounter();
     _listenForCancelledTrips();
+    _listenForPendingMessages();
   }
 
   void _listenForEmergencies() {
@@ -66,6 +69,23 @@ class _HomeScreenState extends State<HomeScreen> {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
         _handleEmergency(event.snapshot.key, tripData);
+      }
+    });
+  }
+
+  void _listenForPendingMessages() {
+    _databaseReference.child('messages').onValue.listen((event) {
+      if (event.snapshot.exists) {
+        final Map<dynamic, dynamic> messagesMap = event.snapshot.value as Map<dynamic, dynamic>;
+        int pendingCount = messagesMap.values.where((message) => message["attended"] == false).length;
+
+        setState(() {
+          _pendingMessagesCount = pendingCount;
+        });
+      } else {
+        setState(() {
+          _pendingMessagesCount = 0;
+        });
       }
     });
   }
@@ -835,6 +855,45 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          SizedBox.expand(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.lightBlue, // Color similar al de la imagen
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MessagesScreen(),
+                                  ),
+                                );
+                              },
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.chat, size: 50, color: Colors.white), // Icono de mensajes
+                                  SizedBox(height: 10),
+                                  Text(
+                                    'Mensajes',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (_pendingMessagesCount > 0)
+                            Positioned(top: 8, right: 8, child: _buildNotificationBubble(_pendingMessagesCount)),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16), // Espacio entre los botones
