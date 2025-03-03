@@ -629,9 +629,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               if (_scheduledLessThan2h > 0) _buildStatusBubble(_scheduledLessThan2h, Colors.red, Icons.alarm), // 🔴 Menos de 2 horas
-                              if (_scheduledLessThan6h > 0) _buildStatusBubble(_scheduledLessThan6h, Colors.orange, Icons.timer), // 🟠 Menos de 6 horas
-                              if (_scheduledLessThan12h > 0) _buildStatusBubble(_scheduledLessThan12h, Colors.blue, Icons.access_time), // 🔵 Menos de 12 horas
-                              if (_unreviewedScheduledTrips > 0) _buildStatusBubble(_unreviewedScheduledTrips, Colors.purple, Icons.visibility_off), // 🟣 No revisados
+                              if (_scheduledLessThan6h > 0) _buildStatusBubble(_scheduledLessThan6h, Colors.yellow, Icons.timer), // 🟠 Menos de 6 horas
+                              if (_scheduledLessThan12h > 0) _buildStatusBubble(_scheduledLessThan12h, Colors.green, Icons.access_time), // 🔵 Menos de 12 horas
+                              if (_unreviewedScheduledTrips > 0) _buildStatusBubble(_unreviewedScheduledTrips, Colors.blue, Icons.visibility_off), // 🟣 No revisados
                             ],
                           ),
                         ),
