@@ -14,6 +14,7 @@ import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
 import 'generate_trip_screen.dart';
 import 'messages_screen.dart';
+import 'scheduled_trip_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -540,6 +541,37 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Row(
                 children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ScheduledTripScreen(region: widget.region),
+                          ),
+                        );
+                      },
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.event_note, size: 50, color: Colors.white), // Icono representativo
+                          SizedBox(height: 10),
+                          Text(
+                            'Viajes Programados',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Stack(
                       children: [
