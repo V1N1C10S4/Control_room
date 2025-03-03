@@ -40,6 +40,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? userName;
   String? city;
   List<Map<String, dynamic>> _selectedStops = [];
+  DateTime? _scheduledDateTime;
 
 
   static const String proxyBaseUrl =
@@ -128,6 +129,33 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
     // 🔥 Llamar a _drawPolyline() para recalcular la ruta después de actualizar las paradas
     _drawPolyline();
+  }
+
+  Future<void> _selectDateTime() async {
+    DateTime now = DateTime.now();
+    
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)), // Permite programar hasta un año adelante
+    );
+
+    if (pickedDate != null) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _scheduledDateTime = DateTime(
+            pickedDate.year, pickedDate.month, pickedDate.day,
+            pickedTime.hour, pickedTime.minute,
+          );
+        });
+      }
+    }
   }
 
   void _updateStopMarkers() {
@@ -344,6 +372,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       'babySeats': babySeats,
       'status': 'pending',
       'created_at': DateTime.now().toIso8601String(),
+      if (_scheduledDateTime != null)
+        'scheduled_at': _scheduledDateTime!.toIso8601String(),
       'emergency': false,
       if (fcmToken != null) 'fcmToken': fcmToken, // ✅ Añadir fcmToken solo si existe
     };
@@ -382,6 +412,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       _distanceText = null;
       _durationText = null;
       _arrivalTimeText = null;
+      _scheduledDateTime = null;
     });
   }
 
@@ -589,9 +620,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                   const SizedBox(width: 8), // Espaciado entre botones
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Lógica futura para programar un viaje
-                      },
+                      onPressed: _selectDateTime,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange, // Botón naranja
                         padding: const EdgeInsets.symmetric(vertical: 14),
