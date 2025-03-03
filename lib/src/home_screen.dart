@@ -47,6 +47,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _cancelledTripsCount = 0;
   int _pendingMessagesCount = 0;
   Set<String> _seenCancelledTrips = {};
+  int _scheduledMoreThan24h = 0;
+  int _scheduledBetween6And24h = 0;
+  int _scheduledLessThan6h = 0;
+  int _unreviewedScheduledTrips = 0;
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForEmergenciesCounter();
     _listenForCancelledTrips();
     _listenForPendingMessages();
+    _listenForScheduledTrips();
   }
 
   void _listenForEmergencies() {
@@ -86,6 +91,50 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         setState(() {
           _pendingMessagesCount = 0;
+        });
+      }
+    });
+  }
+
+  void _listenForScheduledTrips() {
+    _databaseReference.child('trip_requests').onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+
+        int moreThan24h = 0;
+        int between6And24h = 0;
+        int lessThan6h = 0;
+        int unreviewed = 0; // 🔥 Nuevo contador de no revisados
+
+        DateTime now = DateTime.now();
+
+        data.forEach((key, value) {
+          if (value is Map && (value['status'] == "scheduled" || value['status'] == "scheduled approved") && value['city'] == widget.region) {
+            if (value.containsKey("scheduled_at")) {
+              DateTime scheduledTime = DateTime.parse(value["scheduled_at"]);
+              Duration difference = scheduledTime.difference(now);
+
+              if (difference.inHours > 24) {
+                moreThan24h++;
+              } else if (difference.inHours >= 6) {
+                between6And24h++;
+              } else {
+                lessThan6h++;
+              }
+            }
+            
+            // 🚨 Si el status es "scheduled", es un viaje no revisado
+            if (value['status'] == "scheduled") {
+              unreviewed++;
+            }
+          }
+        });
+
+        setState(() {
+          _scheduledMoreThan24h = moreThan24h;
+          _scheduledBetween6And24h = between6And24h;
+          _scheduledLessThan6h = lessThan6h;
+          _unreviewedScheduledTrips = unreviewed; // 🆕 Actualiza el contador de no revisados
         });
       }
     });
@@ -542,33 +591,52 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                    child: Stack(
+                      children: [
+                        SizedBox.expand(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ScheduledTripScreen(region: widget.region),
+                                ),
+                              );
+                            },
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.event_note, size: 50, color: Colors.white), 
+                                SizedBox(height: 10),
+                                Text(
+                                  'Viajes Programados',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ScheduledTripScreen(region: widget.region),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (_scheduledLessThan6h > 0) _buildStatusBubble(_scheduledLessThan6h, Colors.red, Icons.timer), // 🔴 Menos de 6h
+                              if (_scheduledBetween6And24h > 0) _buildStatusBubble(_scheduledBetween6And24h, Colors.orange, Icons.access_time), // 🟠 6-24h
+                              if (_scheduledMoreThan24h > 0) _buildStatusBubble(_scheduledMoreThan24h, Colors.green, Icons.event_available), // 🟢 Más de 24h
+                              if (_unreviewedScheduledTrips > 0) _buildStatusBubble(_unreviewedScheduledTrips, Colors.blue, Icons.visibility_off), // 🔵 No revisados
+                            ],
                           ),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.event_note, size: 50, color: Colors.white), // Icono representativo
-                          SizedBox(height: 10),
-                          Text(
-                            'Viajes Programados',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),
