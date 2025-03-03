@@ -12,7 +12,7 @@ class ScheduledTripScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Scheduled Trips',
+          'Viajes Programados',
           style: TextStyle(color: Colors.white, fontSize: 24),
         ),
         backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
@@ -23,8 +23,7 @@ class ScheduledTripScreen extends StatelessWidget {
             .ref()
             .child("trip_requests")
             .orderByChild("status")
-            .equalTo("scheduled")
-            .onValue,
+            .onValue, // 🔥 Eliminamos equalTo para filtrar múltiples estados
         builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
             return _buildEmptyState();
@@ -37,7 +36,8 @@ class ScheduledTripScreen extends StatelessWidget {
                 trip["tripId"] = entry.key; // Guardamos el ID del viaje
                 return trip;
               })
-              .where((trip) => trip["city"] == region) // Filtrar por región
+              .where((trip) => trip["city"] == region && 
+                              (trip["status"] == "scheduled" || trip["status"] == "scheduled approved")) // 🔥 Aceptamos ambos estados
               .toList();
 
           if (scheduledTrips.isEmpty) {
@@ -104,9 +104,9 @@ class ScheduledTripScreen extends StatelessWidget {
         children: const [
           Icon(Icons.calendar_today, size: 100, color: Colors.grey),
           SizedBox(height: 20),
-          Text("No scheduled trips!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)),
+          Text("No hay viajes programados!", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54)),
           SizedBox(height: 10),
-          Text("Scheduled trips will appear here.", style: TextStyle(fontSize: 14, color: Colors.black45)),
+          Text("Los viajes programados aparecerán en esta pantalla.", style: TextStyle(fontSize: 14, color: Colors.black45)),
         ],
       ),
     );
@@ -122,8 +122,15 @@ class ScheduledTripScreen extends StatelessWidget {
         ? DateFormat("yyyy-MM-dd HH:mm").format(DateTime.parse(trip["created_at"]))
         : "Unknown";
 
-    // Determinar el ícono de estado
-    Icon statusIcon = const Icon(Icons.schedule, color: Colors.blue, size: 30);
+    // 🔥 Determinar el ícono de estado basado en el status
+    Icon statusIcon;
+    if (trip["status"] == "scheduled") {
+      statusIcon = const Icon(Icons.schedule, color: Colors.blue, size: 30); // ⏳ Azul
+    } else if (trip["status"] == "scheduled approved") {
+      statusIcon = const Icon(Icons.check_circle, color: Colors.green, size: 30); // ✅ Verde
+    } else {
+      statusIcon = const Icon(Icons.help_outline, color: Colors.grey, size: 30); // Por si hay un estado inesperado
+    }
 
     // Extraer paradas intermedias
     List<String> stops = [];
@@ -168,7 +175,7 @@ class ScheduledTripScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                statusIcon, // Ícono de estado del viaje
+                statusIcon, // 🔥 Ícono dinámico basado en el estado del viaje
               ],
             ),
             const SizedBox(height: 5),
@@ -177,7 +184,7 @@ class ScheduledTripScreen extends StatelessWidget {
             Text("👥 Pasajeros: ${trip["passengers"] ?? 1}"),
             Text("👜 Equipaje: ${trip["luggage"] ?? 0}"),
             Text("🐶 Mascotas: ${trip["pets"] ?? 0}"),
-            Text("👶 Sillas para bebé: ${trip["babySeats"] ?? 0}"), // 🔹 Nuevo campo agregado
+            Text("👶 Sillas para bebé: ${trip["babySeats"] ?? 0}"),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -201,24 +208,25 @@ class ScheduledTripScreen extends StatelessWidget {
                   child: const Text("Cancelar viaje", style: TextStyle(color: Colors.white)),
                 ),
 
-                // 🟡 Botón Marcar como Revisado
-                ElevatedButton(
-                  onPressed: () => _showConfirmationDialog(
-                    context,
-                    "Marcar como Revisado",
-                    "¿Quieres aprobar esta solicitud de viaje programado?",
-                    "scheduled approved",
-                    trip["tripId"],
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                // 🟡 Botón Marcar como Revisado (se oculta si el estado es "scheduled approved")
+                if (trip["status"] == "scheduled")
+                  ElevatedButton(
+                    onPressed: () => _showConfirmationDialog(
+                      context,
+                      "Marcar como Revisado",
+                      "¿Quieres aprobar esta solicitud de viaje programado?",
+                      "scheduled approved",
+                      trip["tripId"],
                     ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("Marcar como Revisado", style: TextStyle(color: Colors.white)),
                   ),
-                  child: const Text("Marcar como Revisado", style: TextStyle(color: Colors.white)),
-                ),
 
                 // 🟢 Botón Iniciar Viaje
                 ElevatedButton(
