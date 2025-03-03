@@ -370,7 +370,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       'luggage': luggage,
       'pets': pets,
       'babySeats': babySeats,
-      'status': 'pending',
+      'status': _scheduledDateTime != null ? 'scheduled' : 'pending',
       'created_at': DateTime.now().toIso8601String(),
       if (_scheduledDateTime != null)
         'scheduled_at': _scheduledDateTime!.toIso8601String(),
