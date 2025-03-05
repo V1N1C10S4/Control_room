@@ -36,8 +36,9 @@ class ScheduledTripScreen extends StatelessWidget {
                 trip["tripId"] = entry.key; // Guardamos el ID del viaje
                 return trip;
               })
-              .where((trip) => trip["city"] == region && 
-                              (trip["status"] == "scheduled" || trip["status"] == "scheduled approved")) // 🔥 Aceptamos ambos estados
+              .where((trip) => trip.containsKey("city") &&
+                              trip["city"].toString().toLowerCase() == region.toLowerCase() &&
+                              (trip["status"] == "scheduled" || trip["status"] == "scheduled approved"))
               .toList();
 
           if (scheduledTrips.isEmpty) {
