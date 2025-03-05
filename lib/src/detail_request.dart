@@ -293,21 +293,25 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
               backgroundColor: Colors.red,
               child: const Text("1", style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
-            for (int i = 0; i < _stops.length; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: FloatingActionButton(
-                  onPressed: () => _zoomToStop(i),
-                  mini: true,
-                  backgroundColor: Colors.orange,
-                  child: Text("${i + 2}", style: const TextStyle(fontSize: 18, color: Colors.white)),
-                ),
-              ),
+            if (_stops.isNotEmpty) // ✅ Si hay paradas, muestra los botones
+              for (int i = 0; i < _stops.length; i++)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: FloatingActionButton(
+                    onPressed: () => _zoomToStop(i),
+                    mini: true,
+                    backgroundColor: Colors.orange,
+                    child: Text("${i + 2}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+                  ),
+                )
+            else
+              const SizedBox(height: 48), // ✅ Espacio reservado cuando NO hay paradas
             FloatingActionButton(
               onPressed: _zoomToDestination,
               mini: true,
               backgroundColor: Colors.red,
-              child: Text("${_stops.length + 2}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text("${_stops.isNotEmpty ? _stops.length + 2 : 2}", // ✅ Ajusta el número del botón de destino
+                  style: const TextStyle(fontSize: 18, color: Colors.white)),
             ),
           ],
         ),

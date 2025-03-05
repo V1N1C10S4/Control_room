@@ -364,42 +364,49 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         backgroundColor: Colors.red[300],
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          if (_inProgressEmergencies.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.all(8.0),
+      body: (_inProgressEmergencies.isEmpty && _resolvedEmergencies.isEmpty)
+          ? const Center(
               child: Text(
-                'Emergencias en progreso',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                "No hay emergencias reportadas",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black54),
               ),
+            )
+          : Column(
+              children: [
+                if (_inProgressEmergencies.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'Emergencias en progreso',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _inProgressEmergencies.length,
+                      itemBuilder: (context, index) =>
+                          _buildEmergencyCard(_inProgressEmergencies[index], true),
+                    ),
+                  ),
+                ],
+                if (_resolvedEmergencies.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text(
+                      'Emergencias atendidas',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _resolvedEmergencies.length,
+                      itemBuilder: (context, index) =>
+                          _buildEmergencyCard(_resolvedEmergencies[index], false),
+                    ),
+                  ),
+                ],
+              ],
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _inProgressEmergencies.length,
-                itemBuilder: (context, index) =>
-                    _buildEmergencyCard(_inProgressEmergencies[index], true),
-              ),
-            ),
-          ],
-          if (_resolvedEmergencies.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                'Emergencias atendidas',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _resolvedEmergencies.length,
-                itemBuilder: (context, index) =>
-                    _buildEmergencyCard(_resolvedEmergencies[index], false),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

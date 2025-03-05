@@ -198,7 +198,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         children: [
                           Container(
                             width: double.infinity,
-                            color: Colors.orange.shade50,
+                            color: Colors.orange,
                             padding: const EdgeInsets.all(10),
                             child: const Text(
                               "Pendientes",
@@ -222,7 +222,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         children: [
                           Container(
                             width: double.infinity,
-                            color: Colors.green.shade50,
+                            color: Colors.green,
                             padding: const EdgeInsets.all(10),
                             child: const Text(
                               "Atendidos",
