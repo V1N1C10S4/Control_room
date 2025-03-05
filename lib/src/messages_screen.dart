@@ -3,6 +3,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
 
 class MessagesScreen extends StatefulWidget {
+
+  final String region;
+  const MessagesScreen({Key? key, required this.region}) : super(key: key);
   @override
   _MessagesScreenState createState() => _MessagesScreenState();
 }

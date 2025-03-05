@@ -972,7 +972,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MessagesScreen(),
+                                    builder: (context) => MessagesScreen(region: widget.region),
                                   ),
                                 );
                               },

@@ -368,7 +368,7 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
           ? const Center(
               child: Text(
                 "No hay emergencias reportadas",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black54),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),
               ),
             )
           : Column(
