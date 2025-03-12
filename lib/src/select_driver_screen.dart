@@ -26,6 +26,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
   final Logger _logger = Logger();
   String? _userCity;
   final TextEditingController _searchController = TextEditingController();
+  Map<String, dynamic>? _selectedDriver;
 
   @override
   void initState() {
@@ -107,7 +108,6 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
 
   void _assignDriver(String driverId) async {
     try {
-      // 🔹 1️⃣ Recuperar la información del conductor desde Firestore
       DocumentSnapshot<Map<String, dynamic>> driverDoc =
           await FirebaseFirestore.instance.collection('Conductores').doc(driverId).get();
 
@@ -117,40 +117,20 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
       }
 
       Map<String, dynamic>? driverData = driverDoc.data();
+      driverData?['id'] = driverId; // Guardar ID del conductor en los datos
       String telefonoConductor = driverData?["NumeroTelefono"] ?? "No disponible";
 
-      // 🔹 2️⃣ Actualizar el estado del conductor en Firestore
-      await FirebaseFirestore.instance.collection('Conductores').doc(driverId).update({
-        'Viaje': true,
+      setState(() {
+        _selectedDriver = {
+          "id": driverId,
+          "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
+          "TelefonoConductor": telefonoConductor,
+        };
       });
 
-      // 🔹 3️⃣ Actualizar el estado del viaje y añadir el conductor + teléfono en Realtime Database
-      final DatabaseReference tripRequestRef = FirebaseDatabase.instance.ref()
-          .child('trip_requests')
-          .child(widget.tripRequest['id']);
-
-      await tripRequestRef.update({
-        'status': 'in progress',
-        'driver': driverId,
-        'TelefonoConductor': telefonoConductor, // ✅ Guardar el número de teléfono
-      });
-
-      _logger.i('Driver assigned successfully with phone number: $telefonoConductor.');
-
-      // 🔹 4️⃣ Navegar de regreso a HomeScreen
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(
-            usuario: widget.tripRequest['userId'],
-            isSupervisor: widget.isSupervisor,
-            region: widget.region,
-          ),
-        ),
-        (Route<dynamic> route) => false,
-      );
+      _logger.i('Conductor seleccionado: ${driverData?["NombreConductor"]}');
     } catch (error) {
-      _logger.e('Error assigning driver or updating trip status: $error');
+      _logger.e('Error al seleccionar conductor: $error');
     }
   }
 
@@ -220,9 +200,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                               style: const TextStyle(fontSize: 14),
                             ),
                             trailing: ElevatedButton(
-                              onPressed: () {
-                                _assignDriver(driver['id']);
-                              },
+                              onPressed: _selectedDriver == null ? () => _assignDriver(driver['id']) : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 shape: RoundedRectangleBorder(
@@ -238,6 +216,89 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         );
                       },
                     ),
+            ),
+            if (_selectedDriver != null) ...[
+              const SizedBox(height: 20),
+              Card(
+                color: Colors.blue.shade50,
+                child: ListTile(
+                  leading: const Icon(Icons.person, color: Colors.blue),
+                  title: Text(
+                    'Conductor seleccionado: ${_selectedDriver!["NombreConductor"]}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('Teléfono: ${_selectedDriver!["TelefonoConductor"]}'),
+                ),
+              ),
+            ],
+            if (_selectedDriver != null) ...[
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedDriver = null;
+                    _filteredDrivers = List.from(_drivers); // Reactivar la lista de conductores
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: const Text(
+                  "Cancelar selección",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+            ElevatedButton(
+              onPressed: _selectedDriver == null ? null : () async {
+                try {
+                  // 🔹 Actualizar Firestore para marcar al conductor como ocupado
+                  await FirebaseFirestore.instance
+                      .collection('Conductores')
+                      .doc(_selectedDriver!["id"])
+                      .update({'Viaje': true});
+
+                  // 🔹 Actualizar Firebase Realtime Database con el conductor seleccionado
+                  final DatabaseReference tripRequestRef = FirebaseDatabase.instance
+                      .ref()
+                      .child('trip_requests')
+                      .child(widget.tripRequest['id']);
+
+                  await tripRequestRef.update({
+                    'status': 'in progress',
+                    'driver': _selectedDriver!["id"],
+                    'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
+                  });
+
+                  _logger.i('Conductor asignado correctamente.');
+
+                  // 🔹 Navegar a HomeScreen después de confirmar la asignación
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HomeScreen(
+                        usuario: widget.tripRequest['userId'],
+                        isSupervisor: widget.isSupervisor,
+                        region: widget.region,
+                      ),
+                    ),
+                    (Route<dynamic> route) => false,
+                  );
+                } catch (error) {
+                  _logger.e('Error al asignar el conductor: $error');
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+              ),
+              child: const Text(
+                'Asignar y Continuar',
+                style: TextStyle(fontSize: 16, color: Colors.white),
+              ),
             ),
           ],
         ),
