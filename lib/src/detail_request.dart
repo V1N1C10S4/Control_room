@@ -505,7 +505,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
               ],
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 12),
 
             // 🔹 Botones de acción siguen fijos en la parte inferior
             Row(
