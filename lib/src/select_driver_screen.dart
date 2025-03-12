@@ -118,7 +118,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
       }
 
       Map<String, dynamic>? driverData = driverDoc.data();
-      driverData?['id'] = driverId; // Guardar ID del conductor en los datos
+      driverData?['id'] = driverId;
       String telefonoConductor = driverData?["NumeroTelefono"] ?? "No disponible";
 
       setState(() {
@@ -255,6 +255,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 10),
             if (_selectedDriver != null) ...[
               const SizedBox(height: 10),
               ElevatedButton(
@@ -282,7 +283,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    _selectedDriver2 = null; // Permitir la selección de un segundo conductor
+                    _selectedDriver2 = null;
                   });
                 },
                 style: ElevatedButton.styleFrom(
