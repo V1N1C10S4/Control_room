@@ -27,6 +27,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
   String? _userCity;
   final TextEditingController _searchController = TextEditingController();
   Map<String, dynamic>? _selectedDriver;
+  Map<String, dynamic>? _selectedDriver2;
 
   @override
   void initState() {
@@ -121,11 +122,19 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
       String telefonoConductor = driverData?["NumeroTelefono"] ?? "No disponible";
 
       setState(() {
-        _selectedDriver = {
-          "id": driverId,
-          "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
-          "TelefonoConductor": telefonoConductor,
-        };
+        if (_selectedDriver == null) {
+          _selectedDriver = {
+            "id": driverId,
+            "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
+            "TelefonoConductor": telefonoConductor,
+          };
+        } else if (_selectedDriver2 == null && _selectedDriver!["id"] != driverId) {
+          _selectedDriver2 = {
+            "id": driverId,
+            "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
+            "TelefonoConductor": telefonoConductor,
+          };
+        }
       });
 
       _logger.i('Conductor seleccionado: ${driverData?["NombreConductor"]}');
@@ -231,12 +240,28 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 10),
+            if (_selectedDriver2 != null) ...[
+              const SizedBox(height: 10),
+              Card(
+                color: Colors.green.shade50,
+                child: ListTile(
+                  leading: const Icon(Icons.person, color: Colors.green),
+                  title: Text(
+                    'Segundo conductor: ${_selectedDriver2!["NombreConductor"]}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text('Teléfono: ${_selectedDriver2!["TelefonoConductor"]}'),
+                ),
+              ),
+            ],
             if (_selectedDriver != null) ...[
               const SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
                   setState(() {
                     _selectedDriver = null;
+                    _selectedDriver2 = null; // Se resetea también el segundo conductor
                     _filteredDrivers = List.from(_drivers); // Reactivar la lista de conductores
                   });
                 },
@@ -252,28 +277,56 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
               ),
             ],
             const SizedBox(height: 20),
+            if (_selectedDriver != null && _selectedDriver2 == null) ...[
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedDriver2 = null; // Permitir la selección de un segundo conductor
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                child: const Text(
+                  "Seleccionar segundo conductor",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _selectedDriver == null ? null : () async {
                 try {
-                  // 🔹 Actualizar Firestore para marcar al conductor como ocupado
-                  await FirebaseFirestore.instance
-                      .collection('Conductores')
-                      .doc(_selectedDriver!["id"])
-                      .update({'Viaje': true});
+                  // 🔹 Actualizar Firestore para marcar a los conductores como ocupados
+                  await FirebaseFirestore.instance.collection('Conductores')
+                      .doc(_selectedDriver!["id"]).update({'Viaje': true});
 
-                  // 🔹 Actualizar Firebase Realtime Database con el conductor seleccionado
+                  if (_selectedDriver2 != null) {
+                    await FirebaseFirestore.instance.collection('Conductores')
+                        .doc(_selectedDriver2!["id"]).update({'Viaje': true});
+                  }
+
+                  // 🔹 Actualizar Firebase Realtime Database con los conductores seleccionados
                   final DatabaseReference tripRequestRef = FirebaseDatabase.instance
-                      .ref()
-                      .child('trip_requests')
-                      .child(widget.tripRequest['id']);
+                      .ref().child('trip_requests').child(widget.tripRequest['id']);
 
-                  await tripRequestRef.update({
+                  Map<String, dynamic> updateData = {
                     'status': 'in progress',
                     'driver': _selectedDriver!["id"],
                     'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
-                  });
+                  };
 
-                  _logger.i('Conductor asignado correctamente.');
+                  if (_selectedDriver2 != null) {
+                    updateData["driver2"] = _selectedDriver2!["id"];
+                    updateData["TelefonoConductor2"] = _selectedDriver2!["TelefonoConductor"];
+                  }
+
+                  await tripRequestRef.update(updateData);
+
+                  _logger.i('Conductores asignados correctamente.');
 
                   // 🔹 Navegar a HomeScreen después de confirmar la asignación
                   Navigator.pushAndRemoveUntil(
@@ -288,7 +341,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                     (Route<dynamic> route) => false,
                   );
                 } catch (error) {
-                  _logger.e('Error al asignar el conductor: $error');
+                  _logger.e('Error al asignar los conductores: $error');
                 }
               },
               style: ElevatedButton.styleFrom(
