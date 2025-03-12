@@ -251,6 +251,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _selectedDriver == null ? null : () async {
                 try {
