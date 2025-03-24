@@ -44,7 +44,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
 
   static const String proxyBaseUrl =
-      "https://us-central1-appenitaxiusuarios.cloudfunctions.net/googlePlacesProxy";
+      "https://googleplacesproxy-3tomukm2tq-uc.a.run.app";
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 
@@ -69,7 +69,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
   Future<List<Map<String, dynamic>>> _getPlacePredictions(String input) async {
     String url =
-        'https://34.120.209.209.nip.io/militripproxy/place/autocomplete/json?input=$input&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+        'https://googleplacesproxy-3tomukm2tq-uc.a.run.app/place/autocomplete/json?input=$input&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
