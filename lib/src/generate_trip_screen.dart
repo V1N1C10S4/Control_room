@@ -44,7 +44,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
 
   static const String proxyBaseUrl =
-      "https://34.120.209.209.nip.io/militripproxy";
+      "https://us-central1-appenitaxiusuarios.cloudfunctions.net/googlePlacesProxy";
   List<Map<String, dynamic>> _pickupPredictions = [];
   List<Map<String, dynamic>> _destinationPredictions = [];
 

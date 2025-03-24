@@ -21,7 +21,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
   final List<Map<String, dynamic>> _tempStopsData = [];
   final Set<Marker> _markers = {};
 
-  static const String proxyBaseUrl = "https://34.120.209.209.nip.io/militripproxy";
+  static const String proxyBaseUrl = "https://us-central1-appenitaxiusuarios.cloudfunctions.net/googlePlacesProxy";
   List<List<Map<String, dynamic>>> _stopPredictions = [];
 
   @override

@@ -33,7 +33,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   List<LatLng> _stops = []; 
 
   // URL base del proxy para consultas a la API de Google
-  static const String proxyBaseUrl = "https://34.120.209.209.nip.io/militripproxy";
+  static const String proxyBaseUrl = "https://us-central1-appenitaxiusuarios.cloudfunctions.net/googlePlacesProxy";
 
   @override
   void initState() {

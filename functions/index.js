@@ -1,26 +1,29 @@
-const {onRequest} = require("firebase-functions/v2/https");
-const axios = require("axios");
+const functions = require("firebase-functions");
+const cors = require("cors")({origin: true});
+const fetch = require("node-fetch");
 
-exports.proxyPlacesAPI = onRequest({
-  cors: true, // Habilita CORS automáticamente
-}, async (req, res) => {
-  const input = req.query.input || "";
+const apiKey = process.env.FIREBASE_API_KEY ||
+"AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k";
 
-  // Configurar la API Key como variable de entorno
-  const apiKey = process.env.PLACES_API_KEY || "YOUR_API_KEY";
-  const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${input}&key=${apiKey}`;
+exports.googlePlacesProxy = functions.https.onRequest((req, res) => {
+  cors(req, res, async () => {
+    try {
+      const path = req.path; // ejemplo: /geocode/json
+      const query = req.query;
 
-  try {
-    const response = await axios.get(url);
+      const baseUrl = "https://maps.googleapis.com/maps/api";
+      const fullUrl = `${baseUrl}${path}?${new URLSearchParams({
+        ...query,
+        key: apiKey,
+      }).toString()}`;
 
-    // Opcional: Encabezados CORS adicionales
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      const response = await fetch(fullUrl);
+      const data = await response.json();
 
-    res.status(response.status).send(response.data);
-  } catch (error) {
-    res.status(error.response?.status || 500).send({
-      error: error.message || "Error al procesar la solicitud",
-    });
-  }
+      res.status(200).json(data);
+    } catch (error) {
+      console.error("Proxy error:", error);
+      res.status(500).json({error: "Error proxying request"});
+    }
+  });
 });
