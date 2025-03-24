@@ -7,7 +7,7 @@ const apiKey = process.env.FIREBASE_API_KEY ||
 exports.googlePlacesProxy = functions.https.onRequest(async (req, res) => {
   // Manejo de preflight
   if (req.method === "OPTIONS") {
-    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Origin", "https://appenitaxiusuarios.web.app");
     res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type");
     res.set("Access-Control-Max-Age", "3600");
