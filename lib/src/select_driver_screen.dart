@@ -28,6 +28,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
   final TextEditingController _searchController = TextEditingController();
   Map<String, dynamic>? _selectedDriver;
   Map<String, dynamic>? _selectedDriver2;
+  bool _isSelectingSecondDriver = false;
 
   @override
   void initState() {
@@ -134,6 +135,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
             "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
             "TelefonoConductor": telefonoConductor,
           };
+          _isSelectingSecondDriver = false;
         }
       });
 
@@ -209,7 +211,12 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                               style: const TextStyle(fontSize: 14),
                             ),
                             trailing: ElevatedButton(
-                              onPressed: _selectedDriver == null ? () => _assignDriver(driver['id']) : null,
+                              onPressed: (_selectedDriver == null ||
+                                          (_isSelectingSecondDriver &&
+                                          _selectedDriver2 == null &&
+                                          _selectedDriver!["id"] != driver['id']))
+                                  ? () => _assignDriver(driver['id'])
+                                  : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 shape: RoundedRectangleBorder(
@@ -264,6 +271,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                     _selectedDriver = null;
                     _selectedDriver2 = null; // Se resetea también el segundo conductor
                     _filteredDrivers = List.from(_drivers); // Reactivar la lista de conductores
+                    _isSelectingSecondDriver = false;
                   });
                 },
                 style: ElevatedButton.styleFrom(
@@ -278,22 +286,23 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
               ),
             ],
             const SizedBox(height: 20),
-            if (_selectedDriver != null && _selectedDriver2 == null) ...[
+            if (_selectedDriver != null && _selectedDriver2 == null && !_isSelectingSecondDriver) ...[
               const SizedBox(height: 10),
-              ElevatedButton(
+              ElevatedButton.icon(
+                icon: const Icon(Icons.person_add),
+                label: const Text(
+                  "Añadir otro conductor",
+                  style: TextStyle(color: Colors.white),
+                ),
                 onPressed: () {
                   setState(() {
-                    _selectedDriver2 = null;
+                    _isSelectingSecondDriver = true;
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.orange,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
-                child: const Text(
-                  "Seleccionar segundo conductor",
-                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],

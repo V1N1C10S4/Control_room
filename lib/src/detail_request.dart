@@ -305,7 +305,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                   ),
                 )
             else
-              const SizedBox(height: 20), // ✅ Espacio reservado cuando NO hay paradas
+              const SizedBox(height: 10), // ✅ Espacio reservado cuando NO hay paradas
             FloatingActionButton(
               onPressed: _zoomToDestination,
               mini: true,
