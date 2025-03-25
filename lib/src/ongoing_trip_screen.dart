@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OngoingTripScreen extends StatefulWidget {
   final String usuario;
@@ -160,36 +161,56 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
   }
 
   void _cancelTrip(String tripId, String reason) async {
-      try {
-        await _databaseReference.child('trip_requests').child(tripId).update({
-          'status': 'trip cancelled',
-          'cancellation_reason': reason,
-          'reviewed': false,  // ✅ Se agrega para marcarlo como no revisado
-        });
+    try {
+      final tripRef = _databaseReference.child('trip_requests').child(tripId);
 
-        // Eliminar el viaje de la lista de viajes en progreso
-        setState(() {
-          _ongoingTrips.removeWhere((trip) => trip['id'] == tripId);
-        });
+      // Obtener datos actuales del viaje para saber qué conductores actualizar
+      final tripSnapshot = await tripRef.get();
+      final tripData = tripSnapshot.value as Map?;
 
-        // Confirmación visual
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('El viaje ha sido cancelado correctamente.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      if (tripData != null) {
+        final String? driverId = tripData['driver'];
+        final String? driver2Id = tripData['driver2']; // Opcional
 
-        _logger.i('Viaje $tripId cancelado con motivo: $reason');
-      } catch (error) {
-        _logger.e('Error al cancelar el viaje $tripId: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cancelar el viaje. Inténtelo de nuevo.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // 🔄 Actualizar Firestore para liberar a los conductores
+        final conductoresRef = FirebaseFirestore.instance.collection('Conductores');
+        if (driverId != null) {
+          await conductoresRef.doc(driverId).update({'Viaje': false});
+        }
+        if (driver2Id != null) {
+          await conductoresRef.doc(driver2Id).update({'Viaje': false});
+        }
       }
+
+      // ✅ Cancelar viaje en Realtime Database
+      await tripRef.update({
+        'status': 'trip cancelled',
+        'cancellation_reason': reason,
+        'reviewed': false,
+      });
+
+      // 🧹 Quitar de la lista local
+      setState(() {
+        _ongoingTrips.removeWhere((trip) => trip['id'] == tripId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('El viaje ha sido cancelado correctamente.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _logger.i('Viaje $tripId cancelado con motivo: $reason');
+    } catch (error) {
+      _logger.e('Error al cancelar el viaje $tripId: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cancelar el viaje. Inténtelo de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

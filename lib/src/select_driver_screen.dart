@@ -289,7 +289,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
             if (_selectedDriver != null && _selectedDriver2 == null && !_isSelectingSecondDriver) ...[
               const SizedBox(height: 10),
               ElevatedButton.icon(
-                icon: const Icon(Icons.person_add),
+                icon: const Icon(Icons.person_add, color: Colors.white),
                 label: const Text(
                   "Añadir otro conductor",
                   style: TextStyle(color: Colors.white),
@@ -300,7 +300,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                   });
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Colors.green,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
