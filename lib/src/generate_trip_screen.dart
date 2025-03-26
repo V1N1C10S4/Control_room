@@ -41,6 +41,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   String? city;
   List<Map<String, dynamic>> _selectedStops = [];
   DateTime? _scheduledDateTime;
+  bool _needSecondDriver = false;
 
 
   static const String proxyBaseUrl =
@@ -376,6 +377,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         'scheduled_at': _scheduledDateTime!.toIso8601String(),
       'emergency': false,
       if (fcmToken != null) 'fcmToken': fcmToken, // ✅ Añadir fcmToken solo si existe
+      if (_needSecondDriver) 'need_second_driver': true,
     };
 
     // Guardar en Firebase Realtime Database
@@ -413,6 +415,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
       _durationText = null;
       _arrivalTimeText = null;
       _scheduledDateTime = null;
+      _needSecondDriver = false;
     });
   }
 
@@ -586,53 +589,96 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                     }).toList(),
                   ],
                 ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Espaciado uniforme
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _sendTripRequest,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue, // Botón original
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Crear Solicitud de Viaje',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8), // Espaciado entre botones
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed:
-                        _navigateToStopsScreen,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // Botón verde
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Añadir Paradas',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _sendTripRequest,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Crear Solicitud de Viaje',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8), // Espaciado entre botones
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _selectDateTime,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange, // Botón naranja
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text(
-                        'Programar Viaje',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _navigateToStopsScreen,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Añadir Paradas',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _selectDateTime,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Programar Viaje',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('¿Requiere conductor adicional?'),
+                              content: const Text('¿Deseas asignar un conductor adicional para este viaje?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('No'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Sí'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            setState(() {
+                              _needSecondDriver = true;
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Se solicitará conductor adicional para este viaje.'),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _needSecondDriver ? Colors.red : Colors.grey.shade700,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: const Text(
+                          'Conductor Adicional',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
