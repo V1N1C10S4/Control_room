@@ -125,6 +125,28 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
+                          if (trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().isNotEmpty)
+                            Text(
+                              'Teléfono Conductor: ${trip['TelefonoConductor']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          if (trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().isNotEmpty)
+                            const SizedBox(height: 8),
+
+                          if (trip['driver2'] != null && trip['driver2'].toString().isNotEmpty) ...[
+                            Text(
+                              'Conductor Secundario: ${trip['driver2']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            if (trip['TelefonoConductor2'] != null && trip['TelefonoConductor2'].toString().isNotEmpty) ...[
+                              Text(
+                                'Teléfono Conductor Secundario: ${trip['TelefonoConductor2']}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ],
                           Text(
                             'Punto de partida: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),

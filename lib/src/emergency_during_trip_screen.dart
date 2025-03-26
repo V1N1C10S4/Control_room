@@ -212,6 +212,27 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+
+              if (trip['driver2'] != null && trip['driver2'].toString().trim().isNotEmpty) ...[
+                Text(
+                  'Conductor secundario: ${trip['driver2']}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (trip['TelefonoConductor2'] != null && trip['TelefonoConductor2'].toString().trim().isNotEmpty) ...[
+                  Text(
+                    'Teléfono del conductor secundario: ${trip['TelefonoConductor2']}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
               Text(
                 'Pasajero: ${trip['userName'] ?? 'N/A'}',
                 style: const TextStyle(

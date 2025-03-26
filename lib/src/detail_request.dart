@@ -473,6 +473,19 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                       'Número de sillas para bebés: ${widget.tripRequest['babySeats'] ?? 'No especificado'}',
                       style: const TextStyle(fontSize: 20),
                     ),
+                    const SizedBox(height: 8),
+                    if (widget.tripRequest['need_second_driver'] == true)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Conductor adicional requerido: Sí',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red, // Puedes cambiar el color si quieres
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 32),
                   ],
                 ),

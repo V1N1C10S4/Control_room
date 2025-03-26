@@ -196,6 +196,24 @@ class CancelledTripsScreen extends StatelessWidget {
                       ),
                       Text('Destino: ${trip['destination']}'),
                       Text('Conductor: ${trip['driver']}'),
+                      const SizedBox(height: 8),
+
+                      if (trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().trim().isNotEmpty)
+                        ...[
+                          Text('Teléfono Conductor: ${trip['TelefonoConductor']}'),
+                          const SizedBox(height: 8),
+                        ],
+
+                      if (trip['driver2'] != null && trip['driver2'].toString().trim().isNotEmpty)
+                        ...[
+                          Text('Conductor Secundario: ${trip['driver2']}'),
+                          const SizedBox(height: 8),
+                          if (trip['TelefonoConductor2'] != null && trip['TelefonoConductor2'].toString().trim().isNotEmpty)
+                            ...[
+                              Text('Teléfono Conductor Secundario: ${trip['TelefonoConductor2']}'),
+                              const SizedBox(height: 8),
+                            ],
+                        ],
                       Text('Pasajero: ${trip['userName']}'),
                       Text('Teléfono del pasajero: ${trip['telefonoPasajero']}'),
                       Text('Equipaje: ${trip['luggage']}'),
