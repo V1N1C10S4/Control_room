@@ -38,8 +38,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
             trip['status'] == 'passenger reached' ||
             trip['status'] == 'picked up passenger' ||
             trip['status'] == 'stop_reached' ||
-            trip['status'] == 'stop_waiting' ||
-            trip['status'] == 'stop_continue') &&
+            trip['status'] == 'on_stop_way') &&
             trip['city']?.toLowerCase() == widget.region.toLowerCase())
         .toList();
 
