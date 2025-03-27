@@ -52,7 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scheduledLessThan6h = 0;  // 🟠 Antes _scheduledBetween6And24h
   int _scheduledLessThan2h = 0;
   int _unreviewedScheduledTrips = 0;
-  final Set<String> _notifiedMessages = {};
 
   @override
   void initState() {
@@ -104,8 +103,12 @@ class _HomeScreenState extends State<HomeScreen> {
       final messageId = event.snapshot.key;
       final messageData = event.snapshot.value as Map<dynamic, dynamic>?;
 
-      if (messageId != null && messageData != null && !_notifiedMessages.contains(messageId)) {
+      if (messageId != null && messageData != null) {
         final String usuario = messageData['usuario'] ?? '';
+        final String notificationKey = '$messageId-new_message';
+
+        // ❌ Ya se mostró esta notificación
+        if (_shownStatuses.contains(notificationKey)) return;
 
         try {
           // 🔍 Obtener documento de Firestore correspondiente al usuario
@@ -117,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (ciudad == widget.region) {
               _showBannerNotification("📨 Nuevo mensaje recibido de $usuario");
               _playNotificationSound();
-              _notifiedMessages.add(messageId); // Marcar como notificado
+              _shownStatuses.add(notificationKey); // ✅ Marcar como mostrada
             }
           }
         } catch (e) {
