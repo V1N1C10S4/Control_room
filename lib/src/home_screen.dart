@@ -15,6 +15,7 @@ import 'cancelled_trip_screen.dart';
 import 'generate_trip_screen.dart';
 import 'messages_screen.dart';
 import 'scheduled_trip_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -51,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scheduledLessThan6h = 0;  // 🟠 Antes _scheduledBetween6And24h
   int _scheduledLessThan2h = 0;
   int _unreviewedScheduledTrips = 0;
+  final Set<String> _notifiedMessages = {};
 
   @override
   void initState() {
@@ -65,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForCancelledTrips();
     _listenForPendingMessages();
     _listenForScheduledTrips();
+    _listenForNewMessages();
   }
 
   void _listenForEmergencies() {
@@ -92,6 +95,34 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _pendingMessagesCount = 0;
         });
+      }
+    });
+  }
+
+  void _listenForNewMessages() {
+    _databaseReference.child('messages').onChildAdded.listen((event) async {
+      final messageId = event.snapshot.key;
+      final messageData = event.snapshot.value as Map<dynamic, dynamic>?;
+
+      if (messageId != null && messageData != null && !_notifiedMessages.contains(messageId)) {
+        final String usuario = messageData['usuario'] ?? '';
+
+        try {
+          // 🔍 Obtener documento de Firestore correspondiente al usuario
+          final userDoc = await FirebaseFirestore.instance.collection('Usuarios').doc(usuario).get();
+
+          if (userDoc.exists) {
+            final String ciudad = userDoc.data()?['Ciudad'] ?? '';
+
+            if (ciudad == widget.region) {
+              _showBannerNotification("📨 Nuevo mensaje recibido de $usuario");
+              _playNotificationSound();
+              _notifiedMessages.add(messageId); // Marcar como notificado
+            }
+          }
+        } catch (e) {
+          print("Error al verificar ciudad del usuario $usuario: $e");
+        }
       }
     });
   }
@@ -242,6 +273,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
       String message;
       switch (status) {
+        case 'scheduled':
+          message = "Se ha detectado un nuevo viaje programado de $userName ($tripId)";
+        break;
         case 'started':
           message = "El viaje de $userName ($tripId) y $driver ha comenzado";
           break;
@@ -250,6 +284,12 @@ class _HomeScreenState extends State<HomeScreen> {
           break;
         case 'picked up passenger':
           message = "El pasajero $userName ha sido recogido ($tripId)";
+          break;
+        case 'on_stop_way':
+          message = "El conductor va en camino hacia la parada con el pasajero $userName ($tripId)";
+          break;
+        case 'stop_reached':
+          message = "El conductor llegó a la parada intermedia del viaje de $userName ($tripId)";
           break;
         case 'trip finished':
           message = "El viaje de $userName ($tripId) ha finalizado con éxito!";

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -22,41 +23,60 @@ class _MessagesScreenState extends State<MessagesScreen> {
     _loadMessages();
   }
 
-  void _loadMessages() {
-    _messagesRef.onValue.listen((event) {
+  void _loadMessages() async {
+    _messagesRef.onValue.listen((event) async {
       if (event.snapshot.exists) {
         List<Map<String, dynamic>> pendingList = [];
         List<Map<String, dynamic>> attendedList = [];
 
         Map<dynamic, dynamic> messagesMap = event.snapshot.value as Map<dynamic, dynamic>;
 
-        messagesMap.forEach((key, value) {
-          Map<String, dynamic> message = {
-            "id": key,
-            "usuario": value["usuario"],
-            "pickup_location": value["pickup_location"],
-            "destination_location": value["destination_location"],
-            "trip_date_time": value["trip_date_time"],
-            "attended": value["attended"] ?? false,
-            "has_stops": value["has_stops"] ?? false,
-            "stops_count": value["stops_count"] ?? 0,
-            "stops": value["stops"] ?? [],
-            "needs_extra_vehicle": value["needs_extra_vehicle"] ?? false,
-            "passengers": value["passengers"] ?? 1,
-            "luggage": value["luggage"] ?? 0,
-            "pets": value["pets"] ?? 0,
-            "baby_seats": value["baby_seats"] ?? 0,
-            "timestamp": value["timestamp"] ?? 0,
-            "extra_details": value["extra_details"] ?? "",
-            "response": value["response"] ?? "", 
-          };
+        for (var entry in messagesMap.entries) {
+          final String key = entry.key;
+          final Map<dynamic, dynamic> value = entry.value;
 
-          if (message["attended"]) {
-            attendedList.add(message);
-          } else {
-            pendingList.add(message);
+          final String usuario = value["usuario"] ?? "";
+
+          try {
+            // 🔍 Consulta a Firestore para obtener la ciudad del usuario
+            final userDoc = await FirebaseFirestore.instance.collection('Usuarios').doc(usuario).get();
+
+            if (userDoc.exists) {
+              final String ciudad = userDoc.data()?["Ciudad"] ?? "";
+
+              if (ciudad == widget.region) {
+                // ✅ Coincide la región, agregar mensaje
+                Map<String, dynamic> message = {
+                  "id": key,
+                  "usuario": usuario,
+                  "pickup_location": value["pickup_location"],
+                  "destination_location": value["destination_location"],
+                  "trip_date_time": value["trip_date_time"],
+                  "attended": value["attended"] ?? false,
+                  "has_stops": value["has_stops"] ?? false,
+                  "stops_count": value["stops_count"] ?? 0,
+                  "stops": value["stops"] ?? [],
+                  "needs_extra_vehicle": value["needs_extra_vehicle"] ?? false,
+                  "passengers": value["passengers"] ?? 1,
+                  "luggage": value["luggage"] ?? 0,
+                  "pets": value["pets"] ?? 0,
+                  "baby_seats": value["baby_seats"] ?? 0,
+                  "timestamp": value["timestamp"] ?? 0,
+                  "extra_details": value["extra_details"] ?? "",
+                  "response": value["response"] ?? "",
+                };
+
+                if (message["attended"]) {
+                  attendedList.add(message);
+                } else {
+                  pendingList.add(message);
+                }
+              }
+            }
+          } catch (e) {
+            print("❌ Error al verificar ciudad del usuario $usuario: $e");
           }
-        });
+        }
 
         // Ordenar los mensajes
         pendingList.sort((a, b) => a["timestamp"].compareTo(b["timestamp"])); // Más antiguos primero
