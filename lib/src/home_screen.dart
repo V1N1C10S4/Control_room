@@ -289,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
           message = "El conductor $driver ha llegado con el pasajero $userName ($tripId)";
           break;
         case 'picked up passenger':
-          message = "El pasajero $userName ha sido recogido ($tripId)";
+          message = "El pasajero $userName ha sido recogido y continúa hacia su destino final ($tripId)";
           break;
         case 'on_stop_way':
           message = "El conductor va en camino hacia la parada con el pasajero $userName ($tripId)";
