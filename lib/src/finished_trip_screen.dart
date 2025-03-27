@@ -120,6 +120,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Pasajero: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
+                          const SizedBox(height: 8),
                           Text(
                             'Conductor: ${trip['driver'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
