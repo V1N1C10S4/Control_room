@@ -147,6 +147,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                               const SizedBox(height: 8),
                             ],
                           ],
+                          const Divider(thickness: 1.2, color: Colors.grey),
                           Text(
                             'Punto de partida: ${trip['pickup']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
@@ -161,20 +162,15 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                                   'Parada 1: ${trip['stop']['placeName'] ?? 'N/A'}',
                                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
+                                if (trip.containsKey('on_stop_way_at'))
+                                  Text(
+                                    '🚕 En camino a la parada: ${_formatDateTime(trip['on_stop_way_at'])}',
+                                    style: const TextStyle(fontSize: 14, color: Colors.blue),
+                                  ),
                                 if (trip.containsKey('stop_reached_at'))
                                   Text(
                                     '📍 Llegada a parada: ${_formatDateTime(trip['stop_reached_at'])}',
                                     style: const TextStyle(fontSize: 14, color: Colors.blue),
-                                  ),
-                                if (trip.containsKey('stop_waiting_at'))
-                                  Text(
-                                    '⏳ En espera en parada: ${_formatDateTime(trip['stop_waiting_at'])}',
-                                    style: const TextStyle(fontSize: 14, color: Colors.orange),
-                                  ),
-                                if (trip.containsKey('stop_continue_at'))
-                                  Text(
-                                    '🚗 Continuando viaje desde parada: ${_formatDateTime(trip['stop_continue_at'])}',
-                                    style: const TextStyle(fontSize: 14, color: Colors.green),
                                   ),
                               ],
 
@@ -224,6 +220,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Destino: ${trip['destination']['placeName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
+                          const Divider(thickness: 1.2, color: Colors.grey),
                           const SizedBox(height: 8),
                           Text(
                             'Estatus: ${trip['status']}',
@@ -261,6 +258,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                               fontSize: 16,
                             ),
                           ),
+                          const Divider(thickness: 1.2, color: Colors.grey),
                           const SizedBox(height: 8),
                           Text(
                             'Solicitado: $createdAt',
@@ -278,26 +276,6 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Inicio de viaje: $pickedUpPassengerAt',
                             style: const TextStyle(fontSize: 16),
                           ),
-
-                          // 🔹 Registrar los tiempos de cada parada
-                          for (int i = 1; trip.containsKey('stop$i'); i++) ...[
-                            if (trip.containsKey('stop${i}_reached_at'))
-                              Text(
-                                'Llegada a parada $i: ${_formatDateTime(trip['stop${i}_reached_at'])}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            if (trip.containsKey('stop${i}_waiting_at'))
-                              Text(
-                                'Esperando en la parada $i: ${_formatDateTime(trip['stop${i}_waiting_at'])}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            if (trip.containsKey('stop${i}_continue_at'))
-                              Text(
-                                'Viaje continúa desde parada $i: ${_formatDateTime(trip['stop${i}_continue_at'])}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                          ],
-
                           Text(
                             'Finalizado: $finishedAt',
                             style: const TextStyle(fontSize: 16),

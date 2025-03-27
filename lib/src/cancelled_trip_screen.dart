@@ -136,20 +136,15 @@ class CancelledTripsScreen extends StatelessWidget {
                               'Parada 1: ${trip['stop']['placeName'] ?? 'N/A'}',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                             ),
+                            if (trip.containsKey('on_stop_way_at'))
+                              Text(
+                                '🚕 En camino a la parada: ${_formatDateTime(trip['on_stop_way_at'])}',
+                                style: const TextStyle(fontSize: 14, color: Colors.blue),
+                              ),
                             if (trip.containsKey('stop_reached_at'))
                               Text(
                                 '📍 Llegada a parada: ${_formatDateTime(trip['stop_reached_at'])}',
                                 style: const TextStyle(fontSize: 14, color: Colors.blue),
-                              ),
-                            if (trip.containsKey('stop_waiting_at'))
-                              Text(
-                                '⏳ En espera en parada: ${_formatDateTime(trip['stop_waiting_at'])}',
-                                style: const TextStyle(fontSize: 14, color: Colors.orange),
-                              ),
-                            if (trip.containsKey('stop_continue_at'))
-                              Text(
-                                '🚗 Continuando viaje desde parada: ${_formatDateTime(trip['stop_continue_at'])}',
-                                style: const TextStyle(fontSize: 14, color: Colors.green),
                               ),
                           ],
 
@@ -196,22 +191,18 @@ class CancelledTripsScreen extends StatelessWidget {
                       ),
                       Text('Destino: ${trip['destination']}'),
                       Text('Conductor: ${trip['driver']}'),
-                      const SizedBox(height: 8),
 
                       if (trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().trim().isNotEmpty)
                         ...[
                           Text('Teléfono Conductor: ${trip['TelefonoConductor']}'),
-                          const SizedBox(height: 8),
                         ],
 
                       if (trip['driver2'] != null && trip['driver2'].toString().trim().isNotEmpty)
                         ...[
                           Text('Conductor Secundario: ${trip['driver2']}'),
-                          const SizedBox(height: 8),
                           if (trip['TelefonoConductor2'] != null && trip['TelefonoConductor2'].toString().trim().isNotEmpty)
                             ...[
                               Text('Teléfono Conductor Secundario: ${trip['TelefonoConductor2']}'),
-                              const SizedBox(height: 8),
                             ],
                         ],
                       Text('Pasajero: ${trip['userName']}'),

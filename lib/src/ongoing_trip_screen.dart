@@ -300,7 +300,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                 if (trip.containsKey('on_stop_way_at'))
                                   Text(
                                     '🚕 En camino a la parada: ${_formatDateTime(trip['on_stop_way_at'])}',
-                                    style: const TextStyle(fontSize: 14, color: Colors.deepPurple),
+                                    style: const TextStyle(fontSize: 14, color: Colors.blue),
                                   ),
                                 if (trip.containsKey('stop_reached_at'))
                                   Text(
