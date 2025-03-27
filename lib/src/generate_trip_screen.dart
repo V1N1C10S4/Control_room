@@ -643,11 +643,19 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                               title: const Text('¿Requiere conductor adicional?'),
                               content: const Text('¿Deseas asignar un conductor adicional para este viaje?'),
                               actions: [
-                                TextButton(
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
                                   onPressed: () => Navigator.of(context).pop(false),
                                   child: const Text('No'),
                                 ),
-                                TextButton(
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
                                   onPressed: () => Navigator.of(context).pop(true),
                                   child: const Text('Sí'),
                                 ),
@@ -675,7 +683,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                           'Conductor Adicional',
                           style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
-                      ),
+                      )
                     ),
                   ],
                 ),
