@@ -104,14 +104,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final messageData = event.snapshot.value as Map<dynamic, dynamic>?;
 
       if (messageId != null && messageData != null) {
+        // ✅ Filtro: Solo si no ha sido atendido
+        if (messageData['attended'] == true) return;
+
         final String usuario = messageData['usuario'] ?? '';
         final String notificationKey = '$messageId-new_message';
 
-        // ❌ Ya se mostró esta notificación
+        // ✅ Ya se mostró esta notificación
         if (_shownStatuses.contains(notificationKey)) return;
 
         try {
-          // 🔍 Obtener documento de Firestore correspondiente al usuario
+          // 🔍 Obtener ciudad del usuario
           final userDoc = await FirebaseFirestore.instance.collection('Usuarios').doc(usuario).get();
 
           if (userDoc.exists) {
@@ -120,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (ciudad == widget.region) {
               _showBannerNotification("📨 Nuevo mensaje recibido de $usuario");
               _playNotificationSound();
-              _shownStatuses.add(notificationKey); // ✅ Marcar como mostrada
+              _shownStatuses.add(notificationKey); // ✅ Marcar como mostrado
             }
           }
         } catch (e) {
