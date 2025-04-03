@@ -122,6 +122,9 @@ class ScheduledTripScreen extends StatelessWidget {
     String createdDate = trip["created_at"] != null
         ? DateFormat("yyyy-MM-dd HH:mm").format(DateTime.parse(trip["created_at"]))
         : "Unknown";
+    
+    String userName = trip["userName"] ?? "Usuario desconocido";
+    String telefono = trip["telefonoPasajero"] ?? "Sin número";
 
     // 🔥 Determinar el ícono de estado basado en el status
     Icon statusIcon;
@@ -158,6 +161,8 @@ class ScheduledTripScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text("👤 Usuario: $userName", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text("📞 Teléfono: $telefono", style: const TextStyle(fontSize: 16)),
                       Text(
                         "📍 Punto de partida: ${trip["pickup"]["placeName"] ?? "Unknown"}",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
