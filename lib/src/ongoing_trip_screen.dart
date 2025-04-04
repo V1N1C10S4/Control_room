@@ -416,7 +416,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Inicio de viaje: ${_formatDateTime(trip['picked_up_passenger_at'])}',
+                            'En camino a destino final: ${_formatDateTime(trip['picked_up_passenger_at'])}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           // Espacio adicional antes del botón
