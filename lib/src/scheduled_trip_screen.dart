@@ -161,7 +161,7 @@ class ScheduledTripScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("👤 Usuario: $userName", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text("👤 Pasajero: $userName", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       Text("📞 Teléfono: $telefono", style: const TextStyle(fontSize: 16)),
                       Text(
                         "📍 Punto de partida: ${trip["pickup"]["placeName"] ?? "Unknown"}",
