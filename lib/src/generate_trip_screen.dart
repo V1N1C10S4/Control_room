@@ -455,7 +455,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
 
                   if (userDoc.exists) {
                     setState(() {
-                      userPhone = userDoc.data()?['Telefono'] ?? "No disponible";
+                      userPhone = userDoc.data()?['NumeroTelefono'] ?? "No disponible";
                     });
                   }
                 },
