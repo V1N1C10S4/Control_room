@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:html' as html;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
 
 class CreateDriverScreen extends StatefulWidget {
   final String usuario;
@@ -30,6 +33,7 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
 
   bool _isSaving = false;
   bool _isPasswordVisible = false;
+  String? _fotoPerfilURL;
 
   void _saveDriver() async {
     if (_formKey.currentState!.validate()) {
@@ -39,7 +43,7 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
         'Ciudad': _ciudadController.text.trim(),
         'NombreConductor': _nombreConductorController.text.trim(),
         'Contraseña': _contrasenaController.text.trim(),
-        'FotoPerfil': _fotoPerfilController.text.trim(),
+        'FotoPerfil': _fotoPerfilURL ?? '',
         'NumeroTelefono': _numeroTelefonoController.text.trim(),
         'InfoVehiculo': _infoVehiculoController.text.trim(),
         'Placas': _placasController.text.trim(),
@@ -98,6 +102,41 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
         );
       },
     );
+  }
+
+  Future<void> _seleccionarYSubirFoto(String driverId) async {
+    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) async {
+      final file = uploadInput.files?.first;
+      final reader = html.FileReader();
+
+      if (file != null) {
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+
+        final data = Uint8List.fromList(reader.result as List<int>);
+        final storageRef = FirebaseStorage.instance.ref().child('profile_pictures/$driverId.jpg');
+
+        try {
+          final snapshot = await storageRef.putData(data);
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          setState(() {
+            _fotoPerfilURL = downloadUrl;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto de perfil subida correctamente.')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al subir la foto: $e')),
+          );
+        }
+      }
+    });
   }
 
   @override
@@ -177,15 +216,34 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _fotoPerfilController,
-                decoration: const InputDecoration(labelText: 'FotoPerfil (URL)'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese una URL de FotoPerfil';
-                  }
-                  return null;
-                },
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Foto de Perfil", style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final driverId = _driverIdController.text.trim();
+                      if (driverId.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Por favor ingresa el Driver ID antes de subir la imagen.')),
+                        );
+                        return;
+                      }
+                      _seleccionarYSubirFoto(driverId);
+                    },
+                    icon: const Icon(Icons.upload, color: Colors.white),
+                    label: const Text("Seleccionar imagen", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromRGBO(149, 189, 64, 1),
+                    ),
+                  ),
+                  if (_fotoPerfilURL != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text("Imagen subida ✅", style: TextStyle(color: Colors.green)),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               TextFormField(

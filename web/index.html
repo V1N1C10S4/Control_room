@@ -59,6 +59,21 @@
     defer
   ></script>
 
+  <!-- Firebase App Check (reCAPTCHA v3) -->
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-check.js"></script>
+  <script>
+    // SOLO para pruebas locales. Elimina esta línea en producción:
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+
+    window.addEventListener('load', function () {
+      const appCheck = firebase.appCheck();
+      appCheck.activate(
+        '6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE', // ← Clave corregida
+        true
+      );
+    });
+  </script>
+
 </head>
 <body>
   <!-- Bootstrap Flutter -->
