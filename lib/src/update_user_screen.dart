@@ -93,11 +93,6 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
         final storageRef = FirebaseStorage.instance.ref().child('user_profile_pictures/$userId.jpg');
 
         try {
-          // Eliminar imagen anterior si existía
-          if (_fotoPerfilController.text.isNotEmpty) {
-            await FirebaseStorage.instance.refFromURL(_fotoPerfilController.text).delete();
-          }
-
           final snapshot = await storageRef.putData(data);
           final downloadUrl = await snapshot.ref.getDownloadURL();
 

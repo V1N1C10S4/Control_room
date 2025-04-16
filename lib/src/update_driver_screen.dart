@@ -105,12 +105,6 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
         final storageRef = FirebaseStorage.instance.ref().child('profile_pictures/$driverId.jpg');
 
         try {
-          // Eliminar imagen anterior (si existe)
-          await storageRef.delete().catchError((e) {
-            // Si no existe, ignoramos el error
-            debugPrint("No había imagen previa o no se pudo eliminar: $e");
-          });
-
           // Subir la nueva imagen
           final snapshot = await storageRef.putData(data);
           final downloadUrl = await snapshot.ref.getDownloadURL();
