@@ -60,22 +60,6 @@
     defer
   ></script>
 
-  <!-- Firebase App Check (reCAPTCHA v3) -->
-  <script>
-    window.addEventListener('load', function () {
-      try {
-        const appCheck = firebase.appCheck();
-        appCheck.activate(
-          '6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE', // ← Clave corregida
-          true
-        );
-        console.log("🚀 App Check activado correctamente en producción");
-      } catch (e) {
-        console.error("⚠️ Error al activar App Check:", e);
-      }
-    });
-  </script>
-
 </head>
 <body>
   <!-- Bootstrap Flutter -->

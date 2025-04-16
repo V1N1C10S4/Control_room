@@ -1,6 +1,7 @@
 import 'package:control_room/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:control_room/src/login_screen.dart';
 
@@ -13,12 +14,17 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
+  // Inicializa Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Set background message handler
+  // 🛡 Inicializa App Check con reCAPTCHA v3
+  await FirebaseAppCheck.instance.activate(
+    webProvider: ReCaptchaV3Provider('6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE'),
+  );
+
+  // Configura handler para mensajes en segundo plano de FCM
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(const MyApp());
