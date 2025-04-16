@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:html' as html;
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class UserCreationScreen extends StatefulWidget {
   final String usuario;
@@ -23,11 +26,11 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
   final TextEditingController _ciudadController = TextEditingController();
   final TextEditingController _nombreUsuarioController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
-  final TextEditingController _fotoPerfilController = TextEditingController();
   final TextEditingController _numeroTelefonoController = TextEditingController();
 
   bool _isSaving = false;
   bool _isPasswordVisible = false; // Nueva variable para controlar la visibilidad
+  String? _fotoPerfilURL;
 
   void _saveUser() async {
     if (_formKey.currentState!.validate()) {
@@ -37,7 +40,7 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
         'Ciudad': _ciudadController.text.trim(),
         'NombreUsuario': _nombreUsuarioController.text.trim(),
         'Contraseña': _contrasenaController.text.trim(),
-        'FotoPerfil': _fotoPerfilController.text.trim(),
+        'FotoPerfil': _fotoPerfilURL ?? '',
         'NumeroTelefono': _numeroTelefonoController.text.trim(),
       };
 
@@ -66,6 +69,41 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
         );
       }
     }
+  }
+
+  Future<void> _seleccionarYSubirFoto(String userId) async {
+    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) async {
+      final file = uploadInput.files?.first;
+      final reader = html.FileReader();
+
+      if (file != null) {
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+
+        final data = Uint8List.fromList(reader.result as List<int>);
+        final storageRef = FirebaseStorage.instance.ref().child('user_profile_pictures/$userId.jpg');
+
+        try {
+          final snapshot = await storageRef.putData(data);
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          setState(() {
+            _fotoPerfilURL = downloadUrl;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto de perfil subida correctamente.')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al subir la foto: $e')),
+          );
+        }
+      }
+    });
   }
 
   void _showConfirmationDialog() {
@@ -169,15 +207,35 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _fotoPerfilController,
-                decoration: const InputDecoration(labelText: 'FotoPerfil (URL)'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese una URL de FotoPerfil';
-                  }
-                  return null;
-                },
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Foto de Perfil", style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      final userId = _userIdController.text.trim();
+                      if (userId.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Por favor ingresa el User ID antes de subir la imagen.')),
+                        );
+                        return;
+                      }
+                      _seleccionarYSubirFoto(userId);
+                    },
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text("Seleccionar Imagen"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromRGBO(120, 170, 90, 1),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  if (_fotoPerfilURL != null)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text("Imagen subida ✅", style: TextStyle(color: Colors.green)),
+                    ),
+                ],
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -222,7 +280,6 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
     _ciudadController.dispose();
     _nombreUsuarioController.dispose();
     _contrasenaController.dispose();
-    _fotoPerfilController.dispose();
     _numeroTelefonoController.dispose();
     super.dispose();
   }

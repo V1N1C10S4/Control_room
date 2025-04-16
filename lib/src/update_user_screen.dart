@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:html' as html;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
 
 class UpdateUserScreen extends StatefulWidget {
   final String usuario;
@@ -74,6 +77,46 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
     );
   }
 
+  Future<void> _seleccionarYSubirNuevaFoto(String userId) async {
+    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) async {
+      final file = uploadInput.files?.first;
+      final reader = html.FileReader();
+
+      if (file != null) {
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+
+        final data = Uint8List.fromList(reader.result as List<int>);
+        final storageRef = FirebaseStorage.instance.ref().child('user_profile_pictures/$userId.jpg');
+
+        try {
+          // Eliminar imagen anterior si existía
+          if (_fotoPerfilController.text.isNotEmpty) {
+            await FirebaseStorage.instance.refFromURL(_fotoPerfilController.text).delete();
+          }
+
+          final snapshot = await storageRef.putData(data);
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          setState(() {
+            _fotoPerfilController.text = downloadUrl;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto de perfil actualizada correctamente.')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al actualizar la foto: $e')),
+          );
+        }
+      }
+    });
+  }
+
   void _updateUserData() {
     // Referencia al documento del usuario en Firestore
     final userRef = FirebaseFirestore.instance.collection('Usuarios').doc(widget.userId);
@@ -133,11 +176,20 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 10),
-            TextField(
-              controller: _fotoPerfilController,
-              decoration: const InputDecoration(labelText: 'FotoPerfil (URL)'),
-              keyboardType: TextInputType.url,
+            ElevatedButton.icon(
+              onPressed: () => _seleccionarYSubirNuevaFoto(widget.userId),
+              icon: const Icon(Icons.image),
+              label: const Text('Cambiar Foto de Perfil'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                foregroundColor: Colors.white,
+              ),
             ),
+            if (_fotoPerfilController.text.isNotEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text("Imagen actualizada ✅", style: TextStyle(color: Colors.green)),
+              ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _confirmAndUpdateUserData,

@@ -24,7 +24,6 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
   final TextEditingController _ciudadController = TextEditingController();
   final TextEditingController _nombreConductorController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
-  final TextEditingController _fotoPerfilController = TextEditingController();
   final TextEditingController _numeroTelefonoController = TextEditingController();
   final TextEditingController _infoVehiculoController = TextEditingController();
   final TextEditingController _placasController = TextEditingController();
@@ -306,7 +305,6 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
     _ciudadController.dispose();
     _nombreConductorController.dispose();
     _contrasenaController.dispose();
-    _fotoPerfilController.dispose();
     _numeroTelefonoController.dispose();
     _infoVehiculoController.dispose();
     _placasController.dispose();
