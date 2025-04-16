@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:html' as html;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:typed_data';
 
 class UpdateDriverScreen extends StatefulWidget {
   final String usuario;
@@ -86,6 +89,48 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
     );
   }
 
+  Future<void> _seleccionarYSubirNuevaFoto(String driverId) async {
+    final uploadInput = html.FileUploadInputElement()..accept = 'image/*';
+    uploadInput.click();
+
+    uploadInput.onChange.listen((event) async {
+      final file = uploadInput.files?.first;
+      final reader = html.FileReader();
+
+      if (file != null) {
+        reader.readAsArrayBuffer(file);
+        await reader.onLoad.first;
+
+        final data = Uint8List.fromList(reader.result as List<int>);
+        final storageRef = FirebaseStorage.instance.ref().child('profile_pictures/$driverId.jpg');
+
+        try {
+          // Eliminar imagen anterior (si existe)
+          await storageRef.delete().catchError((e) {
+            // Si no existe, ignoramos el error
+            debugPrint("No había imagen previa o no se pudo eliminar: $e");
+          });
+
+          // Subir la nueva imagen
+          final snapshot = await storageRef.putData(data);
+          final downloadUrl = await snapshot.ref.getDownloadURL();
+
+          setState(() {
+            _fotoPerfilController.text = downloadUrl;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto de perfil actualizada correctamente.')),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error al actualizar la foto: $e')),
+          );
+        }
+      }
+    });
+  }
+
   void _updateDriverData() {
     // Referencia al documento del conductor en Firestore
     final driverRef = FirebaseFirestore.instance.collection('Conductores').doc(widget.driverKey);
@@ -168,9 +213,14 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
               decoration: const InputDecoration(labelText: 'Número del Supervisor'),
             ),
             const SizedBox(height: 10),
-            TextField(
-              controller: _fotoPerfilController,
-              decoration: const InputDecoration(labelText: 'URL de la Foto de Perfil'), // Nuevo campo
+            ElevatedButton.icon(
+              onPressed: () => _seleccionarYSubirNuevaFoto(widget.driverKey),
+              icon: const Icon(Icons.image),
+              label: const Text('Cambiar Foto de Perfil'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[700],
+                foregroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
