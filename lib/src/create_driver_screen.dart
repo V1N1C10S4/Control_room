@@ -232,7 +232,6 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
                       }
                       _seleccionarYSubirFoto(driverId);
                     },
-                    icon: const Icon(Icons.upload, color: Colors.white),
                     label: const Text("Seleccionar imagen", style: TextStyle(color: Colors.white)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromRGBO(149, 189, 64, 1),

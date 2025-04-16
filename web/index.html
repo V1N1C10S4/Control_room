@@ -22,6 +22,7 @@
   <!-- Firebase Scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-check.js"></script>
   
   <script>
     // Firebase configuration
@@ -60,15 +61,18 @@
   ></script>
 
   <!-- Firebase App Check (reCAPTCHA v3) -->
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-check.js"></script>
   <script>
-
     window.addEventListener('load', function () {
-      const appCheck = firebase.appCheck();
-      appCheck.activate(
-        '6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE', // ← Clave corregida
-        true
-      );
+      try {
+        const appCheck = firebase.appCheck();
+        appCheck.activate(
+          '6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE', // ← Clave corregida
+          true
+        );
+        console.log("🚀 App Check activado correctamente en producción");
+      } catch (e) {
+        console.error("⚠️ Error al activar App Check:", e);
+      }
     });
   </script>
 
