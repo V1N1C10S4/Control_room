@@ -111,6 +111,8 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                   zoom: 12,
                 ),
                 markers: _markers,
+                zoomControlsEnabled: false,
+                myLocationButtonEnabled: false,
                 onMapCreated: (GoogleMapController controller) {
                   _mapController.complete(controller);
                 },

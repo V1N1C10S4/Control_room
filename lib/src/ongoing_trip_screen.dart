@@ -33,13 +33,16 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
           trip['id'] = entry.key;
           return trip;
         })
-        .where((trip) =>
-            (trip['status'] == 'started' ||
-            trip['status'] == 'passenger reached' ||
-            trip['status'] == 'picked up passenger' ||
-            trip['status'] == 'stop_reached' ||
-            trip['status'] == 'on_stop_way') &&
-            trip['city']?.toLowerCase() == widget.region.toLowerCase())
+        .where((trip) {
+          final status = trip['status'] ?? '';
+          final city = trip['city']?.toLowerCase() ?? '';
+          final isOngoingStatus = status == 'started' ||
+                                  status == 'passenger reached' ||
+                                  status == 'picked up passenger' ||
+                                  status.startsWith('on_stop_way') ||
+                                  status.startsWith('stop_reached');
+          return isOngoingStatus && city == widget.region.toLowerCase();
+        })
         .toList();
 
         // Ordenar los viajes según el campo "started_at"

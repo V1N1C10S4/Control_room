@@ -331,22 +331,12 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     Map<String, dynamic> stopsData = {};
 
     if (_selectedStops.isNotEmpty) {
-      if (_selectedStops.length == 1) {
-        // ✅ Si hay exactamente una parada, se guarda con la clave "stop"
-        stopsData['stop'] = {
-          'latitude': _selectedStops.first['latitude'],
-          'longitude': _selectedStops.first['longitude'],
-          'placeName': _selectedStops.first['placeName'],
+      for (int i = 0; i < _selectedStops.length; i++) {
+        stopsData['stop${i + 1}'] = {
+          'latitude': _selectedStops[i]['latitude'],
+          'longitude': _selectedStops[i]['longitude'],
+          'placeName': _selectedStops[i]['placeName'],
         };
-      } else {
-        // ✅ Si hay múltiples paradas, asignamos "stop1", "stop2", "stop3", etc.
-        for (int i = 0; i < _selectedStops.length; i++) {
-          stopsData['stop${i + 1}'] = {
-            'latitude': _selectedStops[i]['latitude'],
-            'longitude': _selectedStops[i]['longitude'],
-            'placeName': _selectedStops[i]['placeName'],
-          };
-        }
       }
     }
 
@@ -516,6 +506,8 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                       ),
                       markers: _markers,
                       polylines: _polylines,
+                      zoomControlsEnabled: false,
+                      myLocationButtonEnabled: false,
                       onMapCreated: (GoogleMapController controller) {
                         _mapController.complete(controller);
                       },

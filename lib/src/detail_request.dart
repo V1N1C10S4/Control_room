@@ -504,7 +504,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                     ),
                     markers: _markers,
                     polylines: _polylines,
-                    zoomControlsEnabled: true,
+                    zoomControlsEnabled: false,
+                    myLocationButtonEnabled: false,
                     onMapCreated: (GoogleMapController controller) {
                       _mapController.complete(controller);
                     },
