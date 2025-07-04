@@ -56,8 +56,10 @@ class TripRequestScreenState extends State<TripRequestScreen> {
           return request;
         })
         .where((request) =>
-            (request['status'] == 'pending' || request['status'] == 'authorized') &&
-            request['city']?.toString().toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
+          (request['status'] == 'pending' || 
+          request['status'] == 'authorized' || 
+          request['status'] == 'in progress') &&
+          request['city']?.toString().toLowerCase() == widget.region.toLowerCase())// Filtrar por región
         .toList();
 
         setState(() {
@@ -74,6 +76,19 @@ class TripRequestScreenState extends State<TripRequestScreen> {
         _tripRequests = [];
       });
     });
+  }
+
+  String _translateStatus(String status) {
+    switch (status) {
+      case 'pending':
+        return 'En espera de autorización';
+      case 'authorized':
+        return 'En espera de asignación de conductor';
+      case 'in progress':
+        return 'Esperando respuesta de conductor';
+      default:
+        return 'Estatus desconocido';
+    }
   }
 
   // Formatear las fechas al formato deseado
@@ -160,7 +175,7 @@ class TripRequestScreenState extends State<TripRequestScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Estatus: ${tripRequest['status']}',
+                                  'Estatus: ${_translateStatus(tripRequest['status'])}',
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),

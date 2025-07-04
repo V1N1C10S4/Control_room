@@ -333,6 +333,19 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     );
   }
 
+  String _translateStatus(String status) {
+    switch (status) {
+      case 'pending':
+        return 'En espera de autorización';
+      case 'authorized':
+        return 'En espera de asignación de conductor';
+      case 'in progress':
+        return 'Esperando respuesta de conductor';
+      default:
+        return 'Estatus desconocido';
+    }
+  }
+
   Future<void> _zoomToPickup() async {
     final GoogleMapController controller = await _mapController.future;
     try {
@@ -449,9 +462,19 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                       style: const TextStyle(fontSize: 20),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Estatus: ${widget.tripRequest['status']}',
-                      style: const TextStyle(fontSize: 20),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 20, color: Colors.black),
+                        children: [
+                          const TextSpan(
+                            text: 'Estatus: ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          TextSpan(
+                            text: _translateStatus(widget.tripRequest['status']),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -522,39 +545,44 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
             const SizedBox(height: 12),
 
             // 🔹 Botones de acción siguen fijos en la parte inferior
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _showConfirmationDialog(context, 'autorizar');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+            Visibility(
+              visible: widget.tripRequest['status'] != 'in progress',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Botón Autorizar
+                  ElevatedButton(
+                    onPressed: () {
+                      _showConfirmationDialog(context, 'autorizar');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    ),
+                    child: const Text(
+                      'Autorizar viaje',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
-                  child: const Text(
-                    'Autorizar viaje',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  // Botón Denegar
+                  ElevatedButton(
+                    onPressed: () {
+                      _showConfirmationDialog(context, 'denegar');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    ),
+                    child: const Text(
+                      'Denegar viaje',
+                      style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showConfirmationDialog(context, 'denegar');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                  ),
-                  child: const Text(
-                    'Denegar viaje',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            )
           ],
         ),
       ),
