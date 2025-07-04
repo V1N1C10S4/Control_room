@@ -290,6 +290,9 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           _durationText = "$durationMinutes min";
           _arrivalTimeText = arrivalTimeText;
         });
+
+        _adjustCameraToRoute();
+
       } else {
         print("Error en la respuesta de la API: ${data['status']}");
       }
@@ -382,6 +385,33 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         content: Text('Error al enviar la solicitud: $error'),
       ));
     });
+  }
+
+  void _adjustCameraToRoute() async {
+    if (_polylineCoordinates.isEmpty) return;
+
+    final GoogleMapController controller = await _mapController.future;
+
+    double minLat = _polylineCoordinates.first.latitude;
+    double maxLat = _polylineCoordinates.first.latitude;
+    double minLng = _polylineCoordinates.first.longitude;
+    double maxLng = _polylineCoordinates.first.longitude;
+
+    for (LatLng coord in _polylineCoordinates) {
+      if (coord.latitude < minLat) minLat = coord.latitude;
+      if (coord.latitude > maxLat) maxLat = coord.latitude;
+      if (coord.longitude < minLng) minLng = coord.longitude;
+      if (coord.longitude > maxLng) maxLng = coord.longitude;
+    }
+
+    LatLngBounds bounds = LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+
+    controller.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 100),
+    );
   }
 
   void _resetForm() {
