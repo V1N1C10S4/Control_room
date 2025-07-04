@@ -24,6 +24,39 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
     _fetchOngoingTrips();
   }
 
+  Widget buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 100, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   void _fetchOngoingTrips() {
     _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
@@ -226,12 +259,11 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
         ),
       ),
       body: _ongoingTrips.isEmpty
-          ? const Center(
-              child: Text(
-                'No hay viajes en progreso',
-                style: TextStyle(fontSize: 24, color: Colors.grey),
-              ),
-            )
+          ? buildEmptyState(
+            icon: Icons.directions_run,
+            title: 'Sin viajes en progreso',
+            subtitle: 'Aquí aparecerán los viajes que están actualmente en curso.',
+          )
           : ListView.builder(
               itemCount: _ongoingTrips.length,
               itemBuilder: (context, index) {

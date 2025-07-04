@@ -25,6 +25,39 @@ class TripRequestScreenState extends State<TripRequestScreen> {
     _fetchTripRequests();
   }
 
+  Widget buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 100, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   void _fetchTripRequests() {
     _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
@@ -115,12 +148,11 @@ class TripRequestScreenState extends State<TripRequestScreen> {
         ),
       ),
       body: _tripRequests.isEmpty
-          ? const Center(
-              child: Text(
-                'No hay solicitudes de viaje',
-                style: TextStyle(fontSize: 24, color: Colors.grey),
-              ),
-            )
+          ? buildEmptyState(
+            icon: Icons.pending_actions,
+            title: 'Sin solicitudes de viaje',
+            subtitle: 'Aquí aparecerán las nuevas solicitudes de viaje que recibas.',
+          )
           : ListView.builder(
               itemCount: _tripRequests.length,
               itemBuilder: (context, index) {

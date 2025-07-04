@@ -23,6 +23,39 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
     _fetchFinishedTrips();
   }
 
+  Widget buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 100, color: Colors.grey),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   void _fetchFinishedTrips() {
     _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
@@ -77,12 +110,11 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
         ),
       ),
       body: _finishedTrips.isEmpty
-          ? const Center(
-              child: Text(
-                'No hay viajes terminados',
-                style: TextStyle(fontSize: 24, color: Colors.grey),
-              ),
-            )
+          ? buildEmptyState(
+            icon: Icons.directions_car_filled,
+            title: 'Sin viajes finalizados',
+            subtitle: 'Aquí se mostrarán los viajes completados recientemente.',
+          )
           : ListView.builder(
               itemCount: _finishedTrips.length,
               itemBuilder: (context, index) {
