@@ -278,33 +278,42 @@ class _HomeScreenState extends State<HomeScreen> {
       final String driver = tripData['driver'] ?? 'Conductor desconocido';
 
       String message;
-      switch (status) {
-        case 'scheduled':
-          message = "Se ha detectado un nuevo viaje programado de $userName ($tripId)";
-        break;
-        case 'started':
-          message = "El viaje de $userName ($tripId) y $driver ha comenzado";
+
+      final RegExp onStopWayRegex = RegExp(r'^on_stop_way_(\d+)$');
+      final RegExp stopReachedRegex = RegExp(r'^stop_reached_(\d+)$');
+
+      if (onStopWayRegex.hasMatch(status)) {
+        final match = onStopWayRegex.firstMatch(status);
+        final stopNumber = match!.group(1);
+        message = "El conductor va en camino hacia la parada número $stopNumber con el pasajero $userName ($tripId)";
+      } else if (stopReachedRegex.hasMatch(status)) {
+        final match = stopReachedRegex.firstMatch(status);
+        final stopNumber = match!.group(1);
+        message = "El conductor llegó a la parada intermedia número $stopNumber del viaje de $userName ($tripId)";
+      } else {
+
+        switch (status) {
+          case 'scheduled':
+            message = "Se ha detectado un nuevo viaje programado de $userName ($tripId)";
           break;
-        case 'passenger reached':
-          message = "El conductor $driver ha llegado con el pasajero $userName ($tripId)";
-          break;
-        case 'picked up passenger':
-          message = "El pasajero $userName ha sido recogido y continúa hacia su destino final ($tripId)";
-          break;
-        case 'on_stop_way':
-          message = "El conductor va en camino hacia la parada con el pasajero $userName ($tripId)";
-          break;
-        case 'stop_reached':
-          message = "El conductor llegó a la parada intermedia del viaje de $userName ($tripId)";
-          break;
-        case 'trip finished':
-          message = "El viaje de $userName ($tripId) ha finalizado con éxito!";
-          break;
-        case 'trip cancelled':
-          message = "$userName ($tripId) ha cancelado su viaje";
-          break;
-        default:
-          return; // No hacer nada para estados no manejados
+          case 'started':
+            message = "El viaje de $userName ($tripId) y $driver ha comenzado";
+            break;
+          case 'passenger reached':
+            message = "El conductor $driver ha llegado con el pasajero $userName ($tripId)";
+            break;
+          case 'picked up passenger':
+            message = "El pasajero $userName ha sido recogido y continúa hacia su destino final ($tripId)";
+            break;
+          case 'trip finished':
+            message = "El viaje de $userName ($tripId) ha finalizado con éxito!";
+            break;
+          case 'trip cancelled':
+            message = "$userName ($tripId) ha cancelado su viaje";
+            break;
+          default:
+            return; // No hacer nada para estados no manejados
+        }
       }
 
       _showBannerNotification(message);
