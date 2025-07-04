@@ -31,6 +31,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
   final Set<Marker> _markers = {};
   final Set<Polyline> _polylines = {};
   List<LatLng> _stops = []; 
+  List<LatLng> _polylineCoordinates = [];
 
   // URL base del proxy para consultas a la API de Google
   static const String proxyBaseUrl = "https://googleplacesproxy-3tomukm2tq-uc.a.run.app";
@@ -254,6 +255,8 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
 
     // Trazar ruta desde la última parada hasta el destino
     await _fetchPolylineSegment(prevPoint, destination, 'finalSegment');
+
+    await _adjustCameraToPolylines();
   }
 
   Future<void> _fetchPolylineSegment(LatLng start, LatLng end, String segmentId) async {
@@ -269,6 +272,10 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
         List<PointLatLng> points =
             PolylinePoints().decodePolyline(data['routes'][0]['overview_polyline']['points']);
 
+        List<LatLng> segmentCoordinates = points
+          .map((point) => LatLng(point.latitude, point.longitude))
+          .toList();
+
         setState(() {
           _polylines.add(Polyline(
             polylineId: PolylineId(segmentId),
@@ -276,6 +283,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
             width: 5,
             points: points.map((point) => LatLng(point.latitude, point.longitude)).toList(),
           ));
+          _polylineCoordinates.addAll(segmentCoordinates);
         });
       }
     }
@@ -394,6 +402,35 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
         textColor: Colors.white,
       );
     }
+  }
+
+  Future<void> _adjustCameraToPolylines() async {
+    if (_polylineCoordinates.isEmpty) return;
+
+    final GoogleMapController controller = await _mapController.future;
+
+    LatLngBounds bounds = _createBoundsFromLatLngList(_polylineCoordinates);
+
+    controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+  }
+
+  LatLngBounds _createBoundsFromLatLngList(List<LatLng> list) {
+    double x0 = list.first.latitude;
+    double x1 = list.first.latitude;
+    double y0 = list.first.longitude;
+    double y1 = list.first.longitude;
+
+    for (LatLng latLng in list) {
+      if (latLng.latitude > x1) x1 = latLng.latitude;
+      if (latLng.latitude < x0) x0 = latLng.latitude;
+      if (latLng.longitude > y1) y1 = latLng.longitude;
+      if (latLng.longitude < y0) y0 = latLng.longitude;
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(x0, y0),
+      northeast: LatLng(x1, y1),
+    );
   }
 
   @override
