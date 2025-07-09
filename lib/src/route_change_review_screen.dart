@@ -42,7 +42,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final filteredStops = <int, dynamic>{};
     if (allStops is Map) {
       allStops.forEach((key, value) {
-        final index = int.tryParse(key);
+        final index = key is int ? key : int.tryParse(key.toString());
         if (index != null && !reachedIndexes.contains(index)) {
           filteredStops[index] = value;
         }
@@ -76,25 +76,37 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            Text('📝 Motivo: $reason'),
+            Text(
+              '📝 Motivo: $reason',
+              style: const TextStyle(fontSize: 16),
+            ),
             const SizedBox(height: 16),
 
             if (!samePickup)
-              Text('🚕 Nuevo punto de partida: ${pickup?['placeName'] ?? 'No disponible'}'),
+              Text(
+                '🚕 Nuevo punto de partida: ${pickup?['placeName'] ?? 'No disponible'}',
+                style: const TextStyle(fontSize: 16),
+              ),
 
             if (!sameStops && filteredStops.isNotEmpty)
               ...filteredStops.entries.map((e) {
                 final placeName = e.value['placeName'] ?? 'Sin nombre';
                 return Padding(
                   padding: const EdgeInsets.only(top: 4.0),
-                  child: Text('🛑 Parada ${e.key + 1}: $placeName'),
+                  child: Text(
+                    '🛑 Parada ${e.key + 1}: $placeName',
+                    style: const TextStyle(fontSize: 16),
+                    ),
                 );
               }),
 
             if (!sameDestination)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
-                child: Text('🏁 Nuevo destino: ${destination?['placeName'] ?? 'No disponible'}'),
+                child: Text(
+                  '🏁 Nuevo destino: ${destination?['placeName'] ?? 'No disponible'}',
+                  style: const TextStyle(fontSize: 16),
+                  ),
               ),
 
             if (routePoints.length >= 2)
@@ -334,7 +346,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             FloatingActionButton(
               onPressed: () => _zoomTo(routePoints.first),
               mini: true,
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.red,
               child: const Text("1", style: TextStyle(fontSize: 18, color: Colors.white)),
             ),
             for (int i = 1; i < routePoints.length - 1; i++)
