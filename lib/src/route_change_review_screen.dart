@@ -39,12 +39,21 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final reachedIndexes = _extractReachedStopIndexes(trip);
 
+    print("Claves en stops: ${allStops.keys}");
+
     final filteredStops = <int, dynamic>{};
+
     if (allStops is Map) {
       allStops.forEach((key, value) {
-        final index = int.tryParse(key.toString());
-        if (index != null && !reachedIndexes.contains(index)) {
-          filteredStops[index] = value;
+        // Aseguramos que key es una cadena numérica válida
+        final keyStr = key.toString();
+        if (RegExp(r'^\d+$').hasMatch(keyStr)) {
+          final index = int.parse(keyStr);
+          if (!reachedIndexes.contains(index)) {
+            filteredStops[index] = value;
+          }
+        } else {
+          print("Clave inválida en stops: $keyStr");
         }
       });
     }
