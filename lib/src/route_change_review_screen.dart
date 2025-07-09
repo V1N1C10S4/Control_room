@@ -45,11 +45,15 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     if (allStops is Map) {
       allStops.forEach((key, value) {
-        // Aseguramos que key es una cadena numérica válida
         final keyStr = key.toString();
         if (RegExp(r'^\d+$').hasMatch(keyStr)) {
           final index = int.parse(keyStr);
-          if (!reachedIndexes.contains(index)) {
+
+          // Asegurar que value tenga datos válidos
+          if (!reachedIndexes.contains(index) &&
+              value is Map &&
+              value['latitude'] != null &&
+              value['longitude'] != null) {
             filteredStops[index] = value;
           }
         } else {
@@ -72,6 +76,10 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       filteredStops: filteredStops,
     );
     print('📍 Marcadores generados: ${routeMarkers.length}');
+
+    final isRoutePointsSafe = routePoints.every((p) {
+      return !p.latitude.isNaN && !p.longitude.isNaN;
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -121,7 +129,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                   ),
               ),
 
-            if (routePoints.length >= 2)
+            if (routePoints.length >= 2 && isRoutePointsSafe)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: SizedBox(
@@ -261,8 +269,13 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     for (final entry in sortedStops) {
       final stop = entry.value;
-      if (stop['latitude'] != null && stop['longitude'] != null) {
-        points.add(LatLng(stop['latitude'], stop['longitude']));
+      final lat = stop['latitude'];
+      final lng = stop['longitude'];
+
+      if (lat is double && lng is double) {
+        points.add(LatLng(lat, lng));
+      } else {
+        print('❌ Coordenadas inválidas en parada $entry');
       }
     }
 
@@ -297,13 +310,18 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     filteredStops.entries.forEach((entry) {
       final stop = entry.value;
       final index = entry.key;
-      if (stop['latitude'] != null && stop['longitude'] != null) {
+      final lat = stop['latitude'];
+      final lng = stop['longitude'];
+
+      if (lat is double && lng is double) {
         markers.add(Marker(
           markerId: MarkerId('stop_$index'),
-          position: LatLng(stop['latitude'], stop['longitude']),
+          position: LatLng(lat, lng),
           infoWindow: InfoWindow(title: 'Parada ${index + 1}'),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
         ));
+      } else {
+        print('❌ Coordenadas inválidas para marcador de parada $index');
       }
     });
 
