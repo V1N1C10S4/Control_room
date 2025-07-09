@@ -56,8 +56,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final reachedIndexes = _extractReachedStopIndexes(trip);
 
-    print("Claves en stops: ${allStops.keys}");
-
     final filteredStops = <int, dynamic>{};
 
     allStops.forEach((key, value) {
@@ -76,8 +74,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         print("Clave inválida en stops: $keyStr");
       }
     });
-      print('🚧 Claves de allStops: ${allStops.keys}');
-    print('🔎 filteredStops: $filteredStops');
 
     final routePoints = _buildRoutePoints(
       pickup: pickup,
@@ -90,7 +86,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       destination: destination,
       filteredStops: filteredStops,
     );
-    print('📍 Marcadores generados: ${routeMarkers.length}');
 
     final pickupLatLng = LatLng(pickup['latitude'], pickup['longitude']);
     final destinationLatLng = LatLng(destination['latitude'], destination['longitude']);
