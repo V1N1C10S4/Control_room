@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class RouteChangeReviewScreen extends StatefulWidget {
   final Map<String, dynamic> trip;
@@ -13,6 +16,8 @@ class RouteChangeReviewScreen extends StatefulWidget {
 
 class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   GoogleMapController? _mapController;
+  final Set<Polyline> _polylines = {};
+  final List<LatLng> _polylineCoordinates = [];
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,19 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final pickup = routeRequest['pickup'];
     final destination = routeRequest['destination'];
-    final allStops = routeRequest['stops'] ?? {};
+    final dynamic rawStops = routeRequest['stops'];
+    late final Map<String, dynamic> allStops;
+
+    if (rawStops is Map) {
+      allStops = Map<String, dynamic>.from(rawStops);
+    } else if (rawStops is List) {
+      allStops = {
+        for (int i = 0; i < rawStops.length; i++)
+          '$i': rawStops[i] ?? {},
+      };
+    } else {
+      allStops = {};
+    }
     final reason = routeRequest['reason'] ?? 'Sin motivo proporcionado';
 
     final originalPickup = trip['pickup'];
@@ -43,25 +60,23 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final filteredStops = <int, dynamic>{};
 
-    if (allStops is Map) {
-      allStops.forEach((key, value) {
-        final keyStr = key.toString();
-        if (RegExp(r'^\d+$').hasMatch(keyStr)) {
-          final index = int.parse(keyStr);
+    allStops.forEach((key, value) {
+      final keyStr = key.toString();
+      if (RegExp(r'^\d+$').hasMatch(keyStr)) {
+        final index = int.parse(keyStr);
 
-          // Asegurar que value tenga datos válidos
-          if (!reachedIndexes.contains(index) &&
-              value is Map &&
-              value['latitude'] != null &&
-              value['longitude'] != null) {
-            filteredStops[index] = value;
-          }
-        } else {
-          print("Clave inválida en stops: $keyStr");
+        // Asegurar que value tenga datos válidos
+        if (!reachedIndexes.contains(index) &&
+            value is Map &&
+            value['latitude'] != null &&
+            value['longitude'] != null) {
+          filteredStops[index] = value;
         }
-      });
-    }
-    print('🚧 Claves de allStops: ${allStops.keys}');
+      } else {
+        print("Clave inválida en stops: $keyStr");
+      }
+    });
+      print('🚧 Claves de allStops: ${allStops.keys}');
     print('🔎 filteredStops: $filteredStops');
 
     final routePoints = _buildRoutePoints(
@@ -76,6 +91,16 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       filteredStops: filteredStops,
     );
     print('📍 Marcadores generados: ${routeMarkers.length}');
+
+    final pickupLatLng = LatLng(pickup['latitude'], pickup['longitude']);
+    final destinationLatLng = LatLng(destination['latitude'], destination['longitude']);
+    final stopLatLngs = filteredStops.entries
+      .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
+      .toList();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchRouteWithStops(pickupLatLng, stopLatLngs, destinationLatLng);
+    });
 
     final isRoutePointsSafe = routePoints.every((p) {
       return !p.latitude.isNaN && !p.longitude.isNaN;
@@ -142,14 +167,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                           zoom: 13,
                         ),
                         markers: routeMarkers,
-                        polylines: {
-                          Polyline(
-                            polylineId: const PolylineId('route'),
-                            points: routePoints,
-                            color: Colors.blue,
-                            width: 4,
-                          ),
-                        },
+                        polylines: _polylines,
                         zoomControlsEnabled: false,
                         myLocationEnabled: false,
                         onMapCreated: (controller) {
@@ -203,6 +221,32 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         ),
       ),
     );
+  }
+
+  Future<List<LatLng>> fetchPolylinePoints(LatLng origin, LatLng destination, List<LatLng> stops) async {
+    final stopParams = stops.map((s) => '${s.latitude},${s.longitude}').join('|');
+
+    final url =
+        'https://maps.googleapis.com/maps/api/directions/json?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&waypoints=$stopParams&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      final points = <LatLng>[];
+      final steps = data['routes'][0]['legs'].expand((leg) => leg['steps']).toList();
+
+      for (final step in steps) {
+        final lat = step['end_location']['lat'];
+        final lng = step['end_location']['lng'];
+        points.add(LatLng(lat, lng));
+      }
+
+      return points;
+    } else {
+      throw Exception('Error al obtener ruta: ${response.body}');
+    }
   }
 
   // ✅ Comparador de ubicación
@@ -413,6 +457,52 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _fetchPolylineSegment(LatLng start, LatLng end, String segmentId) async {
+    const String proxyBaseUrl = "https://googleplacesproxy-3tomukm2tq-uc.a.run.app";
+    const String apiKey = "AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k";
+
+    String url =
+        '$proxyBaseUrl/directions/json?origin=${start.latitude},${start.longitude}'
+        '&destination=${end.latitude},${end.longitude}'
+        '&key=$apiKey';
+
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['status'] == 'OK') {
+        List<PointLatLng> points =
+            PolylinePoints().decodePolyline(data['routes'][0]['overview_polyline']['points']);
+
+        List<LatLng> segmentCoordinates = points
+            .map((point) => LatLng(point.latitude, point.longitude))
+            .toList();
+
+        setState(() {
+          _polylines.add(Polyline(
+            polylineId: PolylineId(segmentId),
+            color: Colors.blue,
+            width: 5,
+            points: segmentCoordinates,
+          ));
+          _polylineCoordinates.addAll(segmentCoordinates);
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchRouteWithStops(LatLng pickup, List<LatLng> stops, LatLng destination) async {
+    _polylines.clear(); // Limpiar rutas previas
+
+    LatLng prevPoint = pickup;
+
+    for (int i = 0; i < stops.length; i++) {
+      await _fetchPolylineSegment(prevPoint, stops[i], 'segment_$i');
+      prevPoint = stops[i];
+    }
+
+    await _fetchPolylineSegment(prevPoint, destination, 'finalSegment');
   }
 
   void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
