@@ -42,12 +42,14 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final filteredStops = <int, dynamic>{};
     if (allStops is Map) {
       allStops.forEach((key, value) {
-        final index = key is int ? key : int.tryParse(key.toString());
+        final index = int.tryParse(key.toString());
         if (index != null && !reachedIndexes.contains(index)) {
           filteredStops[index] = value;
         }
       });
     }
+    print('🚧 Claves de allStops: ${allStops.keys}');
+    print('🔎 filteredStops: $filteredStops');
 
     final routePoints = _buildRoutePoints(
       pickup: pickup,
@@ -60,6 +62,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       destination: destination,
       filteredStops: filteredStops,
     );
+    print('📍 Marcadores generados: ${routeMarkers.length}');
 
     return Scaffold(
       appBar: AppBar(
@@ -343,11 +346,14 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       child: SingleChildScrollView(
         child: Column(
           children: [
-            FloatingActionButton(
-              onPressed: () => _zoomTo(routePoints.first),
-              mini: true,
-              backgroundColor: Colors.red,
-              child: const Text("1", style: TextStyle(fontSize: 18, color: Colors.white)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: FloatingActionButton(
+                onPressed: () => _zoomTo(routePoints.first),
+                mini: true,
+                backgroundColor: Colors.red,
+                child: const Text("1", style: TextStyle(fontSize: 18, color: Colors.white)),
+              ),
             ),
             for (int i = 1; i < routePoints.length - 1; i++)
               Padding(
@@ -359,11 +365,14 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                   child: Text("${i + 1}", style: const TextStyle(fontSize: 18, color: Colors.white)),
                 ),
               ),
-            FloatingActionButton(
-              onPressed: () => _zoomTo(routePoints.last),
-              mini: true,
-              backgroundColor: Colors.red,
-              child: Text("${routePoints.length}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: FloatingActionButton(
+                onPressed: () => _zoomTo(routePoints.last),
+                mini: true,
+                backgroundColor: Colors.red,
+                child: Text("${routePoints.length}", style: const TextStyle(fontSize: 18, color: Colors.white)),
+              ),
             ),
           ],
         ),
