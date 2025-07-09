@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class RouteChangeReviewSheet extends StatefulWidget {
+class RouteChangeReviewScreen extends StatefulWidget {
   final Map<String, dynamic> trip;
 
-  const RouteChangeReviewSheet({Key? key, required this.trip}) : super(key: key);
+  const RouteChangeReviewScreen({Key? key, required this.trip}) : super(key: key);
 
   @override
-  State<RouteChangeReviewSheet> createState() => _RouteChangeReviewSheetState();
+  State<RouteChangeReviewScreen> createState() => _RouteChangeReviewScreenState();
 }
 
-class _RouteChangeReviewSheetState extends State<RouteChangeReviewSheet> {
+class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   GoogleMapController? _mapController;
 
   @override
@@ -19,7 +19,9 @@ class _RouteChangeReviewSheetState extends State<RouteChangeReviewSheet> {
     final trip = widget.trip;
     final routeRequest = trip['route_change_request'];
     if (routeRequest == null) {
-      return const Center(child: Text("No hay solicitud de cambio de ruta."));
+      return const Scaffold(
+        body: Center(child: Text("No hay solicitud de cambio de ruta.")),
+      );
     }
 
     final pickup = routeRequest['pickup'];
@@ -35,7 +37,6 @@ class _RouteChangeReviewSheetState extends State<RouteChangeReviewSheet> {
     final sameDestination = _isSameLocation(originalDestination, destination);
     final sameStops = _areStopsEqual(originalStops, allStops);
 
-    // 🔍 Verifica qué paradas ya han sido alcanzadas usando campos stop_reached_X_at
     final reachedIndexes = _extractReachedStopIndexes(trip);
 
     final filteredStops = <int, dynamic>{};
@@ -60,9 +61,12 @@ class _RouteChangeReviewSheetState extends State<RouteChangeReviewSheet> {
       filteredStops: filteredStops,
     );
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-      child: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Solicitud de Cambio de Ruta'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,12 +96,12 @@ class _RouteChangeReviewSheetState extends State<RouteChangeReviewSheet> {
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text('🏁 Nuevo destino: ${destination?['placeName'] ?? 'No disponible'}'),
               ),
-            
+
             if (routePoints.length >= 2)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: SizedBox(
-                  height: 280, // Puedes ajustar esta altura si lo deseas
+                  height: 280,
                   child: Stack(
                     children: [
                       GoogleMap(
