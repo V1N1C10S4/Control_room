@@ -461,7 +461,9 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => RouteChangeReviewScreen(trip: trip as Map<String, dynamic>),
+                                          builder: (context) => RouteChangeReviewScreen(
+                                            trip: Map<String, dynamic>.from(trip),
+                                          ),
                                         ),
                                       );
                                     },
