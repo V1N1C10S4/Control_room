@@ -188,9 +188,16 @@ class ScheduledTripScreen extends StatelessWidget {
             Text("📅 Agendado para: $formattedDate"),
             Text("🕒 Creado en: $createdDate"),
             Text("👥 Pasajeros: ${trip["passengers"] ?? 1}"),
-            Text("👜 Equipaje: ${trip["luggage"] ?? 0}"),
-            Text("🐶 Mascotas: ${trip["pets"] ?? 0}"),
-            Text("👶 Sillas para bebé: ${trip["babySeats"] ?? 0}"),
+            if ((trip["luggage"] ?? 0) > 0)
+              Text("👜 Equipaje: ${trip["luggage"]}"),
+            if ((trip["pets"] ?? 0) > 0)
+              Text("🐶 Mascotas: ${trip["pets"]}"),
+            if ((trip["babySeats"] ?? 0) > 0)
+              Text("👶 Sillas para bebé: ${trip["babySeats"]}"),
+            if (trip["need_second_driver"] == true)
+              const Text("🧍‍♂️ Se requiere conductor adicional"),
+            if (trip["notes"] != null && trip["notes"].toString().trim().isNotEmpty)
+              Text("📝 Notas: ${trip["notes"]}"),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

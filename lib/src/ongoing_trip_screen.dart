@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'route_change_review_sheet.dart';
 
 class OngoingTripScreen extends StatefulWidget {
   final String usuario;
@@ -248,6 +249,17 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
     }
   }
 
+  void _showRouteChangeDialog(BuildContext context, Map<String, dynamic> trip) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => RouteChangeReviewSheet(trip: trip),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -451,6 +463,26 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              if (trip.containsKey("route_change_request") &&
+                                  trip["route_change_request"]["status"] == "pending")
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      _showRouteChangeDialog(context, trip as Map<String, dynamic>);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8.0),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Evaluar cambio de ruta',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
                               ElevatedButton(
                                 onPressed: () => _showCancelDialog(trip['id']),
                                 style: ElevatedButton.styleFrom(
@@ -459,7 +491,10 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                 ),
-                                child: const Text('Cancelar Viaje', style: TextStyle(color: Colors.white)),
+                                child: const Text(
+                                  'Cancelar Viaje',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
                             ],
                           ),
