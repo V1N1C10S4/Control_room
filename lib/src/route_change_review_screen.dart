@@ -506,7 +506,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   }
 
   void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
-    final ref = FirebaseDatabase.instance.ref().child('viajes_activos/$tripId/route_change_request');
+    final ref = FirebaseDatabase.instance.ref().child('trip_requests/$tripId/route_change_request');
 
     try {
       // 1. Actualizar el estado de la solicitud
