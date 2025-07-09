@@ -199,18 +199,26 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     if (a == null || b == null) return false;
     if (a.length != b.length) return false;
 
-    List<Map<String, dynamic>> stopsA = a is Map
-        ? a.entries.map((e) => Map<String, dynamic>.from(e.value)).toList()
-        : (a as List).map((e) => Map<String, dynamic>.from(e)).toList();
-
-    List<Map<String, dynamic>> stopsB = b is Map
-        ? b.entries.map((e) => Map<String, dynamic>.from(e.value)).toList()
-        : (b as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    // Normalizar ambos a listas ordenadas
+    final List<Map<String, dynamic>> stopsA = _normalizeStops(a);
+    final List<Map<String, dynamic>> stopsB = _normalizeStops(b);
 
     for (int i = 0; i < stopsA.length; i++) {
       if (!_isSameLocation(stopsA[i], stopsB[i])) return false;
     }
+
     return true;
+  }
+
+  List<Map<String, dynamic>> _normalizeStops(dynamic rawStops) {
+    if (rawStops is Map) {
+      final entries = rawStops.entries.toList()
+        ..sort((a, b) => int.parse(a.key.toString()).compareTo(int.parse(b.key.toString())));
+      return entries.map((e) => Map<String, dynamic>.from(e.value)).toList();
+    } else if (rawStops is List) {
+      return rawStops.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    return [];
   }
 
   // ✅ Extrae los índices de paradas ya alcanzadas usando campos tipo stop_reached_1_at
