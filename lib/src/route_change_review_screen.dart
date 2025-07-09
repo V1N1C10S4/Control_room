@@ -18,6 +18,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   GoogleMapController? _mapController;
   final Set<Polyline> _polylines = {};
   final List<LatLng> _polylineCoordinates = [];
+  bool _routeFetched = false;
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +95,10 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       .toList();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchRouteWithStops(pickupLatLng, stopLatLngs, destinationLatLng);
+      if (!_routeFetched) {
+        _routeFetched = true;
+        _fetchRouteWithStops(pickupLatLng, stopLatLngs, destinationLatLng);
+      }
     });
 
     final isRoutePointsSafe = routePoints.every((p) {
@@ -498,6 +502,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     }
 
     await _fetchPolylineSegment(prevPoint, destination, 'finalSegment');
+
   }
 
   void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
