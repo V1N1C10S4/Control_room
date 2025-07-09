@@ -97,43 +97,43 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                 child: Text('🏁 Nuevo destino: ${destination?['placeName'] ?? 'No disponible'}'),
               ),
 
-            if (routePoints.length >= 2)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: SizedBox(
-                  height: 280,
-                  child: Stack(
-                    children: [
-                      GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: routePoints.first,
-                          zoom: 13,
-                        ),
-                        markers: routeMarkers,
-                        polylines: {
-                          Polyline(
-                            polylineId: const PolylineId('route'),
-                            points: routePoints,
-                            color: Colors.blue,
-                            width: 4,
-                          ),
-                        },
-                        zoomControlsEnabled: false,
-                        myLocationEnabled: false,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          _fitMapToRoute(routePoints);
-                        },
-                      ),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: _buildLocationButtons(routePoints),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+//            if (routePoints.length >= 2)
+//              Padding(
+//                padding: const EdgeInsets.symmetric(vertical: 16.0),
+//                child: SizedBox(
+//                  height: 280,
+//                  child: Stack(
+//                    children: [
+//                      GoogleMap(
+//                        initialCameraPosition: CameraPosition(
+//                          target: routePoints.first,
+//                          zoom: 13,
+//                        ),
+//                        markers: routeMarkers,
+//                        polylines: {
+//                          Polyline(
+//                            polylineId: const PolylineId('route'),
+//                            points: routePoints,
+//                            color: Colors.blue,
+//                            width: 4,
+//                          ),
+//                        },
+//                        zoomControlsEnabled: false,
+//                        myLocationEnabled: false,
+//                        onMapCreated: (controller) {
+//                          _mapController = controller;
+//                          _fitMapToRoute(routePoints);
+//                        },
+//                      ),
+//                      Positioned(
+//                        top: 10,
+//                        right: 10,
+//                        child: _buildLocationButtons(routePoints),
+//                      ),
+//                    ],
+//                  ),
+//                ),
+//              ),
 
             const SizedBox(height: 24),
             Row(
