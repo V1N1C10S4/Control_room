@@ -16,7 +16,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final trip = widget.trip;
+    final Map<String, dynamic> trip = Map<String, dynamic>.from(widget.trip);
     final routeRequest = trip['route_change_request'];
     if (routeRequest == null) {
       return const Scaffold(
