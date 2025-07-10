@@ -13,7 +13,7 @@ import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
 import 'generate_trip_screen.dart';
-import 'messages_screen.dart';
+import 'trip_export_screen.dart';
 import 'scheduled_trip_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -46,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
   int _pickedUpPassengerCount = 0;
   int _emergencyCount = 0;
   int _cancelledTripsCount = 0;
-  int _pendingMessagesCount = 0;
   Set<String> _seenCancelledTrips = {};
   int _scheduledLessThan12h = 0; // 🔵 Antes _scheduledMoreThan24h
   int _scheduledLessThan6h = 0;  // 🟠 Antes _scheduledBetween6And24h
@@ -64,7 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForOngoingTrips();
     _listenForEmergenciesCounter();
     _listenForCancelledTrips();
-    _listenForPendingMessages();
     _listenForScheduledTrips();
     _listenForNewMessages();
   }
@@ -77,23 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> tripData = event.snapshot.value as Map<dynamic, dynamic>;
         _handleEmergency(event.snapshot.key, tripData);
-      }
-    });
-  }
-
-  void _listenForPendingMessages() {
-    _databaseReference.child('messages').onValue.listen((event) {
-      if (event.snapshot.exists) {
-        final Map<dynamic, dynamic> messagesMap = event.snapshot.value as Map<dynamic, dynamic>;
-        int pendingCount = messagesMap.values.where((message) => message["attended"] == false).length;
-
-        setState(() {
-          _pendingMessagesCount = pendingCount;
-        });
-      } else {
-        setState(() {
-          _pendingMessagesCount = 0;
-        });
       }
     });
   }
@@ -1027,17 +1008,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MessagesScreen(region: widget.region),
+                                    builder: (context) => TripExportScreen(region: widget.region),
                                   ),
                                 );
                               },
                               child: const Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.chat, size: 50, color: Colors.white), // Icono de mensajes
+                                  Icon(Icons.file_download, size: 50, color: Colors.white), // Icono de mensajes
                                   SizedBox(height: 10),
                                   Text(
-                                    'Mensajes',
+                                    'Exportar datos',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(color: Colors.white),
                                   ),
@@ -1045,8 +1026,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                          if (_pendingMessagesCount > 0)
-                            Positioned(top: 8, right: 8, child: _buildNotificationBubble(_pendingMessagesCount)),
                         ],
                       ),
                     ),

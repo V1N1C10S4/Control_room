@@ -189,7 +189,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
-                  onPressed: () => _updateRouteStatus(context, trip['id'], 'approved'),
+                  onPressed: () => _updateRouteStatus(context, trip['id'], 'authorized'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(
@@ -202,7 +202,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () => _updateRouteStatus(context, trip['id'], 'rejected'),
+                  onPressed: () => _updateRouteStatus(context, trip['id'], 'denied'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -505,6 +505,45 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
   }
 
+  Future<void> loadTripData(String tripId) async {
+    final tripRef = FirebaseDatabase.instance.ref().child('trip_requests/$tripId');
+    final snapshot = await tripRef.get();
+
+    if (snapshot.exists) {
+      final tripData = Map<String, dynamic>.from(snapshot.value as Map);
+
+      final status = tripData['status'] as String?;
+      final stopsData = Map<String, dynamic>.from(tripData['stops'] ?? {});
+      final destinationData = Map<String, dynamic>.from(tripData['destination'] ?? {});
+
+      // Convertir stops a lista ordenada por clave
+      final sortedStops = stopsData.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
+      final stopLatLngs = sortedStops.map((e) {
+        final lat = e.value['location']['lat'];
+        final lng = e.value['location']['lng'];
+        return LatLng(lat, lng);
+      }).toList();
+
+      final destinationLat = destinationData['location']['lat'];
+      final destinationLng = destinationData['location']['lng'];
+      final destinationLatLng = LatLng(destinationLat, destinationLng);
+
+      if (status != null && status.startsWith('on_stop_way_')) {
+        final stopIndex = int.tryParse(status.split('_').last) ?? 1;
+        if (stopIndex - 1 < stopLatLngs.length) {
+          final from = stopLatLngs[stopIndex - 1];
+          final to = stopIndex < stopLatLngs.length ? stopLatLngs[stopIndex] : destinationLatLng;
+          await _fetchRouteWithStops(from, [], to);
+        }
+      } else if (status == 'picked up passenger' && stopLatLngs.isNotEmpty) {
+        await _fetchRouteWithStops(stopLatLngs.last, [], destinationLatLng);
+      } else {
+        // Otro caso, no trazar ruta
+      }
+    }
+  }
+
   void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
     final ref = FirebaseDatabase.instance.ref().child('trip_requests/$tripId/route_change_request');
 
@@ -514,7 +553,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
       // 2. Solo si se aprueba, evaluar si se requiere retroceso de estado
       if (newStatus == 'approved') {
-        final tripRef = FirebaseDatabase.instance.ref().child('viajes_activos/$tripId');
+        final tripRef = FirebaseDatabase.instance.ref().child('trip_requests/$tripId');
         final snapshot = await tripRef.get();
         if (snapshot.exists) {
           final tripData = Map<String, dynamic>.from(snapshot.value as Map);
@@ -541,7 +580,11 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Solicitud $newStatus exitosamente.'),
+        content: Text(
+          newStatus == 'approved'
+              ? 'Solicitud aprobada exitosamente'
+              : 'Solicitud denegada exitosamente',
+        ),
         backgroundColor: newStatus == 'approved' ? Colors.green : Colors.red,
       ));
     } catch (e) {
