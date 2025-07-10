@@ -115,6 +115,10 @@ class _TripExportScreenState extends State<TripExportScreen> {
             Row(
               children: [
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue, // Color de fondo
+                    foregroundColor: Colors.white, // Color del texto
+                  ),
                   onPressed: _pickDateRange,
                   icon: const Icon(Icons.date_range),
                   label: const Text("Seleccionar rango de fechas"),
@@ -126,12 +130,20 @@ class _TripExportScreenState extends State<TripExportScreen> {
                       DateFormat('yyyy-MM-dd').format(_selectedRange!.end)),
                 const Spacer(),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue, // Color de fondo
+                    foregroundColor: Colors.white, // Color del texto
+                  ),
                   onPressed: _loading ? null : _loadAndFilterTrips,
                   icon: const Icon(Icons.search),
                   label: const Text("Buscar viajes"),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue, // Color de fondo
+                    foregroundColor: Colors.white, // Color del texto
+                  ),
                   onPressed: _filteredTrips.isEmpty ? null : _exportCSV,
                   icon: const Icon(Icons.file_download),
                   label: const Text("Exportar CSV"),
