@@ -76,6 +76,48 @@ class _TripExportScreenState extends State<TripExportScreen> {
     });
   }
 
+  Widget _buildEmptyStateWithoutRange() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.calendar_month, size: 100, color: Colors.grey),
+          SizedBox(height: 20),
+          Text(
+            "Selecciona un rango de fechas",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Usa el botón de calendario para filtrar los viajes a exportar.",
+            style: TextStyle(fontSize: 14, color: Colors.black45),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyStateNoResults() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.search_off, size: 100, color: Colors.grey),
+          SizedBox(height: 20),
+          Text(
+            "No se encontraron viajes",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Intenta cambiar el rango de fechas o verifica la región.",
+            style: TextStyle(fontSize: 14, color: Colors.black45),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _exportCSV() {
     if (_filteredTrips.isEmpty) return;
 
@@ -154,24 +196,26 @@ class _TripExportScreenState extends State<TripExportScreen> {
             Expanded(
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
-                  : _filteredTrips.isEmpty
-                      ? const Center(child: Text("No hay datos para mostrar."))
-                      : SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            columns: _filteredTrips.first.keys
-                                .map((key) => DataColumn(label: Text(key)))
-                                .toList(),
-                            rows: _filteredTrips
-                                .map((trip) => DataRow(
-                                      cells: trip.values
-                                          .map((value) => DataCell(
-                                              Text(value?.toString() ?? '')))
-                                          .toList(),
-                                    ))
-                                .toList(),
-                          ),
-                        ),
+                  : _selectedRange == null
+                      ? _buildEmptyStateWithoutRange()
+                      : _filteredTrips.isEmpty
+                          ? _buildEmptyStateNoResults()
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: DataTable(
+                                columns: _filteredTrips.first.keys
+                                    .map((key) => DataColumn(label: Text(key)))
+                                    .toList(),
+                                rows: _filteredTrips
+                                    .map((trip) => DataRow(
+                                          cells: trip.values
+                                              .map((value) =>
+                                                  DataCell(Text(value?.toString() ?? '')))
+                                              .toList(),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
             ),
           ],
         ),
