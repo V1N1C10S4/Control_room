@@ -17,7 +17,7 @@ class _TripExportScreenState extends State<TripExportScreen> {
   DateTimeRange? _selectedRange;
   bool _loading = false;
   List<Map<String, dynamic>> _filteredTrips = [];
-
+  List<String> _tableKeys = [];
   final List<String> staticFieldOrder = [
     "trip_id",
     "driver",
@@ -128,7 +128,7 @@ class _TripExportScreenState extends State<TripExportScreen> {
       try {
         final createdAt = DateTime.parse(createdAtStr);
         return createdAt.isAfter(_selectedRange!.start.subtract(const Duration(seconds: 1))) &&
-               createdAt.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
+              createdAt.isBefore(_selectedRange!.end.add(const Duration(days: 1)));
       } catch (_) {
         return false;
       }
@@ -137,6 +137,65 @@ class _TripExportScreenState extends State<TripExportScreen> {
       data['trip_id'] = entry.key;
       return data;
     }).toList();
+
+    // 🔁 Construcción de _tableKeys
+    final dynamicStops = <String>{};
+    final dynamicStopWays = <String>{};
+    final dynamicStopReached = <String>{};
+
+    for (final trip in filtered) {
+      trip.keys.forEach((key) {
+        final parts = key.split('_');
+        if (parts.length >= 2) {
+          final stopNum = int.tryParse(parts[1]);
+          if (stopNum != null) {
+            dynamicStops.add(key);
+          }
+        }
+        if (key.startsWith('on_stop_way_') && key.endsWith('_at') && parts.length >= 4) {
+          final stopNum = int.tryParse(parts[3]);
+          if (stopNum != null) {
+            dynamicStopWays.add(key);
+          }
+        }
+        if (key.startsWith('stop_reached_') && key.endsWith('_at')) {
+          final parts = key.split('_');
+          if (parts.length >= 4) {
+            final stopNum = int.tryParse(parts[2]);
+            if (stopNum != null) {
+              dynamicStopReached.add(key);
+            }
+          }
+        }
+      });
+    }
+
+    final sortedStops = dynamicStops.toList()
+      ..sort((a, b) {
+        final aNum = int.tryParse(a.split('_')[1]);
+        final bNum = int.tryParse(b.split('_')[1]);
+        return (aNum ?? 0).compareTo(bNum ?? 0);
+      });
+    final sortedStopWays = dynamicStopWays.toList()
+      ..sort((a, b) {
+        final aNum = int.tryParse(a.split('_')[3]);
+        final bNum = int.tryParse(b.split('_')[3]);
+        return (aNum ?? 0).compareTo(bNum ?? 0);
+      });
+
+    final sortedStopReached = dynamicStopReached.toList()
+      ..sort((a, b) {
+        final aNum = int.tryParse(a.split('_')[2]);
+        final bNum = int.tryParse(b.split('_')[2]);
+        return (aNum ?? 0).compareTo(bNum ?? 0);
+      });
+
+    _tableKeys = [
+      ...staticFieldOrder,
+      ...sortedStops,
+      ...sortedStopWays,
+      ...sortedStopReached,
+    ];
 
     setState(() {
       _filteredTrips = filtered;
@@ -153,21 +212,51 @@ class _TripExportScreenState extends State<TripExportScreen> {
 
     for (final trip in _filteredTrips) {
       trip.keys.forEach((key) {
-        if (key.startsWith('stop_') && RegExp(r'stop_\d+\$').hasMatch(key)) {
-          if (!dynamicStops.contains(key)) dynamicStops.add(key);
+        final parts = key.split('_');
+        if (parts.length >= 2) {
+          final stopNum = int.tryParse(parts[1]);
+          if (stopNum != null) {
+            dynamicStops.add(key);
+          }
         }
-        if (key.startsWith('on_stop_way_') && key.endsWith('_at')) {
-          if (!dynamicStopWays.contains(key)) dynamicStopWays.add(key);
+        if (key.startsWith('on_stop_way_') && key.endsWith('_at') && parts.length >= 4) {
+          final stopNum = int.tryParse(parts[3]);
+          if (stopNum != null) {
+            dynamicStopWays.add(key);
+          }
         }
         if (key.startsWith('stop_reached_') && key.endsWith('_at')) {
-          if (!dynamicStopReached.contains(key)) dynamicStopReached.add(key);
+          final parts = key.split('_');
+          if (parts.length >= 4) {
+            final stopNum = int.tryParse(parts[2]);
+            if (stopNum != null) {
+              dynamicStopReached.add(key);
+            }
+          }
         }
       });
     }
 
-    dynamicStops.sort((a, b) => int.parse(a.split('_')[1]).compareTo(int.parse(b.split('_')[1])));
-    dynamicStopWays.sort((a, b) => int.parse(a.split('_')[3]).compareTo(int.parse(b.split('_')[3])));
-    dynamicStopReached.sort((a, b) => int.parse(b.split('_')[2]).compareTo(int.parse(a.split('_')[2])));
+    dynamicStops.sort((a, b) {
+      final aNum = int.tryParse(a.split('_')[1]);
+      final bNum = int.tryParse(b.split('_')[1]);
+      return (aNum ?? 0).compareTo(bNum ?? 0);
+    });
+    dynamicStopWays.sort((a, b) {
+      final aParts = a.split('_');
+      final bParts = b.split('_');
+      final aNum = aParts.length >= 4 ? int.tryParse(aParts[3]) : null;
+      final bNum = bParts.length >= 4 ? int.tryParse(bParts[3]) : null;
+      return (aNum ?? 0).compareTo(bNum ?? 0);
+    });
+
+    dynamicStopReached.sort((a, b) {
+      final aParts = a.split('_');
+      final bParts = b.split('_');
+      final aNum = aParts.length >= 3 ? int.tryParse(aParts[2]) : null;
+      final bNum = bParts.length >= 3 ? int.tryParse(bParts[2]) : null;
+      return (bNum ?? 0).compareTo(aNum ?? 0);
+    });
 
     final allKeysOrdered = [
       ...staticFieldOrder,
@@ -313,18 +402,35 @@ class _TripExportScreenState extends State<TripExportScreen> {
                           : SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: DataTable(
-                                columns: _filteredTrips.first.keys
-                                    .map((key) => DataColumn(label: Text(key)))
-                                    .toList(),
-                                rows: _filteredTrips
-                                    .map((trip) => DataRow(
-                                          cells: trip.values
-                                              .map((value) =>
-                                                  DataCell(Text(value?.toString() ?? '')))
-                                              .toList(),
-                                        ))
-                                    .toList(),
-                              ),
+                                columns: _tableKeys.map((key) {
+                                  if (fieldTranslations.containsKey(key)) {
+                                    return DataColumn(label: Text(fieldTranslations[key]!));
+                                  } else if (key.startsWith('stop_reached_')) {
+                                    final parts = key.split('_');
+                                    if (parts.length >= 4 && int.tryParse(parts[2]) != null && parts[3] == 'at') {
+                                      final index = parts[2];
+                                      return DataColumn(label: Text('Parada $index alcanzada'));
+                                    } else {
+                                      return DataColumn(label: Text('Parada desconocida'));
+                                    }
+                                  } else if (key.startsWith('on_stop_way_')) {
+                                    final parts = key.split('_');
+                                    if (parts.length >= 4 && int.tryParse(parts[3]) != null) {
+                                      final index = parts[3];
+                                      return DataColumn(label: Text('En camino a parada $index'));
+                                    } else {
+                                      return DataColumn(label: Text('Camino desconocido'));
+                                    }
+                                  } else if (key.startsWith('stop_')) {
+                                    final index = key.split('_')[1];
+                                    return DataColumn(label: Text('Parada $index'));
+                                  }
+                                  return DataColumn(label: Text(key));
+                                }).toList(),
+                                rows: _filteredTrips.map((trip) => DataRow(
+                                  cells: _tableKeys.map((key) => DataCell(Text(trip[key]?.toString() ?? ''))).toList(),
+                                )).toList(),
+                              )
                             ),
             ),
           ],
