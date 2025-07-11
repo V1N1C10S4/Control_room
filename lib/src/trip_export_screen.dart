@@ -28,7 +28,9 @@ class _TripExportScreenState extends State<TripExportScreen> {
     "created_at",
     "city",
     "pickup",
+    "pickup_coords",
     "destination",
+    "destination_coords",
     "passengers",
     "luggage",
     "pets",
@@ -135,47 +137,121 @@ class _TripExportScreenState extends State<TripExportScreen> {
     }).map((entry) {
       final data = Map<String, dynamic>.from(entry.value);
       data['trip_id'] = entry.key;
+
+      // Extraer placeName y coordenadas de pickup
+      if (data['pickup'] is Map) {
+        final pickup = Map<String, dynamic>.from(data['pickup']);
+        data['pickup'] = pickup['placeName'] ?? '';
+        data['pickup_coords'] = '${pickup['latitude']}, ${pickup['longitude']}';
+      }
+
+      // Extraer placeName y coordenadas de destination
+      if (data['destination'] is Map) {
+        final destination = Map<String, dynamic>.from(data['destination']);
+        data['destination'] = destination['placeName'] ?? '';
+        data['destination_coords'] = '${destination['latitude']}, ${destination['longitude']}';
+      }
+
+      if (data['driver_feedback'] is Map) {
+        final feedback = Map<String, dynamic>.from(data['driver_feedback']);
+        data['driver_feedback'] = '''
+      Comportamiento general: ${feedback['comportamientoGeneral'] ?? ''}
+      Es puntual: ${feedback['esPuntual'] ?? ''}
+      Seguridad del vehículo: ${feedback['seguridadVehiculo'] ?? ''}
+      Calificación: ${feedback['starRating'] ?? ''}
+      Comentarios adicionales: ${feedback['comentariosAdicionales'] ?? ''}
+      '''.trim();
+      }
+
+      if (data['user_feedback'] is Map) {
+        final feedback = Map<String, dynamic>.from(data['user_feedback']);
+        data['user_feedback'] = '''
+      Siguió reglas de tránsito: ${feedback['followedTrafficRules'] ?? ''}
+      Servicio general: ${feedback['generalService'] ?? ''}
+      Seguridad del vehículo: ${feedback['vehicleSafety'] ?? ''}
+      Calificación: ${feedback['starRating'] ?? ''}
+      Comentarios adicionales: ${feedback['additionalComments'] ?? ''}
+      '''.trim();
+      }
+
+      // Formatear emergency_location si es un Map con lat/lng
+      if (data['emergency_location'] is Map) {
+        final emergency = Map<String, dynamic>.from(data['emergency_location']);
+        data['emergency_location'] = '${emergency['latitude']}, ${emergency['longitude']}';
+      }
+
+      // Extraer status de solicitud de cambio de ruta si existe
+      if (data['route_change_request'] is Map) {
+        final rcr = Map<String, dynamic>.from(data['route_change_request']);
+        data['route_change_request'] = rcr['status'] ?? '';
+      }
+
+      // Extraer paradas dinámicas stop_x
+      final stopKeys = data.keys
+        .where((k) => RegExp(r'^stop\d+$').hasMatch(k))
+        .toList(); // 👈 aquí el cambio
+
+      for (final key in stopKeys) {
+        if (data[key] is Map) {
+          final stop = Map<String, dynamic>.from(data[key]);
+          data[key] = stop['placeName'] ?? '';
+          data['${key}_coords'] = '${stop['latitude']}, ${stop['longitude']}';
+        }
+      }
+
       return data;
     }).toList();
 
     // 🔁 Construcción de _tableKeys
     final dynamicStops = <String>{};
+    final stopCoords = <String>{};
     final dynamicStopWays = <String>{};
     final dynamicStopReached = <String>{};
 
     for (final trip in filtered) {
-      trip.keys.forEach((key) {
-        final parts = key.split('_');
-        if (parts.length >= 2) {
-          final stopNum = int.tryParse(parts[1]);
-          if (stopNum != null) {
-            dynamicStops.add(key);
-          }
+  trip.keys.forEach((key) {
+    final parts = key.split('_');
+    
+      // ✅ Detectar correctamente stop_x
+      if (RegExp(r'^stop\d+$').hasMatch(key)) {
+        dynamicStops.add(key);
+        final coordKey = '${key}_coords';
+        if (trip.containsKey(coordKey)) {
+          stopCoords.add(coordKey);
         }
-        if (key.startsWith('on_stop_way_') && key.endsWith('_at') && parts.length >= 4) {
-          final stopNum = int.tryParse(parts[3]);
-          if (stopNum != null) {
-            dynamicStopWays.add(key);
-          }
+      }
+
+      // 🔒 Mantener condiciones existentes
+      if (key.startsWith('on_stop_way_') && key.endsWith('_at') && parts.length >= 4) {
+        final stopNum = int.tryParse(parts[3]);
+        if (stopNum != null) {
+          dynamicStopWays.add(key);
         }
-        if (key.startsWith('stop_reached_') && key.endsWith('_at')) {
-          final parts = key.split('_');
-          if (parts.length >= 4) {
-            final stopNum = int.tryParse(parts[2]);
-            if (stopNum != null) {
-              dynamicStopReached.add(key);
-            }
-          }
+      }
+
+      if (key.startsWith('stop_reached_') && key.endsWith('_at') && parts.length >= 4) {
+        final stopNum = int.tryParse(parts[2]);
+        if (stopNum != null) {
+          dynamicStopReached.add(key);
         }
-      });
-    }
+      }
+    });
+  }
 
     final sortedStops = dynamicStops.toList()
       ..sort((a, b) {
-        final aNum = int.tryParse(a.split('_')[1]);
-        final bNum = int.tryParse(b.split('_')[1]);
+        final aNum = int.tryParse(a.replaceFirst('stop', ''));
+        final bNum = int.tryParse(b.replaceFirst('stop', ''));
         return (aNum ?? 0).compareTo(bNum ?? 0);
       });
+
+    final sortedStopCoords = stopCoords.toList()
+      ..sort((a, b) {
+        final aNum = int.tryParse(a.replaceAll(RegExp(r'stop(\d+)_coords'), r'$1'));
+        final bNum = int.tryParse(b.replaceAll(RegExp(r'stop(\d+)_coords'), r'$1'));
+        return (aNum ?? 0).compareTo(bNum ?? 0);
+      });
+
     final sortedStopWays = dynamicStopWays.toList()
       ..sort((a, b) {
         final aNum = int.tryParse(a.split('_')[3]);
@@ -190,12 +266,33 @@ class _TripExportScreenState extends State<TripExportScreen> {
         return (aNum ?? 0).compareTo(bNum ?? 0);
       });
 
-    _tableKeys = [
-      ...staticFieldOrder,
-      ...sortedStops,
+    // Insertar dinámicamente después de 'pickup_coords'
+    final indexAfterPickupCoords = staticFieldOrder.indexOf('pickup_coords') + 1;
+
+    print('✅ sortedStops: $sortedStops');
+    print('✅ sortedStopCoords: $sortedStopCoords');
+
+    _tableKeys = List.from(staticFieldOrder);
+
+    for (int i = 0; i < sortedStops.length; i++) {
+      _tableKeys.insert(indexAfterPickupCoords + i * 2, sortedStops[i]);
+      final coordKey = '${sortedStops[i]}_coords';
+      if (sortedStopCoords.contains(coordKey)) {
+        _tableKeys.insert(indexAfterPickupCoords + i * 2 + 1, coordKey);
+      }
+    }
+
+    // Añadir los demás campos al final
+    _tableKeys.addAll([
       ...sortedStopWays,
       ...sortedStopReached,
-    ];
+    ]);
+
+    print('📋 _tableKeys: $_tableKeys');
+
+    if (filtered.isNotEmpty) {
+      print('🧪 Ejemplo de trip: ${filtered.first}');
+    }
 
     setState(() {
       _filteredTrips = filtered;
@@ -206,85 +303,51 @@ class _TripExportScreenState extends State<TripExportScreen> {
   void _exportCSV() {
     if (_filteredTrips.isEmpty) return;
 
-    final List<String> dynamicStops = [];
-    final List<String> dynamicStopWays = [];
-    final List<String> dynamicStopReached = [];
-
-    for (final trip in _filteredTrips) {
-      trip.keys.forEach((key) {
-        final parts = key.split('_');
-        if (parts.length >= 2) {
-          final stopNum = int.tryParse(parts[1]);
-          if (stopNum != null) {
-            dynamicStops.add(key);
-          }
-        }
-        if (key.startsWith('on_stop_way_') && key.endsWith('_at') && parts.length >= 4) {
-          final stopNum = int.tryParse(parts[3]);
-          if (stopNum != null) {
-            dynamicStopWays.add(key);
-          }
-        }
-        if (key.startsWith('stop_reached_') && key.endsWith('_at')) {
-          final parts = key.split('_');
-          if (parts.length >= 4) {
-            final stopNum = int.tryParse(parts[2]);
-            if (stopNum != null) {
-              dynamicStopReached.add(key);
-            }
-          }
-        }
-      });
-    }
-
-    dynamicStops.sort((a, b) {
-      final aNum = int.tryParse(a.split('_')[1]);
-      final bNum = int.tryParse(b.split('_')[1]);
-      return (aNum ?? 0).compareTo(bNum ?? 0);
-    });
-    dynamicStopWays.sort((a, b) {
-      final aParts = a.split('_');
-      final bParts = b.split('_');
-      final aNum = aParts.length >= 4 ? int.tryParse(aParts[3]) : null;
-      final bNum = bParts.length >= 4 ? int.tryParse(bParts[3]) : null;
-      return (aNum ?? 0).compareTo(bNum ?? 0);
-    });
-
-    dynamicStopReached.sort((a, b) {
-      final aParts = a.split('_');
-      final bParts = b.split('_');
-      final aNum = aParts.length >= 3 ? int.tryParse(aParts[2]) : null;
-      final bNum = bParts.length >= 3 ? int.tryParse(bParts[2]) : null;
-      return (bNum ?? 0).compareTo(aNum ?? 0);
-    });
-
-    final allKeysOrdered = [
-      ...staticFieldOrder,
-      ...dynamicStops,
-      ...dynamicStopWays,
-      ...dynamicStopReached,
-    ];
-
-    final headerRow = allKeysOrdered.map((key) {
+    final headerRow = _tableKeys.map((key) {
       if (fieldTranslations.containsKey(key)) return fieldTranslations[key]!;
-      if (key.startsWith("stop_")) {
-        final index = key.split("_")[1];
+
+      if (key.startsWith("stop_reached_")) {
+        final parts = key.split("_");
+        if (parts.length >= 4) return "Parada ${parts[2]} alcanzada";
+      }
+
+      if (key.startsWith("on_stop_way_")) {
+        final parts = key.split("_");
+        if (parts.length >= 4) return "En camino a parada ${parts[3]}";
+      }
+
+      if (RegExp(r'^stop\d+$').hasMatch(key)) {
+        final index = key.replaceFirst('stop', '');
         return "Parada $index";
       }
-      if (key.startsWith("on_stop_way_")) {
-        final index = key.split("_")[3];
-        return "En camino a parada $index";
+
+      if (key.endsWith("_coords")) {
+        return "Coordenadas de ${_labelFromKey(key)}";
       }
-      if (key.startsWith("stop_reached_")) {
-        final index = key.split("_")[2];
-        return "Parada $index alcanzada";
-      }
+
       return key;
     }).toList();
 
     final rows = [headerRow];
-    for (var trip in _filteredTrips) {
-      final row = allKeysOrdered.map((key) => trip[key]?.toString() ?? '').toList();
+
+    for (final trip in _filteredTrips) {
+      final row = _tableKeys.map((key) {
+        final rawValue = trip[key];
+
+        // 🕓 Formato de fecha legible
+        if (rawValue is String &&
+            RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
+          try {
+            final parsedDate = DateTime.parse(rawValue);
+            return DateFormat('dd/MM/yy HH:mm:ss').format(parsedDate);
+          } catch (_) {
+            return rawValue;
+          }
+        }
+
+        return rawValue?.toString() ?? '';
+      }).toList();
+
       rows.add(row);
     }
 
@@ -296,6 +359,16 @@ class _TripExportScreenState extends State<TripExportScreen> {
       ..setAttribute("download", "exported_trips.csv")
       ..click();
     html.Url.revokeObjectUrl(url);
+  }
+
+  String _labelFromKey(String key) {
+    if (key.startsWith('pickup')) return 'punto de partida';
+    if (key.startsWith('destination')) return 'destino';
+    if (key.startsWith('stop') && key.endsWith('_coords')) {
+      final match = RegExp(r'stop(\d+)_coords').firstMatch(key);
+      if (match != null) return 'parada ${match.group(1)}';
+    }
+    return key;
   }
 
   Widget _buildEmptyStateWithoutRange() {
@@ -400,37 +473,55 @@ class _TripExportScreenState extends State<TripExportScreen> {
                       : _filteredTrips.isEmpty
                           ? _buildEmptyStateNoResults()
                           : SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: DataTable(
-                                columns: _tableKeys.map((key) {
-                                  if (fieldTranslations.containsKey(key)) {
-                                    return DataColumn(label: Text(fieldTranslations[key]!));
-                                  } else if (key.startsWith('stop_reached_')) {
-                                    final parts = key.split('_');
-                                    if (parts.length >= 4 && int.tryParse(parts[2]) != null && parts[3] == 'at') {
-                                      final index = parts[2];
-                                      return DataColumn(label: Text('Parada $index alcanzada'));
-                                    } else {
-                                      return DataColumn(label: Text('Parada desconocida'));
+                              scrollDirection: Axis.vertical, // Scroll vertical por filas
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal, // Scroll horizontal por columnas
+                                child: DataTable(
+                                  columns: _tableKeys.map((key) {
+                                    if (fieldTranslations.containsKey(key)) {
+                                      return DataColumn(label: Text(fieldTranslations[key]!));
+                                    } else if (key.startsWith('stop_reached_')) {
+                                      final parts = key.split('_');
+                                      if (parts.length >= 4 && int.tryParse(parts[2]) != null && parts[3] == 'at') {
+                                        final index = parts[2];
+                                        return DataColumn(label: Text('Parada $index alcanzada'));
+                                      } else {
+                                        return DataColumn(label: Text('Parada desconocida'));
+                                      }
+                                    } else if (key.startsWith('on_stop_way_')) {
+                                      final parts = key.split('_');
+                                      if (parts.length >= 4 && int.tryParse(parts[3]) != null) {
+                                        final index = parts[3];
+                                        return DataColumn(label: Text('En camino a parada $index'));
+                                      } else {
+                                        return DataColumn(label: Text('Camino desconocido'));
+                                      }
+                                    } else if (RegExp(r'^stop\d+$').hasMatch(key)) {
+                                      final index = key.replaceFirst('stop', '');
+                                      return DataColumn(label: Text('Parada $index'));
+                                    } else if (key.endsWith('_coords')) {
+                                      return DataColumn(label: Text('Coordenadas de ${_labelFromKey(key)}'));
                                     }
-                                  } else if (key.startsWith('on_stop_way_')) {
-                                    final parts = key.split('_');
-                                    if (parts.length >= 4 && int.tryParse(parts[3]) != null) {
-                                      final index = parts[3];
-                                      return DataColumn(label: Text('En camino a parada $index'));
-                                    } else {
-                                      return DataColumn(label: Text('Camino desconocido'));
-                                    }
-                                  } else if (key.startsWith('stop_')) {
-                                    final index = key.split('_')[1];
-                                    return DataColumn(label: Text('Parada $index'));
-                                  }
-                                  return DataColumn(label: Text(key));
-                                }).toList(),
-                                rows: _filteredTrips.map((trip) => DataRow(
-                                  cells: _tableKeys.map((key) => DataCell(Text(trip[key]?.toString() ?? ''))).toList(),
-                                )).toList(),
-                              )
+                                    return DataColumn(label: Text(key));
+                                  }).toList(),
+                                  rows: _filteredTrips.map((trip) => DataRow(
+                                    cells: _tableKeys.map((key) {
+                                      final rawValue = trip[key];
+                                      if (rawValue is String &&
+                                          RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
+                                        try {
+                                          final parsedDate = DateTime.parse(rawValue);
+                                          final formatted = DateFormat('dd/MM/yy HH:mm:ss').format(parsedDate);
+                                          return DataCell(Text(formatted));
+                                        } catch (_) {
+                                          return DataCell(Text(rawValue));
+                                        }
+                                      }
+                                      return DataCell(Text(rawValue?.toString() ?? ''));
+                                    }).toList(),
+                                  )).toList(),
+                                ),
+                              ),
                             ),
             ),
           ],
