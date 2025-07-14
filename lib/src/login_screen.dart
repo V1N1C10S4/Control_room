@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:control_room/src/home_screen.dart'; // Importa el archivo home_screen.dart
+import 'package:control_room/src/home_screen.dart';
+import 'package:web/web.dart' as html;
 
 class MyAppForm extends StatefulWidget {
   const MyAppForm({super.key});
@@ -42,6 +43,11 @@ class _MyAppFormState extends State<MyAppForm> {
               backgroundColor: Colors.green,
               textColor: Colors.white,
             );
+
+            // Guardar sesión en sessionStorage
+            html.window.sessionStorage['usuario'] = usuario;
+            html.window.sessionStorage['region'] = collection['region'];
+            html.window.sessionStorage['isSupervisor'] = collection['isSupervisor'].toString();
 
             if (mounted) {
               // Navegar a la pantalla principal y pasar los parámetros

@@ -4,7 +4,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:control_room/src/login_screen.dart';
+import 'package:control_room/src/home_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:web/web.dart' as html;
 
 // Background message handler for FCM
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -14,18 +16,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Inicializa Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 🛡 Inicializa App Check con reCAPTCHA v3
+  // Inicializa App Check
   await FirebaseAppCheck.instance.activate(
     webProvider: ReCaptchaV3Provider('6LcoFxorAAAAANAQPpomjzPfyC6Bxx928CQvAzlE'),
   );
 
-  // Configura handler para mensajes en segundo plano de FCM
+  // Configura FCM
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(const MyApp());
@@ -34,21 +36,34 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  Widget _initialScreen() {
+    final usuario = html.window.sessionStorage['usuario'];
+    final region = html.window.sessionStorage['region'];
+    final isSupervisor = html.window.sessionStorage['isSupervisor'];
+
+    if (usuario != null && region != null && isSupervisor != null) {
+      final bool isSup = isSupervisor.toLowerCase() == 'true';
+      return HomeScreen(usuario: usuario, region: region, isSupervisor: isSup);
+    }
+
+    return const MyAppForm(); // Pantalla de login
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Control Room',
-      locale: Locale('es'),
-      supportedLocales: [
+      locale: const Locale('es'),
+      supportedLocales: const [
         Locale('es'),
       ],
-      localizationsDelegates: [
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: MyAppForm(),
+      home: _initialScreen(),
     );
   }
 }

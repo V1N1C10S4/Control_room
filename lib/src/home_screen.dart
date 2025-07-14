@@ -16,6 +16,7 @@ import 'generate_trip_screen.dart';
 import 'trip_export_screen.dart';
 import 'scheduled_trip_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:universal_html/html.dart' as html;
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -51,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scheduledLessThan6h = 0;  // 🟠 Antes _scheduledBetween6And24h
   int _scheduledLessThan2h = 0;
   int _unreviewedScheduledTrips = 0;
+  final Set<String> _shownRouteChangeStatuses = {};
+  int _pendingRouteChangeCount = 0;
 
   @override
   void initState() {
@@ -65,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForCancelledTrips();
     _listenForScheduledTrips();
     _listenForNewMessages();
+    _listenToRouteChangeStatuses();
+    _listenToPendingRouteChanges();
   }
 
   void _listenForEmergencies() {
@@ -77,6 +82,85 @@ class _HomeScreenState extends State<HomeScreen> {
         _handleEmergency(event.snapshot.key, tripData);
       }
     });
+  }
+
+  void _listenToRouteChangeStatuses() {
+    FirebaseDatabase.instance
+        .ref("trip_requests")
+        .onChildChanged
+        .listen((event) {
+      final tripId = event.snapshot.key;
+      final tripData = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+      if (tripData.containsKey("route_change_request")) {
+        final routeChangeData = Map<String, dynamic>.from(tripData["route_change_request"]);
+        _handleRouteChangeStatusChange(tripId, routeChangeData, tripData);
+      }
+    });
+  }
+
+  void _listenToPendingRouteChanges() {
+    final ref = FirebaseDatabase.instance.ref("trip_requests");
+
+    ref.onValue.listen((event) {
+      int count = 0;
+
+      if (event.snapshot.exists) {
+        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+        for (final entry in data.entries) {
+          final trip = Map<String, dynamic>.from(entry.value);
+          if (trip.containsKey('route_change_request')) {
+            final routeChange = Map<String, dynamic>.from(trip['route_change_request']);
+            if (routeChange['status'] == 'pending' && trip['city'] == widget.region) {
+              count++;
+            }
+          }
+        }
+      }
+
+      setState(() {
+        _pendingRouteChangeCount = count;
+      });
+    });
+  }
+
+  void _handleRouteChangeStatusChange(String? tripId, Map<dynamic, dynamic> changeData, Map<dynamic, dynamic> tripData) {
+    if (tripId == null || !changeData.containsKey('status')) return;
+
+    final status = changeData['status'].toString();
+    final tripCity = tripData['city']?.toString() ?? '';
+
+    // Filtrar por región
+    if (tripCity != widget.region) return;
+
+    // Evitar notificaciones repetidas
+    final statusKey = '$tripId-$status';
+    if (_shownRouteChangeStatuses.contains(statusKey)) return;
+
+    final userName = tripData['userName'] ?? 'Usuario desconocido';
+
+    String message;
+    switch (status) {
+      case 'pending':
+        message = "El pasajero $userName ha solicitado un cambio de ruta ($tripId)";
+        break;
+      case 'approved':
+        message = "La solicitud de cambio de ruta de $userName ha sido APROBADA ($tripId)";
+        break;
+      case 'rejected':
+        message = "La solicitud de cambio de ruta de $userName ha sido RECHAZADA ($tripId)";
+        break;
+      default:
+        return; // No notificar estados irrelevantes
+    }
+
+    _showBannerNotification(
+      message,
+      backgroundColor: Colors.purple,
+    );
+    _playNotificationSound();
+    _shownRouteChangeStatuses.add(statusKey);
   }
 
   void _listenForNewMessages() {
@@ -306,14 +390,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Muestra una notificación tipo banner.
-  void _showBannerNotification(String message) {
+  void _showBannerNotification(String message, {Color? backgroundColor}) {
     final snackBar = SnackBar(
       content: Text(
         message,
         style: const TextStyle(fontSize: 16, color: Colors.white),
       ),
       duration: const Duration(seconds: 6),
-      backgroundColor: Colors.blue,
+      backgroundColor: backgroundColor ?? Colors.blue, // Azul por defecto
     );
 
     if (mounted) {
@@ -587,9 +671,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Función para cerrar sesión
   void _cerrarSesion(BuildContext context) {
+    // Limpiar variables temporales de sesión
+    html.window.sessionStorage.remove('usuario');
+    html.window.sessionStorage.remove('region');
+    html.window.sessionStorage.remove('isSupervisor');
+
+    // Navegar de regreso a la pantalla de login y eliminar historial
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => MyAppForm()),
+      MaterialPageRoute(builder: (context) => const MyAppForm()),
       (route) => false,
     );
   }
@@ -772,7 +862,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               if (_startedCount > 0) _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car),
                               if (_passengerReachedCount > 0) _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place),
-                              if (_pickedUpPassengerCount > 0) _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.airplane_ticket),
+                              if (_pickedUpPassengerCount > 0) _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.people),
+                              if (_pendingRouteChangeCount > 0) _buildStatusBubble(_pendingRouteChangeCount, Colors.purple, Icons.alt_route),
                             ],
                           ),
                         ),
