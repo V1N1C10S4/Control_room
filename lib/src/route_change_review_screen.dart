@@ -189,7 +189,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 ElevatedButton(
-                  onPressed: () => _updateRouteStatus(context, trip['id'], 'authorized'),
+                  onPressed: () => _updateRouteStatus(context, trip['id'], 'approved'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     shape: RoundedRectangleBorder(
@@ -202,7 +202,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: () => _updateRouteStatus(context, trip['id'], 'denied'),
+                  onPressed: () => _updateRouteStatus(context, trip['id'], 'rejected'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     shape: RoundedRectangleBorder(
@@ -544,40 +544,133 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     }
   }
 
-  void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
-    final ref = FirebaseDatabase.instance.ref().child('trip_requests/$tripId/route_change_request');
+  Future<void> applyApprovedRouteChange(String tripId) async {
+    final tripRef = FirebaseDatabase.instance.ref().child('trip_requests/$tripId');
+    final routeRequestRef = tripRef.child('route_change_request');
 
     try {
-      // 1. Actualizar el estado de la solicitud
-      await ref.update({'status': newStatus});
+      final tripSnapshot = await tripRef.get();
+      final routeRequestSnapshot = await routeRequestRef.get();
 
-      // 2. Solo si se aprueba, evaluar si se requiere retroceso de estado
-      if (newStatus == 'approved') {
-        final tripRef = FirebaseDatabase.instance.ref().child('trip_requests/$tripId');
-        final snapshot = await tripRef.get();
-        if (snapshot.exists) {
-          final tripData = Map<String, dynamic>.from(snapshot.value as Map);
+      if (!tripSnapshot.exists || !routeRequestSnapshot.exists) return;
 
-          final currentStatus = tripData['status'];
-          final pickedUpAt = tripData['picked_up_passenger_at'];
-          final currentStops = tripData['stops'] as Map<dynamic, dynamic>? ?? {};
+      final tripData = Map<String, dynamic>.from(tripSnapshot.value as Map);
+      final routeData = Map<String, dynamic>.from(routeRequestSnapshot.value as Map);
 
-          final routeRequest = tripData['route_change_request'];
-          final newStops = routeRequest?['stops'] as Map<dynamic, dynamic>? ?? {};
-          final allStops = {...currentStops, ...newStops};
-          final newStopIndex = allStops.length - 1; // Última parada agregada
+      final updates = <String, dynamic>{};
 
-          // Solo retroceder si ya recogió al pasajero
-          if (pickedUpAt != null && currentStatus == 'picked up passenger') {
-            final now = DateTime.now().toIso8601String();
-            await tripRef.update({
-              'status': 'on_stop_way_$newStopIndex',
-              'on_stop_way_${newStopIndex}_at': now,
-            });
+      // 1. Reemplazar pickup si existe en la solicitud
+      if (routeData.containsKey('pickup')) {
+        updates['pickup'] = routeData['pickup'];
+      }
+
+      // 2. Reemplazar destination si existe en la solicitud
+      if (routeData.containsKey('destination')) {
+        updates['destination'] = routeData['destination'];
+      }
+
+      // 3. Manejo de paradas (stops)
+      final currentStops = <String, dynamic>{};
+      for (final entry in tripData.entries) {
+        if (RegExp(r'^stop\d+$').hasMatch(entry.key)) {
+          currentStops[entry.key] = entry.value;
+        }
+      }
+
+      final newStops = Map<String, dynamic>.from(routeData['stops'] ?? {});
+      final currentCount = currentStops.length;
+      final newCount = newStops.length;
+
+      // Reemplazar las paradas existentes
+      final minCount = currentCount < newCount ? currentCount : newCount;
+      for (int i = 0; i < minCount; i++) {
+        final newStop = newStops['$i'];
+        if (newStop != null) {
+          updates['stop${i + 1}'] = newStop;
+        }
+      }
+
+      // Agregar paradas nuevas si hay más en la solicitud
+      if (newCount > currentCount) {
+        for (int i = currentCount; i < newCount; i++) {
+          final newStop = newStops['$i'];
+          if (newStop != null) {
+            updates['stop${i + 1}'] = newStop;
           }
         }
       }
 
+      // Eliminar paradas sobrantes si hay más en el viaje original
+      if (currentCount > newCount) {
+        for (int i = newCount + 1; i <= currentCount; i++) {
+          updates['stop$i'] = null;
+        }
+      }
+
+      // Aplicar todos los cambios al nodo principal del viaje
+      await tripRef.update(updates);
+      print('🟢 Cambios de ruta aplicados correctamente para el viaje $tripId');
+    } catch (e) {
+      print('🔴 Error al aplicar cambios de ruta: $e');
+    }
+  }
+
+  void _updateRouteStatus(BuildContext context, String tripId, String newStatus) async {
+    final tripRef = FirebaseDatabase.instance.ref().child('trip_requests/$tripId');
+    final routeRequestRef = tripRef.child('route_change_request');
+
+    try {
+      // 1. Leer la solicitud actual
+      final routeRequestSnap = await routeRequestRef.get();
+      if (!routeRequestSnap.exists) throw 'No se encontró la solicitud de cambio';
+
+      final routeRequest = Map<String, dynamic>.from(routeRequestSnap.value as Map);
+      routeRequest['result'] = newStatus;
+
+      // 2. Buscar el siguiente índice disponible para "route_change_result_X"
+      final tripSnap = await tripRef.get();
+      final tripData = Map<String, dynamic>.from(tripSnap.value as Map);
+      final resultKeys = tripData.keys.where((k) => k.startsWith('route_change_result_'));
+      final existingIndices = resultKeys.map((k) => int.tryParse(k.split('_').last)).whereType<int>();
+      final nextIndex = (existingIndices.isEmpty ? 0 : (existingIndices.reduce((a, b) => a > b ? a : b) + 1));
+
+      final resultKey = 'route_change_result_$nextIndex';
+
+      // 3. Guardar el resultado numerado
+      await tripRef.child(resultKey).set(routeRequest);
+
+      // 4. Actualizar el estado de la solicitud
+      await routeRequestRef.update({'status': newStatus});
+
+      // 5. Si se aprueba, aplicar los cambios al nodo principal
+      if (newStatus == 'approved') {
+        // ✅ NUEVO: Llamada a la función especializada
+        await applyApprovedRouteChange(tripId);
+
+        // 6. Retroceder el estado si corresponde
+        final currentStatus = tripData['status'];
+        final pickedUpAt = tripData['picked_up_passenger_at'];
+        final newStops = routeRequest['stops'] as Map<dynamic, dynamic>? ?? {};
+
+        final newStopIndices = newStops.keys
+            .map((k) => int.tryParse(k.toString()))
+            .whereType<int>()
+            .toList()
+          ..sort();
+
+        if (pickedUpAt != null &&
+            currentStatus == 'picked up passenger' &&
+            newStopIndices.isNotEmpty) {
+          final targetIndex = newStopIndices.first;
+          final now = DateTime.now().toIso8601String();
+          await tripRef.update({
+            'status': 'on_stop_way_$targetIndex',
+            'on_stop_way_${targetIndex}_at': now,
+          });
+        }
+      }
+
+      // 7. Cerrar pantalla y mostrar confirmación
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
