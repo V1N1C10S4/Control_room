@@ -126,32 +126,30 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             ),
             const SizedBox(height: 16),
 
-            if (!samePickup)
-              Text(
-                '🚕 Nuevo punto de partida: ${pickup?['placeName'] ?? 'No disponible'}',
-                style: const TextStyle(fontSize: 16),
-              ),
+            Text(
+              '🚕 Punto de partida: ${pickup?['placeName'] ?? 'No disponible'}${!samePickup ? ' - Nuevo punto de partida' : ''}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
 
-            if (!sameStops && filteredStops.isNotEmpty)
+            if (filteredStops.isNotEmpty)
               ...filteredStops.entries.map((e) {
                 final placeName = e.value['placeName'] ?? 'Sin nombre';
                 return Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
-                    '🛑 Parada ${e.key + 1}: $placeName',
+                    '🛑 Parada ${e.key + 1}: $placeName${!sameStops ? ' - Nueva parada' : ''}',
                     style: const TextStyle(fontSize: 16),
-                    ),
+                  ),
                 );
               }),
 
-            if (!sameDestination)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  '🏁 Nuevo destino: ${destination?['placeName'] ?? 'No disponible'}',
-                  style: const TextStyle(fontSize: 16),
-                  ),
-              ),
+            const SizedBox(height: 8),
+
+            Text(
+              '🏁 Destino: ${destination?['placeName'] ?? 'No disponible'}${!sameDestination ? ' - Nuevo destino' : ''}',
+              style: const TextStyle(fontSize: 16),
+            ),
 
             if (routePoints.length >= 2 && isRoutePointsSafe)
               Padding(
@@ -624,20 +622,22 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       final routeRequestSnap = await routeRequestRef.get();
       if (!routeRequestSnap.exists) throw 'No se encontró la solicitud de cambio';
 
-      final routeRequest = Map<String, dynamic>.from(routeRequestSnap.value as Map);
-      routeRequest['result'] = newStatus;
+      final filteredRequest = Map<String, dynamic>.from(routeRequestSnap.value as Map)
+        ..remove('status')
+        ..remove('timestamp')
+        ..['result'] = newStatus;
 
       // 2. Buscar el siguiente índice disponible para "route_change_result_X"
       final tripSnap = await tripRef.get();
       final tripData = Map<String, dynamic>.from(tripSnap.value as Map);
       final resultKeys = tripData.keys.where((k) => k.startsWith('route_change_result_'));
       final existingIndices = resultKeys.map((k) => int.tryParse(k.split('_').last)).whereType<int>();
-      final nextIndex = (existingIndices.isEmpty ? 0 : (existingIndices.reduce((a, b) => a > b ? a : b) + 1));
+      final nextIndex = (existingIndices.isEmpty ? 1 : (existingIndices.reduce((a, b) => a > b ? a : b) + 1));
 
       final resultKey = 'route_change_result_$nextIndex';
 
       // 3. Guardar el resultado numerado
-      await tripRef.child(resultKey).set(routeRequest);
+      await tripRef.child(resultKey).set(filteredRequest);
 
       // 4. Actualizar el estado de la solicitud
       await routeRequestRef.update({'status': newStatus});
@@ -650,7 +650,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         // 6. Retroceder el estado si corresponde
         final currentStatus = tripData['status'];
         final pickedUpAt = tripData['picked_up_passenger_at'];
-        final newStops = routeRequest['stops'] as Map<dynamic, dynamic>? ?? {};
+        final newStops = filteredRequest['stops'] as Map<dynamic, dynamic>? ?? {};
 
         final newStopIndices = newStops.keys
             .map((k) => int.tryParse(k.toString()))
