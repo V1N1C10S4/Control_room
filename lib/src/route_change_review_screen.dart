@@ -19,6 +19,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   final Set<Polyline> _polylines = {};
   final List<LatLng> _polylineCoordinates = [];
   bool _routeFetched = false;
+  bool _loadingRoute = true;
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +41,17 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     } else if (rawStops is List) {
       allStops = {
         for (int i = 0; i < rawStops.length; i++)
-          '$i': rawStops[i] ?? {},
+          if (rawStops[i] != null) '$i': rawStops[i],
       };
     } else {
       allStops = {};
     }
+
+    print('🟡 Datos leídos de routeRequest:');
+    print('pickup: ${jsonEncode(newPickup)}');
+    print('destination: ${jsonEncode(newDestination)}');
+    print('stops: ${jsonEncode(allStops)}');
+
     final reason = routeRequest['reason'] ?? 'Sin motivo proporcionado';
 
     final originalPickup = trip['pickup'];
@@ -105,6 +112,9 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       return !p.latitude.isNaN && !p.longitude.isNaN;
     });
 
+    print('🗺️ MAPA — routePoints: ${routePoints.map((p) => '(${p.latitude}, ${p.longitude})').toList()}');
+    print('🗺️ MAPA — routeMarkers: ${routeMarkers.map((m) => m.markerId.value).toList()}');
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Solicitud de cambio de ruta', style: TextStyle(color: Colors.white)),
@@ -150,8 +160,17 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
               '🏁 Destino: ${newDestination?['placeName'] ?? 'No disponible'}${!sameDestination ? ' - Nuevo destino' : ''}',
               style: const TextStyle(fontSize: 16),
             ),
+            
 
-            if (routePoints.length >= 2 && isRoutePointsSafe)
+            if (_loadingRoute)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: SizedBox(
+                  height: 280,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              )
+            else if (routePoints.length >= 2 && isRoutePointsSafe)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: SizedBox(
@@ -333,6 +352,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       points.add(LatLng(newDestination['latitude'], newDestination['longitude']));
     }
 
+    print('📌 Puntos construidos: ${points.map((p) => '(${p.latitude}, ${p.longitude})').toList()}');
     return points;
   }
 
@@ -383,7 +403,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     }
-
+    print('📍 Marcadores construidos: ${markers.map((m) => '${m.markerId.value}: ${m.position}').toList()}');
     return markers;
   }
 
@@ -499,7 +519,11 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   }
 
   Future<void> _fetchRouteWithStops(LatLng pickup, List<LatLng> stops, LatLng destination) async {
-    _polylines.clear(); // Limpiar rutas previas
+    setState(() {
+      _loadingRoute = true;
+    });
+
+    _polylines.clear();
 
     LatLng prevPoint = pickup;
 
@@ -510,6 +534,9 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     await _fetchPolylineSegment(prevPoint, destination, 'finalSegment');
 
+    setState(() {
+      _loadingRoute = false;
+    });
   }
 
   Future<void> loadTripData(String tripId) async {
