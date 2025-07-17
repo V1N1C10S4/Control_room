@@ -131,14 +131,14 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
           children: [
             const SizedBox(height: 16),
             Text(
-              '📝 Motivo: $reason',
-              style: const TextStyle(fontSize: 16),
+              '📝 Motivo de cambio de ruta: $reason',
+              style: const TextStyle(fontSize: 22),
             ),
             const SizedBox(height: 16),
 
             Text(
               '🚕 Punto de partida: ${newPickup?['placeName'] ?? 'No disponible'}${!samePickup ? ' - Nuevo punto de partida' : ''}',
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 20),
             ),
             const SizedBox(height: 8),
 
@@ -149,7 +149,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     '🛑 Parada ${e.key + 1}: $placeName${!sameStops ? ' - Nueva parada' : ''}',
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 20),
                   ),
                 );
               }),
@@ -158,7 +158,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
             Text(
               '🏁 Destino: ${newDestination?['placeName'] ?? 'No disponible'}${!sameDestination ? ' - Nuevo destino' : ''}',
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 20),
             ),
             
 
@@ -593,55 +593,48 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
       final updates = <String, dynamic>{};
 
-      // 1. Reemplazar pickup si existe en la solicitud
+      // 1. Reemplazar pickup y destination
       if (routeData.containsKey('pickup')) {
         updates['pickup'] = routeData['pickup'];
       }
-
-      // 2. Reemplazar destination si existe en la solicitud
       if (routeData.containsKey('destination')) {
         updates['destination'] = routeData['destination'];
       }
 
-      // 3. Manejo de paradas (stops)
-      final currentStops = <String, dynamic>{};
-      for (final entry in tripData.entries) {
-        if (RegExp(r'^stop\d+$').hasMatch(entry.key)) {
-          currentStops[entry.key] = entry.value;
+      // 2. Extraer stops en formato Map<int, Map>
+      final Object? rawStops = routeData['stops'];
+      final Map<String, dynamic> newStops = {};
+      if (rawStops is Map) {
+        newStops.addAll(Map<String, dynamic>.from(rawStops));
+      } else if (rawStops is List) {
+        for (int i = 0; i < rawStops.length; i++) {
+          final stop = rawStops[i];
+          if (stop != null) newStops['${i + 1}'] = stop;
         }
       }
 
-      final newStops = Map<String, dynamic>.from(routeData['stops'] ?? {});
-      final currentCount = currentStops.length;
-      final newCount = newStops.length;
-
-      // Reemplazar las paradas existentes
-      final minCount = currentCount < newCount ? currentCount : newCount;
-      for (int i = 0; i < minCount; i++) {
-        final newStop = newStops['$i'];
-        if (newStop != null) {
-          updates['stop${i + 1}'] = newStop;
+      // 3. Agregar/Actualizar stops (formato: stop1, stop2, ...)
+      for (final entry in newStops.entries) {
+        final stopIndex = entry.key;
+        final stopData = entry.value;
+        if (stopData != null && stopData is Map) {
+          updates['stop$stopIndex'] = stopData;
         }
       }
 
-      // Agregar paradas nuevas si hay más en la solicitud
-      if (newCount > currentCount) {
-        for (int i = currentCount; i < newCount; i++) {
-          final newStop = newStops['$i'];
-          if (newStop != null) {
-            updates['stop${i + 1}'] = newStop;
-          }
-        }
+      // 4. Eliminar stops sobrantes del trip original
+      final existingStops = tripData.keys
+          .where((k) => RegExp(r'^stop\d+$').hasMatch(k))
+          .toSet();
+
+      final newKeys = newStops.keys.map((k) => 'stop$k').toSet();
+      final toDelete = existingStops.difference(newKeys);
+
+      for (final k in toDelete) {
+        updates[k] = null;
       }
 
-      // Eliminar paradas sobrantes si hay más en el viaje original
-      if (currentCount > newCount) {
-        for (int i = newCount + 1; i <= currentCount; i++) {
-          updates['stop$i'] = null;
-        }
-      }
-
-      // Aplicar todos los cambios al nodo principal del viaje
+      // 5. Actualizar viaje
       await tripRef.update(updates);
       print('🟢 Cambios de ruta aplicados correctamente para el viaje $tripId');
     } catch (e) {
@@ -658,10 +651,34 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       final routeRequestSnap = await routeRequestRef.get();
       if (!routeRequestSnap.exists) throw 'No se encontró la solicitud de cambio';
 
-      final filteredRequest = Map<String, dynamic>.from(routeRequestSnap.value as Map)
-        ..remove('status')
-        ..remove('timestamp')
-        ..['result'] = newStatus;
+      final rawRequest = Map<String, dynamic>.from(routeRequestSnap.value as Map);
+      rawRequest.remove('status');
+      rawRequest.remove('timestamp');
+      rawRequest['result'] = newStatus;
+
+      // 🔍 Sanear stops para evitar undefined/null
+      if (rawRequest.containsKey('stops')) {
+        final rawStopsRaw = rawRequest['stops'];
+
+        if (rawStopsRaw is Map) {
+          final rawStops = Map<String, dynamic>.from(rawStopsRaw);
+          final cleanedStops = Map<String, dynamic>.fromEntries(
+            rawStops.entries.where((e) => e.value != null),
+          );
+          rawRequest['stops'] = cleanedStops;
+        } else if (rawStopsRaw is List) {
+          final cleanedStops = <String, dynamic>{};
+          for (int i = 0; i < rawStopsRaw.length; i++) {
+            final stop = rawStopsRaw[i];
+            if (stop != null) {
+              cleanedStops['${i + 1}'] = stop;
+            }
+          }
+          rawRequest['stops'] = cleanedStops;
+        }
+      }
+
+      final filteredRequest = rawRequest;
 
       // 2. Buscar el siguiente índice disponible para "route_change_result_X"
       final tripSnap = await tripRef.get();
