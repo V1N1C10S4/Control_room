@@ -30,8 +30,8 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       );
     }
 
-    final pickup = routeRequest['pickup'];
-    final destination = routeRequest['destination'];
+    final newPickup = routeRequest['pickup'];
+    final newDestination = routeRequest['destination'];
     final dynamic rawStops = routeRequest['stops'];
     late final Map<String, dynamic> allStops;
 
@@ -51,8 +51,8 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final originalDestination = trip['destination'];
     final originalStops = trip['stops'] ?? [];
 
-    final samePickup = _isSameLocation(originalPickup, pickup);
-    final sameDestination = _isSameLocation(originalDestination, destination);
+    final samePickup = _isSameLocation(originalPickup, newPickup);
+    final sameDestination = _isSameLocation(originalDestination, newDestination);
     final sameStops = _areStopsEqual(originalStops, allStops);
 
     final reachedIndexes = _extractReachedStopIndexes(trip);
@@ -77,19 +77,19 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     });
 
     final routePoints = _buildRoutePoints(
-      pickup: pickup,
-      destination: destination,
+      newPickup: newPickup,
+      newDestination: newDestination,
       filteredStops: filteredStops,
     );
 
     final routeMarkers = _buildRouteMarkers(
-      pickup: pickup,
-      destination: destination,
+      newPickup: newPickup,
+      newDestination: newDestination,
       filteredStops: filteredStops,
     );
 
-    final pickupLatLng = LatLng(pickup['latitude'], pickup['longitude']);
-    final destinationLatLng = LatLng(destination['latitude'], destination['longitude']);
+    final pickupLatLng = LatLng(newPickup['latitude'], newPickup['longitude']);
+    final destinationLatLng = LatLng(newDestination['latitude'], newDestination['longitude']);
     final stopLatLngs = filteredStops.entries
       .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
       .toList();
@@ -127,7 +127,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             const SizedBox(height: 16),
 
             Text(
-              '🚕 Punto de partida: ${pickup?['placeName'] ?? 'No disponible'}${!samePickup ? ' - Nuevo punto de partida' : ''}',
+              '🚕 Punto de partida: ${newPickup?['placeName'] ?? 'No disponible'}${!samePickup ? ' - Nuevo punto de partida' : ''}',
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 8),
@@ -147,7 +147,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             const SizedBox(height: 8),
 
             Text(
-              '🏁 Destino: ${destination?['placeName'] ?? 'No disponible'}${!sameDestination ? ' - Nuevo destino' : ''}',
+              '🏁 Destino: ${newDestination?['placeName'] ?? 'No disponible'}${!sameDestination ? ' - Nuevo destino' : ''}',
               style: const TextStyle(fontSize: 16),
             ),
 
@@ -246,20 +246,26 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     }
   }
 
-  // ✅ Comparador de ubicación
   bool _isSameLocation(Map? a, Map? b) {
     if (a == null || b == null) return false;
-    return a['latitude'] == b['latitude'] && a['longitude'] == b['longitude'];
+
+    final placeA = a['placeName']?.toString().trim().toLowerCase();
+    final placeB = b['placeName']?.toString().trim().toLowerCase();
+
+    if (placeA == null || placeB == null) return false;
+
+    return placeA == placeB;
   }
 
   // ✅ Comparador de stops
   bool _areStopsEqual(dynamic a, dynamic b) {
     if (a == null || b == null) return false;
-    if (a.length != b.length) return false;
 
     // Normalizar ambos a listas ordenadas
     final List<Map<String, dynamic>> stopsA = _normalizeStops(a);
     final List<Map<String, dynamic>> stopsB = _normalizeStops(b);
+
+    if (a.length != b.length) return false;
 
     for (int i = 0; i < stopsA.length; i++) {
       if (!_isSameLocation(stopsA[i], stopsB[i])) return false;
@@ -293,15 +299,15 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   }
 
   List<LatLng> _buildRoutePoints({
-    required Map pickup,
-    required Map? destination,
+    required Map newPickup,
+    required Map? newDestination,
     required Map<int, dynamic> filteredStops,
   }) {
     final List<LatLng> points = [];
 
     // Agregar punto de partida
-    if (pickup['latitude'] != null && pickup['longitude'] != null) {
-      points.add(LatLng(pickup['latitude'], pickup['longitude']));
+    if (newPickup['latitude'] != null && newPickup['longitude'] != null) {
+      points.add(LatLng(newPickup['latitude'], newPickup['longitude']));
     }
 
     // Agregar paradas nuevas aún no visitadas
@@ -321,27 +327,27 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     }
 
     // Agregar destino (si existe y tiene coordenadas)
-    if (destination != null &&
-        destination['latitude'] != null &&
-        destination['longitude'] != null) {
-      points.add(LatLng(destination['latitude'], destination['longitude']));
+    if (newDestination != null &&
+        newDestination['latitude'] != null &&
+        newDestination['longitude'] != null) {
+      points.add(LatLng(newDestination['latitude'], newDestination['longitude']));
     }
 
     return points;
   }
 
   Set<Marker> _buildRouteMarkers({
-    required Map pickup,
-    required Map? destination,
+    required Map newPickup,
+    required Map? newDestination,
     required Map<int, dynamic> filteredStops,
   }) {
     final Set<Marker> markers = {};
 
     // 📍 Marker de inicio
-    if (pickup['latitude'] != null && pickup['longitude'] != null) {
+    if (newPickup['latitude'] != null && newPickup['longitude'] != null) {
       markers.add(Marker(
         markerId: const MarkerId('start'),
-        position: LatLng(pickup['latitude'], pickup['longitude']),
+        position: LatLng(newPickup['latitude'], newPickup['longitude']),
         infoWindow: const InfoWindow(title: 'Inicio'),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       ));
@@ -367,14 +373,14 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     });
 
     // 🏁 Marker de destino
-    if (destination != null &&
-        destination['latitude'] != null &&
-        destination['longitude'] != null) {
+    if (newDestination != null &&
+        newDestination['latitude'] != null &&
+        newDestination['longitude'] != null) {
       markers.add(Marker(
         markerId: const MarkerId('end'),
-        position: LatLng(destination['latitude'], destination['longitude']),
+        position: LatLng(newDestination['latitude'], newDestination['longitude']),
         infoWindow: const InfoWindow(title: 'Destino'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     }
 
@@ -425,6 +431,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: FloatingActionButton(
+                heroTag: 'pickup_location',
                 onPressed: () => _zoomTo(routePoints.first),
                 mini: true,
                 backgroundColor: Colors.red,
@@ -435,6 +442,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: FloatingActionButton(
+                  heroTag: 'stop_location_$i',
                   onPressed: () => _zoomTo(routePoints[i]),
                   mini: true,
                   backgroundColor: Colors.orange,
@@ -444,6 +452,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: FloatingActionButton(
+                heroTag: 'destination_location',
                 onPressed: () => _zoomTo(routePoints.last),
                 mini: true,
                 backgroundColor: Colors.red,

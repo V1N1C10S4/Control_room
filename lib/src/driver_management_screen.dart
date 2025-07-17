@@ -213,6 +213,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'driver_creation',
         onPressed: () {
           Navigator.push(
             context,

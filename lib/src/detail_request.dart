@@ -296,6 +296,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
         child: Column(
           children: [
             FloatingActionButton(
+              heroTag: 'zoom_pickup',
               onPressed: _zoomToPickup,
               mini: true,
               backgroundColor: Colors.red,
@@ -306,6 +307,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: FloatingActionButton(
+                    heroTag: 'zoom_stops',
                     onPressed: () => _zoomToStop(i),
                     mini: true,
                     backgroundColor: Colors.orange,
@@ -315,6 +317,7 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
             else
               const SizedBox(height: 10), // ✅ Espacio reservado cuando NO hay paradas
             FloatingActionButton(
+              heroTag: 'zoom_destination',
               onPressed: _zoomToDestination,
               mini: true,
               backgroundColor: Colors.red,

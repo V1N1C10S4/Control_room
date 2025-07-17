@@ -221,6 +221,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'user_creation',
         onPressed: () {
           Navigator.push(
             context,
