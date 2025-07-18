@@ -659,18 +659,17 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
         if (rawStopsRaw is Map) {
           final rawStops = Map<String, dynamic>.from(rawStopsRaw);
-          final cleanedStops = Map<String, dynamic>.fromEntries(
-            rawStops.entries.where((e) => e.value != null),
-          );
-          rawRequest['stops'] = cleanedStops;
-        } else if (rawStopsRaw is List) {
           final cleanedStops = <String, dynamic>{};
-          for (int i = 0; i < rawStopsRaw.length; i++) {
-            final stop = rawStopsRaw[i];
-            if (stop != null) {
-              cleanedStops['${i + 1}'] = stop;
+
+          for (final entry in rawStops.entries) {
+            final key = entry.key.toString();
+            final value = entry.value;
+            final parsedKey = int.tryParse(key);
+            if (value != null && parsedKey != null && parsedKey >= 1) {
+              cleanedStops['$parsedKey'] = value;
             }
           }
+
           rawRequest['stops'] = cleanedStops;
         }
       }
