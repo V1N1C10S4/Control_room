@@ -593,7 +593,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
       final updates = <String, dynamic>{};
 
-      // 1. Reemplazar pickup y destination
+      // Actualizar pickup y destination
       if (routeData.containsKey('pickup')) {
         updates['pickup'] = routeData['pickup'];
       }
@@ -601,40 +601,37 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         updates['destination'] = routeData['destination'];
       }
 
-      // 2. Extraer stops en formato Map<int, Map>
+      // Detectar stops actuales (stop1, stop2, ...)
+      final currentStops = <String, dynamic>{};
+      for (final entry in tripData.entries) {
+        if (RegExp(r'^stop\d+$').hasMatch(entry.key)) {
+          currentStops[entry.key] = entry.value;
+        }
+      }
+
+      // Normalizar newStops desde routeData['stops']
       final Object? rawStops = routeData['stops'];
       final Map<String, dynamic> newStops = {};
       if (rawStops is Map) {
         newStops.addAll(Map<String, dynamic>.from(rawStops));
-      } else if (rawStops is List) {
-        for (int i = 0; i < rawStops.length; i++) {
-          final stop = rawStops[i];
-          if (stop != null) newStops['${i + 1}'] = stop;
-        }
       }
 
-      // 3. Agregar/Actualizar stops (formato: stop1, stop2, ...)
+      // Actualizar stops del 1 al N según newStops
       for (final entry in newStops.entries) {
         final stopIndex = entry.key;
-        final stopData = entry.value;
-        if (stopData != null && stopData is Map) {
-          updates['stop$stopIndex'] = stopData;
+        final stopValue = entry.value;
+        if (stopValue != null) {
+          updates['stop$stopIndex'] = stopValue;
         }
       }
 
-      // 4. Eliminar stops sobrantes del trip original
-      final existingStops = tripData.keys
-          .where((k) => RegExp(r'^stop\d+$').hasMatch(k))
-          .toSet();
-
+      // Eliminar stops sobrantes (si había más antes)
       final newKeys = newStops.keys.map((k) => 'stop$k').toSet();
-      final toDelete = existingStops.difference(newKeys);
-
-      for (final k in toDelete) {
-        updates[k] = null;
+      final extraStops = currentStops.keys.where((k) => !newKeys.contains(k));
+      for (final key in extraStops) {
+        updates[key] = null;
       }
 
-      // 5. Actualizar viaje
       await tripRef.update(updates);
       print('🟢 Cambios de ruta aplicados correctamente para el viaje $tripId');
     } catch (e) {
