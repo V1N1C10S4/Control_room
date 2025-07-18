@@ -47,11 +47,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       allStops = {};
     }
 
-    print('🟡 Datos leídos de routeRequest:');
-    print('pickup: ${jsonEncode(newPickup)}');
-    print('destination: ${jsonEncode(newDestination)}');
-    print('stops: ${jsonEncode(allStops)}');
-
     final reason = routeRequest['reason'] ?? 'Sin motivo proporcionado';
 
     final originalPickup = trip['pickup'];
@@ -111,9 +106,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final isRoutePointsSafe = routePoints.every((p) {
       return !p.latitude.isNaN && !p.longitude.isNaN;
     });
-
-    print('🗺️ MAPA — routePoints: ${routePoints.map((p) => '(${p.latitude}, ${p.longitude})').toList()}');
-    print('🗺️ MAPA — routeMarkers: ${routeMarkers.map((m) => m.markerId.value).toList()}');
 
     return Scaffold(
       appBar: AppBar(
@@ -614,6 +606,15 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       final Map<String, dynamic> newStops = {};
       if (rawStops is Map) {
         newStops.addAll(Map<String, dynamic>.from(rawStops));
+      } else if (rawStops is List) {
+        int stopNumber = 1;
+        for (int i = 0; i < rawStops.length; i++) {
+          final stop = rawStops[i];
+          if (stop != null) {
+            newStops['$stopNumber'] = stop;
+            stopNumber++;
+          }
+        }
       }
 
       // Actualizar stops del 1 al N según newStops
@@ -657,21 +658,31 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       if (rawRequest.containsKey('stops')) {
         final rawStopsRaw = rawRequest['stops'];
 
+        final cleanedStops = <String, dynamic>{};
+
         if (rawStopsRaw is Map) {
           final rawStops = Map<String, dynamic>.from(rawStopsRaw);
-          final cleanedStops = <String, dynamic>{};
-
           for (final entry in rawStops.entries) {
             final key = entry.key.toString();
             final value = entry.value;
             final parsedKey = int.tryParse(key);
-            if (value != null && parsedKey != null && parsedKey >= 1) {
+
+            if (parsedKey != null && parsedKey >= 1 && value != null) {
               cleanedStops['$parsedKey'] = value;
             }
           }
-
-          rawRequest['stops'] = cleanedStops;
+        } else if (rawStopsRaw is List) {
+          int stopNumber = 1;
+          for (int i = 0; i < rawStopsRaw.length; i++) {
+            final stop = rawStopsRaw[i];
+            if (stop != null) {
+              cleanedStops['$stopNumber'] = stop;
+              stopNumber++;
+            }
+          }
         }
+
+        rawRequest['stops'] = cleanedStops;
       }
 
       final filteredRequest = rawRequest;
