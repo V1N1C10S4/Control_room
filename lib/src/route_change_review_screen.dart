@@ -55,7 +55,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final samePickup = _isSameLocation(originalPickup, newPickup);
     final sameDestination = _isSameLocation(originalDestination, newDestination);
-    final sameStops = _areStopsEqual(originalStops, allStops);
+    final originalStopsNormalized = _normalizeStops(originalStops);
 
     final reachedIndexes = _extractReachedStopIndexes(trip);
 
@@ -137,10 +137,12 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             if (filteredStops.isNotEmpty)
               ...filteredStops.entries.map((e) {
                 final placeName = e.value['placeName'] ?? 'Sin nombre';
+                final isNew = isNewStop(e.value, originalStopsNormalized);
+
                 return Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
-                    '🛑 Parada ${e.key}: $placeName${!sameStops ? ' - Nueva parada' : ''}',
+                    '🛑 Parada ${e.key}: $placeName${isNew ? ' - Nueva parada' : ''}',
                     style: const TextStyle(fontSize: 20),
                   ),
                 );
@@ -231,6 +233,13 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     );
   }
 
+  bool isNewStop(Map stop, List<Map<String, dynamic>> originalStops) {
+    for (final original in originalStops) {
+      if (_isSameLocation(stop, original)) return false;
+    }
+    return true;
+  }
+
   Future<List<LatLng>> fetchPolylinePoints(LatLng origin, LatLng destination, List<LatLng> stops) async {
     final stopParams = stops.map((s) => '${s.latitude},${s.longitude}').join('|');
 
@@ -266,22 +275,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     if (placeA == null || placeB == null) return false;
 
     return placeA == placeB;
-  }
-
-  // ✅ Comparador de stops
-  bool _areStopsEqual(dynamic a, dynamic b) {
-    if (a == null || b == null) return false;
-
-    final List<Map<String, dynamic>> stopsA = _normalizeStops(a);
-    final List<Map<String, dynamic>> stopsB = _normalizeStops(b);
-
-    if (stopsA.length != stopsB.length) return false;
-
-    for (int i = 0; i < stopsA.length; i++) {
-      if (!_isSameLocation(stopsA[i], stopsB[i])) return false;
-    }
-
-    return true;
   }
 
   List<Map<String, dynamic>> _normalizeStops(dynamic rawStops) {
