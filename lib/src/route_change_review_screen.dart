@@ -140,7 +140,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
-                    '🛑 Parada ${e.key + 1}: $placeName${!sameStops ? ' - Nueva parada' : ''}',
+                    '🛑 Parada ${e.key}: $placeName${!sameStops ? ' - Nueva parada' : ''}',
                     style: const TextStyle(fontSize: 20),
                   ),
                 );
