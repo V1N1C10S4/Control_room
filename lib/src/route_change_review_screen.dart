@@ -126,7 +126,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
               '📝 Motivo de cambio de ruta: $reason',
               style: const TextStyle(fontSize: 22),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             Text(
               '🚕 Punto de partida: ${newPickup?['placeName'] ?? 'No disponible'}${!samePickup ? ' - Nuevo punto de partida' : ''}',
