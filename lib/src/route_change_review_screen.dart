@@ -272,11 +272,10 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
   bool _areStopsEqual(dynamic a, dynamic b) {
     if (a == null || b == null) return false;
 
-    // Normalizar ambos a listas ordenadas
     final List<Map<String, dynamic>> stopsA = _normalizeStops(a);
     final List<Map<String, dynamic>> stopsB = _normalizeStops(b);
 
-    if (a.length != b.length) return false;
+    if (stopsA.length != stopsB.length) return false;
 
     for (int i = 0; i < stopsA.length; i++) {
       if (!_isSameLocation(stopsA[i], stopsB[i])) return false;
