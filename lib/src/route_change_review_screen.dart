@@ -585,20 +585,38 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
       final updates = <String, dynamic>{};
 
-      // Actualizar pickup y destination
+      // Detectar stops actuales (stop1, stop2, ...)
+      final currentStops = <String, dynamic>{};
+      for (final entry in tripData.entries) {
+        if (RegExp(r'^stop\d+\$').hasMatch(entry.key)) {
+          currentStops[entry.key] = entry.value;
+        }
+      }
+
+      // Generar backup: pickup, destination, stops existentes
+      final backupData = <String, dynamic>{};
+      if (tripData.containsKey('pickup')) backupData['pickup'] = tripData['pickup'];
+      if (tripData.containsKey('destination')) backupData['destination'] = tripData['destination'];
+      backupData.addAll(currentStops);
+      backupData['timestamp'] = DateTime.now().toIso8601String();
+
+      // Calcular índice disponible: original_trip_data_X
+      final backupIndices = tripData.keys
+          .where((k) => k.startsWith('original_trip_data_'))
+          .map((k) => int.tryParse(k.split('_').last))
+          .whereType<int>();
+      final nextBackupIndex =
+          (backupIndices.isEmpty ? 1 : (backupIndices.reduce((a, b) => a > b ? a : b) + 1));
+      final backupKey = 'original_trip_data_$nextBackupIndex';
+
+      updates[backupKey] = backupData;
+
+      // Actualizar pickup y destination si vienen en la solicitud
       if (routeData.containsKey('pickup')) {
         updates['pickup'] = routeData['pickup'];
       }
       if (routeData.containsKey('destination')) {
         updates['destination'] = routeData['destination'];
-      }
-
-      // Detectar stops actuales (stop1, stop2, ...)
-      final currentStops = <String, dynamic>{};
-      for (final entry in tripData.entries) {
-        if (RegExp(r'^stop\d+$').hasMatch(entry.key)) {
-          currentStops[entry.key] = entry.value;
-        }
       }
 
       // Normalizar newStops desde routeData['stops']
@@ -617,7 +635,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         }
       }
 
-      // Actualizar stops del 1 al N según newStops
+      // Actualizar stops del 1 al N
       for (final entry in newStops.entries) {
         final stopIndex = entry.key;
         final stopValue = entry.value;
@@ -626,7 +644,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         }
       }
 
-      // Eliminar stops sobrantes (si había más antes)
+      // Eliminar stops sobrantes
       final newKeys = newStops.keys.map((k) => 'stop$k').toSet();
       final extraStops = currentStops.keys.where((k) => !newKeys.contains(k));
       for (final key in extraStops) {
