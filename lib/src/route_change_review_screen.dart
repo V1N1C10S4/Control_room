@@ -33,25 +33,39 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final newPickup = routeRequest['pickup'];
     final newDestination = routeRequest['destination'];
+    final Map<String, dynamic> allStops = {};
     final dynamic rawStops = routeRequest['stops'];
-    late final Map<String, dynamic> allStops;
 
-    if (rawStops is Map) {
-      allStops = Map<String, dynamic>.from(rawStops);
-    } else if (rawStops is List) {
-      allStops = {
-        for (int i = 0; i < rawStops.length; i++)
-          if (rawStops[i] != null) '$i': rawStops[i],
-      };
-    } else {
-      allStops = {};
+    if (rawStops is List) {
+      for (int i = 0; i < rawStops.length; i++) {
+        final stop = rawStops[i];
+        if (stop is Map && stop['latitude'] != null && stop['longitude'] != null) {
+          allStops['${i}'] = stop;
+        }
+      }
     }
 
     final reason = routeRequest['reason'] ?? 'Sin motivo proporcionado';
 
     final originalPickup = trip['pickup'];
     final originalDestination = trip['destination'];
-    final originalStops = trip['stops'] ?? [];
+
+    final originalStops = <String, dynamic>{};
+    trip.forEach((key, value) {
+      if (RegExp(r'^stop\d+$').hasMatch(key) && value is Map && value['latitude'] != null && value['longitude'] != null) {
+        originalStops[key.replaceAll('stop', '')] = value;
+      }
+    });
+
+    print('🟤 ORIGINAL STOPS DETECTADOS (${originalStops.length}):');
+    for (final entry in originalStops.entries) {
+      print('  - stop${entry.key}: ${entry.value['placeName']}');
+    }
+
+    print('🧾 CONTENIDO COMPLETO DEL TRIP:');
+    trip.forEach((key, value) {
+      print(' - $key: ${value is Map ? jsonEncode(value) : value}');
+    });
 
     final samePickup = _isSameLocation(originalPickup, newPickup);
     final sameDestination = _isSameLocation(originalDestination, newDestination);
@@ -61,17 +75,29 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
 
     final filteredStops = <int, dynamic>{};
 
+    print('🟣 RAW allStops (${allStops.length}):');
+    allStops.forEach((k, v) => print('  - $k: ${v['placeName']}'));    print('🟠 RAW routeRequest["stops"]: ${routeRequest['stops']}');
+    print('🔵 reachedIndexes: $reachedIndexes');
+
+    print('🧩 ORIGINAL STOPS (${originalStopsNormalized.length}):');
+    for (final s in originalStopsNormalized) {
+      print('  - ${s['placeName']}');
+    }
+
+    print('🧩 FILTERED STOPS (${filteredStops.length})');
+
     allStops.forEach((key, value) {
       final keyStr = key.toString();
       if (RegExp(r'^\d+$').hasMatch(keyStr)) {
         final index = int.parse(keyStr);
-
-        // Asegurar que value tenga datos válidos
-        if (!reachedIndexes.contains(index) &&
-            value is Map &&
-            value['latitude'] != null &&
-            value['longitude'] != null) {
-          filteredStops[index] = value;
+        print('🔍 Evaluando parada index=$index: $value');
+        try {
+          final stopMap = Map<String, dynamic>.from(value);
+          if (!reachedIndexes.contains(index) && stopMap['latitude'] != null && stopMap['longitude'] != null) {
+            filteredStops[index] = stopMap;
+          }
+        } catch (e) {
+          print('❌ Error al convertir parada a Map<String, dynamic>: $e');
         }
       } else {
         print("Clave inválida en stops: $keyStr");
@@ -93,9 +119,9 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final pickupLatLng = LatLng(newPickup['latitude'], newPickup['longitude']);
     final destinationLatLng = LatLng(newDestination['latitude'], newDestination['longitude']);
     final stopLatLngs = filteredStops.entries
-      .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
-      .toList();
-    
+        .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
+        .toList();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_routeFetched) {
         _routeFetched = true;
@@ -387,7 +413,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     }
-    print('📍 Marcadores construidos: ${markers.map((m) => '${m.markerId.value}: ${m.position}').toList()}');
     return markers;
   }
 
