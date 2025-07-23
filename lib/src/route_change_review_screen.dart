@@ -57,16 +57,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       }
     });
 
-    print('🟤 ORIGINAL STOPS DETECTADOS (${originalStops.length}):');
-    for (final entry in originalStops.entries) {
-      print('  - stop${entry.key}: ${entry.value['placeName']}');
-    }
-
-    print('🧾 CONTENIDO COMPLETO DEL TRIP:');
-    trip.forEach((key, value) {
-      print(' - $key: ${value is Map ? jsonEncode(value) : value}');
-    });
-
     final samePickup = _isSameLocation(originalPickup, newPickup);
     final sameDestination = _isSameLocation(originalDestination, newDestination);
     final originalStopsNormalized = _normalizeStops(originalStops);
@@ -74,17 +64,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
     final reachedIndexes = _extractReachedStopIndexes(trip);
 
     final filteredStops = <int, dynamic>{};
-
-    print('🟣 RAW allStops (${allStops.length}):');
-    allStops.forEach((k, v) => print('  - $k: ${v['placeName']}'));    print('🟠 RAW routeRequest["stops"]: ${routeRequest['stops']}');
-    print('🔵 reachedIndexes: $reachedIndexes');
-
-    print('🧩 ORIGINAL STOPS (${originalStopsNormalized.length}):');
-    for (final s in originalStopsNormalized) {
-      print('  - ${s['placeName']}');
-    }
-
-    print('🧩 FILTERED STOPS (${filteredStops.length})');
 
     allStops.forEach((key, value) {
       final keyStr = key.toString();
@@ -362,7 +341,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       points.add(LatLng(newDestination['latitude'], newDestination['longitude']));
     }
 
-    print('📌 Puntos construidos: ${points.map((p) => '(${p.latitude}, ${p.longitude})').toList()}');
     return points;
   }
 
