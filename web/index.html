@@ -7,8 +7,9 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
-  <!-- iOS meta tags & icons -->
+  <!-- iOS & Android meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="control_room">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -20,9 +21,9 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- Firebase Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-messaging.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-check.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app-check-compat.js"></script>
   
   <script>
     // Firebase configuration
@@ -56,9 +57,15 @@
 
   <!-- Google Maps API -->
   <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g&libraries=places"
-    defer
-  ></script>
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCJycpIn0CzrANDmkUj2I2xok6BhMk-y8g&libraries=places&callback=initMap&loading=async"
+    async
+></script>
+
+<script>
+    window.initMap = function () {
+      // Flutter controla el mapa, esto es solo para evitar warnings
+    };
+</script>
 
 </head>
 <body>
