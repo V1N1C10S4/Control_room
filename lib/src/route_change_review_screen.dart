@@ -583,7 +583,7 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       // Detectar stops actuales (stop1, stop2, ...)
       final currentStops = <String, dynamic>{};
       for (final entry in tripData.entries) {
-        if (RegExp(r'^stop\d+\$').hasMatch(entry.key)) {
+        if (RegExp(r'^stop\d+$').hasMatch(entry.key)) {
           currentStops[entry.key] = entry.value;
         }
       }
