@@ -3,6 +3,19 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:control_room/src/home_screen.dart';
 import 'package:web/web.dart' as html;
+import 'dart:js_interop';
+
+// Declaración JS interop
+@JS('Notification')
+@staticInterop
+class NotificationJS {}
+
+extension NotificationJSExtension on NotificationJS {
+  external JSPromise<JSString> requestPermission();
+}
+
+@JS('Notification')
+external NotificationJS get notification;
 
 class MyAppForm extends StatefulWidget {
   const MyAppForm({super.key});
@@ -14,6 +27,17 @@ class MyAppForm extends StatefulWidget {
 class _MyAppFormState extends State<MyAppForm> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  Future<String> solicitarPermisoNotificaciones() async {
+    try {
+      final JSPromise<JSString> promise = notification.requestPermission();
+      final JSString permissionJS = await promise.toDart;
+      return permissionJS.toDart;
+    } catch (e) {
+      print('⚠️ No se pudo obtener permiso de notificación: $e');
+      return 'denied';
+    }
+  }
 
   Future<void> _verificarCredenciales(BuildContext context, String usuario, String contrasena) async {
     try {
@@ -50,6 +74,20 @@ class _MyAppFormState extends State<MyAppForm> {
             html.window.sessionStorage['isSupervisor'] = collection['isSupervisor'].toString();
 
             if (mounted) {
+                final String permission = await solicitarPermisoNotificaciones();
+
+                print('🔔 Permiso notificación: $permission');
+
+                if (permission != 'granted') {
+                  Fluttertoast.showToast(
+                    msg: 'No se otorgaron permisos para notificaciones.',
+                    toastLength: Toast.LENGTH_SHORT,
+                    gravity: ToastGravity.BOTTOM,
+                    backgroundColor: Colors.orange,
+                    textColor: Colors.white,
+                  );
+                }
+
               // Navegar a la pantalla principal y pasar los parámetros
               Navigator.pushReplacement(
                 context,
