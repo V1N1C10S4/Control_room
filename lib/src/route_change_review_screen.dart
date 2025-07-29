@@ -69,7 +69,6 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       final keyStr = key.toString();
       if (RegExp(r'^\d+$').hasMatch(keyStr)) {
         final index = int.parse(keyStr);
-        print('🔍 Evaluando parada index=$index: $value');
         try {
           final stopMap = Map<String, dynamic>.from(value);
           if (!reachedIndexes.contains(index) && stopMap['latitude'] != null && stopMap['longitude'] != null) {
@@ -83,23 +82,31 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
       }
     });
 
+    final parsedStops = <int, dynamic>{};
+    allStops.forEach((key, value) {
+      final index = int.tryParse(key);
+      if (index != null) {
+        parsedStops[index] = value;
+      }
+    });
+
     final routePoints = _buildRoutePoints(
       newPickup: newPickup,
       newDestination: newDestination,
-      filteredStops: filteredStops,
+      filteredStops: parsedStops,
     );
 
     final routeMarkers = _buildRouteMarkers(
       newPickup: newPickup,
       newDestination: newDestination,
-      filteredStops: filteredStops,
+      filteredStops: parsedStops,
     );
 
     final pickupLatLng = LatLng(newPickup['latitude'], newPickup['longitude']);
     final destinationLatLng = LatLng(newDestination['latitude'], newDestination['longitude']);
-    final stopLatLngs = filteredStops.entries
-        .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
-        .toList();
+    final stopLatLngs = parsedStops.entries
+      .map((e) => LatLng(e.value['latitude'], e.value['longitude']))
+      .toList();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_routeFetched) {
@@ -139,8 +146,8 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             ),
             const SizedBox(height: 8),
 
-            if (filteredStops.isNotEmpty)
-              ...filteredStops.entries.map((e) {
+            if (parsedStops.isNotEmpty)
+              ...parsedStops.entries.map((e) {
                 final placeName = e.value['placeName'] ?? 'Sin nombre';
                 final isNew = isNewStop(e.value, originalStopsNormalized);
 
@@ -731,15 +738,47 @@ class _RouteChangeReviewScreenState extends State<RouteChangeReviewScreen> {
             .toList()
           ..sort();
 
+        print('📌 currentStatus: $currentStatus');
+        print('📌 pickedUpAt: $pickedUpAt');
+        print('📌 newStopIndices: $newStopIndices');
+
         if (pickedUpAt != null &&
-            currentStatus == 'picked up passenger' &&
-            newStopIndices.isNotEmpty) {
-          final targetIndex = newStopIndices.first;
-          final now = DateTime.now().toIso8601String();
-          await tripRef.update({
-            'status': 'on_stop_way_$targetIndex',
-            'on_stop_way_${targetIndex}_at': now,
-          });
+          currentStatus == 'picked up passenger' &&
+          newStopIndices.isNotEmpty) {
+        
+          print('📦 currentStatus: $currentStatus');
+          print('📦 pickedUpAt: $pickedUpAt');
+          print('🧩 Nuevas paradas detectadas (newStopIndices): $newStopIndices');
+
+          final reachedKeysRaw = tripData.keys
+              .where((k) => k.startsWith('stop_reached_'))
+              .toList();
+          print('🛑 Claves de paradas alcanzadas (raw): $reachedKeysRaw');
+
+          final reachedKeys = reachedKeysRaw
+              .map((k) {
+                final match = RegExp(r'^stop_reached_(\d+)_at$').firstMatch(k);
+                return match != null ? int.tryParse(match.group(1)!) : null;
+              })
+              .whereType<int>()
+              .toSet();
+
+          print('✅ Índices de paradas alcanzadas: $reachedKeys');
+
+          final nextStopIndex = newStopIndices.firstWhere(
+            (i) => !reachedKeys.contains(i),
+            orElse: () => -1,
+          );
+
+          print('🎯 Próxima parada que no ha sido alcanzada: $nextStopIndex');
+
+          if (nextStopIndex > 0) {
+            final now = DateTime.now().toIso8601String();
+            await tripRef.update({
+              'status': 'on_stop_way_$nextStopIndex',
+              'on_stop_way_${nextStopIndex}_at': now,
+            });
+          }
         }
       }
 
