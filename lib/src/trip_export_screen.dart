@@ -18,6 +18,7 @@ class _TripExportScreenState extends State<TripExportScreen> {
   bool _loading = false;
   List<Map<String, dynamic>> _filteredTrips = [];
   List<String> _tableKeys = [];
+  late final ScrollController _horizontalScrollController;  
   final List<String> staticFieldOrder = [
     "trip_id",
     "driver",
@@ -87,6 +88,18 @@ class _TripExportScreenState extends State<TripExportScreen> {
     "scheduled_at": "Fecha de viaje agendado",
     "cancellation_reason": "Razón de cancelación"
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _horizontalScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
@@ -416,8 +429,9 @@ class _TripExportScreenState extends State<TripExportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Exportar Viajes", style: TextStyle(color: Colors.white)),
-      backgroundColor: Colors.lightBlue,
+      appBar: AppBar(
+        title: const Text("Exportar Viajes", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.lightBlue,
         iconTheme: const IconThemeData(
           color: Colors.white,
         ),
@@ -472,54 +486,63 @@ class _TripExportScreenState extends State<TripExportScreen> {
                       ? _buildEmptyStateWithoutRange()
                       : _filteredTrips.isEmpty
                           ? _buildEmptyStateNoResults()
-                          : SingleChildScrollView(
-                              scrollDirection: Axis.vertical, // Scroll vertical por filas
+                          : Scrollbar(
+                              controller: _horizontalScrollController,
+                              thumbVisibility: true,
+                              interactive: true,
+                              trackVisibility: true,
+                              thickness: 12,
+                              radius: const Radius.circular(6),
                               child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal, // Scroll horizontal por columnas
-                                child: DataTable(
-                                  columns: _tableKeys.map((key) {
-                                    if (fieldTranslations.containsKey(key)) {
-                                      return DataColumn(label: Text(fieldTranslations[key]!));
-                                    } else if (key.startsWith('stop_reached_')) {
-                                      final parts = key.split('_');
-                                      if (parts.length >= 4 && int.tryParse(parts[2]) != null && parts[3] == 'at') {
-                                        final index = parts[2];
-                                        return DataColumn(label: Text('Parada $index alcanzada'));
-                                      } else {
-                                        return DataColumn(label: Text('Parada desconocida'));
-                                      }
-                                    } else if (key.startsWith('on_stop_way_')) {
-                                      final parts = key.split('_');
-                                      if (parts.length >= 4 && int.tryParse(parts[3]) != null) {
-                                        final index = parts[3];
-                                        return DataColumn(label: Text('En camino a parada $index'));
-                                      } else {
-                                        return DataColumn(label: Text('Camino desconocido'));
-                                      }
-                                    } else if (RegExp(r'^stop\d+$').hasMatch(key)) {
-                                      final index = key.replaceFirst('stop', '');
-                                      return DataColumn(label: Text('Parada $index'));
-                                    } else if (key.endsWith('_coords')) {
-                                      return DataColumn(label: Text('Coordenadas de ${_labelFromKey(key)}'));
-                                    }
-                                    return DataColumn(label: Text(key));
-                                  }).toList(),
-                                  rows: _filteredTrips.map((trip) => DataRow(
-                                    cells: _tableKeys.map((key) {
-                                      final rawValue = trip[key];
-                                      if (rawValue is String &&
-                                          RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
-                                        try {
-                                          final parsedDate = DateTime.parse(rawValue);
-                                          final formatted = DateFormat('dd/MM/yy HH:mm:ss').format(parsedDate);
-                                          return DataCell(Text(formatted));
-                                        } catch (_) {
-                                          return DataCell(Text(rawValue));
+                                scrollDirection: Axis.horizontal,
+                                controller: _horizontalScrollController,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.vertical,
+                                  child: DataTable(
+                                    columns: _tableKeys.map((key) {
+                                      if (fieldTranslations.containsKey(key)) {
+                                        return DataColumn(label: Text(fieldTranslations[key]!));
+                                      } else if (key.startsWith('stop_reached_')) {
+                                        final parts = key.split('_');
+                                        if (parts.length >= 4 && int.tryParse(parts[2]) != null && parts[3] == 'at') {
+                                          final index = parts[2];
+                                          return DataColumn(label: Text('Parada $index alcanzada'));
+                                        } else {
+                                          return DataColumn(label: Text('Parada desconocida'));
                                         }
+                                      } else if (key.startsWith('on_stop_way_')) {
+                                        final parts = key.split('_');
+                                        if (parts.length >= 4 && int.tryParse(parts[3]) != null) {
+                                          final index = parts[3];
+                                          return DataColumn(label: Text('En camino a parada $index'));
+                                        } else {
+                                          return DataColumn(label: Text('Camino desconocido'));
+                                        }
+                                      } else if (RegExp(r'^stop\d+\$').hasMatch(key)) {
+                                        final index = key.replaceFirst('stop', '');
+                                        return DataColumn(label: Text('Parada $index'));
+                                      } else if (key.endsWith('_coords')) {
+                                        return DataColumn(label: Text('Coordenadas de \${_labelFromKey(key)}'));
                                       }
-                                      return DataCell(Text(rawValue?.toString() ?? ''));
+                                      return DataColumn(label: Text(key));
                                     }).toList(),
-                                  )).toList(),
+                                    rows: _filteredTrips.map((trip) => DataRow(
+                                      cells: _tableKeys.map((key) {
+                                        final rawValue = trip[key];
+                                        if (rawValue is String &&
+                                            RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
+                                          try {
+                                            final parsedDate = DateTime.parse(rawValue);
+                                            final formatted = DateFormat('dd/MM/yy HH:mm:ss').format(parsedDate);
+                                            return DataCell(Text(formatted));
+                                          } catch (_) {
+                                            return DataCell(Text(rawValue));
+                                          }
+                                        }
+                                        return DataCell(Text(rawValue?.toString() ?? ''));
+                                      }).toList(),
+                                    )).toList(),
+                                  ),
                                 ),
                               ),
                             ),

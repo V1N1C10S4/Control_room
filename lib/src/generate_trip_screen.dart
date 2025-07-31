@@ -183,7 +183,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
     });
   }
 
-  Future<void> _getPlaceDetails(String placeId, bool isPickup) async {
+  Future<void> _getPlaceDetails(String placeId, bool isPickup, String description) async {
     // Construir la URL completa para Google Places a través de tu proxy
     String url =
         '$proxyBaseUrl/place/details/json?place_id=$placeId&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
@@ -201,7 +201,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
           setState(() {
             if (isPickup) {
               _pickupLocation = latLng;
-              _pickupAddress = data['result']['formatted_address'];
+              _pickupAddress = description;
               _pickupController.text = _pickupAddress ?? '';
               _pickupPredictions = [];
               _markers.add(Marker(
@@ -211,7 +211,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
               ));
             } else {
               _destinationLocation = latLng;
-              _destinationAddress = data['result']['formatted_address'];
+              _destinationAddress = description;
               _destinationController.text = _destinationAddress ?? '';
               _destinationPredictions = [];
               _markers.add(Marker(
@@ -751,7 +751,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 return ListTile(
                   title: Text(prediction['description']),
                   onTap: () {
-                    _getPlaceDetails(prediction['place_id'], isPickup);
+                    _getPlaceDetails(prediction['place_id'], isPickup, prediction['description']);
                   },
                 );
               },

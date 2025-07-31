@@ -211,7 +211,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
                   return ListTile(
                     title: Text(prediction['description']),
                     onTap: () {
-                      _getStopDetails(prediction['place_id'], index);
+                      _getStopDetails(prediction['place_id'], index, prediction['description']);
                       setState(() {
                         _stopPredictions[index] = [];
                       });
@@ -275,7 +275,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
     return [];
   }
 
-  Future<void> _getStopDetails(String placeId, int index) async {
+  Future<void> _getStopDetails(String placeId, int index, String description) async {
     String url = '$proxyBaseUrl/place/details/json?place_id=$placeId&key=AIzaSyAKW6JX-rpTCKFiEGJ3fLTg9lzM0GMHV4k';
 
     try {
@@ -287,7 +287,7 @@ class _GenerateStopsForTripScreenState extends State<GenerateStopsForTripScreen>
         if (data['status'] == 'OK') {
           final location = data['result']['geometry']['location'];
           final latLng = LatLng(location['lat'], location['lng']);
-          final address = data['result']['formatted_address'];
+          final address = description;
 
           setState(() {
             _stopControllers[index].text = address;

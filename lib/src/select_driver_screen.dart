@@ -308,62 +308,102 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
             ],
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _selectedDriver == null ? null : () async {
-                try {
-                  // 🔹 Actualizar Firestore para marcar a los conductores como ocupados
-                  await FirebaseFirestore.instance.collection('Conductores')
-                      .doc(_selectedDriver!["id"]).update({'Viaje': true});
+              onPressed: _selectedDriver == null
+                  ? null
+                  : () async {
+                      try {
+                        final tripRef = FirebaseDatabase.instance
+                            .ref()
+                            .child('trip_requests')
+                            .child(widget.tripRequest['id']);
 
-                  if (_selectedDriver2 != null) {
-                    await FirebaseFirestore.instance.collection('Conductores')
-                        .doc(_selectedDriver2!["id"]).update({'Viaje': true});
-                  }
+                        final snapshot = await tripRef.get();
+                        if (!snapshot.exists) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("El viaje ya no existe en la base de datos."),
+                            ),
+                          );
+                          return;
+                        }
 
-                  // 🔹 Actualizar Firebase Realtime Database con los conductores seleccionados
-                  final DatabaseReference tripRequestRef = FirebaseDatabase.instance
-                      .ref().child('trip_requests').child(widget.tripRequest['id']);
+                        final tripData = snapshot.value as Map;
+                        final currentStatus = tripData['status'];
+                        final hasDriver = tripData.containsKey('driver') &&
+                            (tripData['driver']?.toString().isNotEmpty ?? false);
 
-                  Map<String, dynamic> updateData = {
-                    'status': 'in progress',
-                    'driver': _selectedDriver!["id"],
-                    'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
-                  };
+                        if (currentStatus == 'in progress' && hasDriver) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Este viaje ya tiene un conductor asignado."),
+                            ),
+                          );
+                          return;
+                        }
 
-                  if (_selectedDriver2 != null) {
-                    updateData["driver2"] = _selectedDriver2!["id"];
-                    updateData["TelefonoConductor2"] = _selectedDriver2!["TelefonoConductor"];
-                  }
+                        // ✅ Actualizar Firestore para marcar a los conductores como ocupados
+                        await FirebaseFirestore.instance
+                            .collection('Conductores')
+                            .doc(_selectedDriver!["id"])
+                            .update({'Viaje': true});
 
-                  await tripRequestRef.update(updateData);
+                        if (_selectedDriver2 != null) {
+                          await FirebaseFirestore.instance
+                              .collection('Conductores')
+                              .doc(_selectedDriver2!["id"])
+                              .update({'Viaje': true});
+                        }
 
-                  _logger.i('Conductores asignados correctamente.');
+                        // ✅ Actualizar Firebase Realtime Database con los conductores seleccionados
+                        Map<String, dynamic> updateData = {
+                          'status': 'in progress',
+                          'driver': _selectedDriver!["id"],
+                          'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
+                        };
 
-                  // 🔹 Navegar a HomeScreen después de confirmar la asignación
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HomeScreen(
-                        usuario: widget.tripRequest['userId'],
-                        isSupervisor: widget.isSupervisor,
-                        region: widget.region,
-                      ),
-                    ),
-                    (Route<dynamic> route) => false,
-                  );
-                } catch (error) {
-                  _logger.e('Error al asignar los conductores: $error');
-                }
-              },
+                        if (_selectedDriver2 != null) {
+                          updateData["driver2"] = _selectedDriver2!["id"];
+                          updateData["TelefonoConductor2"] =
+                              _selectedDriver2!["TelefonoConductor"];
+                        }
+
+                        await tripRef.update(updateData);
+
+                        _logger.i('Conductores asignados correctamente.');
+
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => HomeScreen(
+                              usuario: widget.tripRequest['userId'],
+                              isSupervisor: widget.isSupervisor,
+                              region: widget.region,
+                            ),
+                          ),
+                          (Route<dynamic> route) => false,
+                        );
+                      } catch (error) {
+                        _logger.e('Error al asignar los conductores: $error');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Ocurrió un error al asignar el conductor."),
+                          ),
+                        );
+                      }
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
               ),
               child: const Text(
                 'Asignar y Continuar',
                 style: TextStyle(fontSize: 16, color: Colors.white),
               ),
-            ),
+            )
           ],
         ),
       ),
