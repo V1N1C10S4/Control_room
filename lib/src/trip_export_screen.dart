@@ -518,11 +518,11 @@ class _TripExportScreenState extends State<TripExportScreen> {
                                         } else {
                                           return DataColumn(label: Text('Camino desconocido'));
                                         }
-                                      } else if (RegExp(r'^stop\d+\$').hasMatch(key)) {
+                                      } else if (RegExp(r'^stop\d+$').hasMatch(key)) {
                                         final index = key.replaceFirst('stop', '');
                                         return DataColumn(label: Text('Parada $index'));
                                       } else if (key.endsWith('_coords')) {
-                                        return DataColumn(label: Text('Coordenadas de \${_labelFromKey(key)}'));
+                                        return DataColumn(label: Text('Coordenadas de ${_labelFromKey(key)}'));
                                       }
                                       return DataColumn(label: Text(key));
                                     }).toList(),
