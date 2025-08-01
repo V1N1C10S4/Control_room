@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'route_change_review_screen.dart';
+import 'generate_route_change_request_screen.dart';
 
 class OngoingTripScreen extends StatefulWidget {
   final String usuario;
@@ -479,6 +480,36 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                     ),
                                   ),
                                 ),
+
+                              // ✅ Botón azul solo si NO existe solicitud o no es "pending"
+                              if (!trip.containsKey("route_change_request") ||
+                                  trip["route_change_request"]["status"] != "pending")
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => RouteChangeControlRoomScreen(
+                                            trip: Map<String, dynamic>.from(trip),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8.0),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Solicitar cambio de ruta',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+
                               ElevatedButton(
                                 onPressed: () => _showCancelDialog(trip['id']),
                                 style: ElevatedButton.styleFrom(
@@ -493,7 +524,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                 ),
                               ),
                             ],
-                          ),
+                          )
                         ],
                       ),
                     ),

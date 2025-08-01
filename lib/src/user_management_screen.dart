@@ -171,7 +171,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            'UserId: ${user.id}\n'
+                            'Usuario: ${user.id}\n'
                             'Ciudad: ${userData['Ciudad'] ?? 'Sin Ciudad'}\n'
                             'Teléfono: ${userData['NumeroTelefono'] ?? 'Sin Teléfono'}',
                           ),

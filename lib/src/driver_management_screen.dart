@@ -165,7 +165,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Text(
-                            'Driver ID: ${driver.id}\n'
+                            'Usuario: ${driver.id}\n'
                             'Ciudad: ${driverData['Ciudad'] ?? 'Sin Ciudad'}\n'
                             'Teléfono: ${driverData['NumeroTelefono'] ?? 'Sin Teléfono'}',
                           ),

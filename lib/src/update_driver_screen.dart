@@ -207,6 +207,22 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
               decoration: const InputDecoration(labelText: 'Número del Supervisor'),
             ),
             const SizedBox(height: 10),
+            TextFormField(
+              initialValue: widget.driverKey,
+              decoration: const InputDecoration(
+                labelText: 'Usuario',
+              ),
+              readOnly: true,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              initialValue: widget.driverData['Contraseña'] ?? '',
+              decoration: const InputDecoration(
+                labelText: 'Contraseña',
+              ),
+              readOnly: true,
+            ),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () => _seleccionarYSubirNuevaFoto(widget.driverKey),
               icon: const Icon(Icons.image),

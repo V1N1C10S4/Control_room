@@ -157,7 +157,7 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
           children: [
             TextField(
               controller: _userNameController,
-              decoration: const InputDecoration(labelText: 'Nombre del Usuario'),
+              decoration: const InputDecoration(labelText: 'Nombre'),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -169,6 +169,23 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
               controller: _numeroTelefonoController,
               decoration: const InputDecoration(labelText: 'Número de Teléfono'),
               keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              initialValue: widget.userId,
+              decoration: const InputDecoration(
+                labelText: 'Usuario',
+              ),
+              readOnly: true,
+            ),
+            const SizedBox(height: 10),
+            if (widget.userData.containsKey('Contraseña'))
+            TextFormField(
+              initialValue: widget.userData['Contraseña'],
+              decoration: const InputDecoration(
+                labelText: 'Contraseña',
+              ),
+              readOnly: true,
             ),
             const SizedBox(height: 10),
             ElevatedButton.icon(
