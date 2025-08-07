@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
 import 'detail_request.dart'; // Importa la nueva pantalla
 import 'package:intl/intl.dart';
+import 'dart:async';
 
 class TripRequestScreen extends StatefulWidget {
   final String usuario;
@@ -18,11 +19,18 @@ class TripRequestScreenState extends State<TripRequestScreen> {
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   List<Map<dynamic, dynamic>> _tripRequests = [];
   final Logger _logger = Logger();
+  StreamSubscription<DatabaseEvent>? _tripSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchTripRequests();
+  }
+
+  @override
+  void dispose() {
+    _tripSubscription?.cancel();
+    super.dispose();
   }
 
   Widget buildEmptyState({
@@ -59,7 +67,7 @@ class TripRequestScreenState extends State<TripRequestScreen> {
   }
 
   void _fetchTripRequests() {
-    _databaseReference.child('trip_requests').onValue.listen((event) {
+    _tripSubscription = _databaseReference.child('trip_requests').onValue.listen((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
 
       if (data != null) {
@@ -92,19 +100,22 @@ class TripRequestScreenState extends State<TripRequestScreen> {
           (request['status'] == 'pending' || 
           request['status'] == 'authorized' || 
           request['status'] == 'in progress') &&
-          request['city']?.toString().toLowerCase() == widget.region.toLowerCase())// Filtrar por región
+          request['city']?.toString().toLowerCase() == widget.region.toLowerCase()) // Filtrar por región
         .toList();
 
+        if (!mounted) return; // ✅ Evita llamar setState si el widget ya no está montado
         setState(() {
           _tripRequests = tripRequests.reversed.toList(); // 🔄 Mostrar los más recientes primero
         });
       } else {
+        if (!mounted) return;
         setState(() {
           _tripRequests = [];
         });
       }
-    }).onError((error) {
+    }, onError: (error) {
       _logger.e('Error fetching trip requests: $error');
+      if (!mounted) return;
       setState(() {
         _tripRequests = [];
       });

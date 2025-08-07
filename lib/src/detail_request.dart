@@ -92,8 +92,6 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     }
 
     final tripData = snapshot.value as Map;
-    debugPrint("[🟡] tripData: $tripData");
-
     final currentStatus = tripData['status'];
     final driverValue = tripData['driver'];
     final hasDriver = tripData.containsKey('driver') && (driverValue?.toString().isNotEmpty ?? false);
@@ -103,66 +101,59 @@ class _DetailRequestScreenState extends State<DetailRequestScreen> {
     debugPrint("[✅] ¿Tiene conductor?: $hasDriver");
 
     if ((currentStatus == 'authorized' || currentStatus == 'in progress') && hasDriver) {
-      debugPrint("[🚫] El viaje ya fue autorizado o está en progreso, y tiene conductor: $driverValue");
+      debugPrint("[🚫] Ya autorizado o en progreso y con conductor asignado.");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Este viaje ya fue autorizado y tiene conductor asignado.")),
       );
       return;
     }
 
-    if (currentStatus == 'authorized' && !hasDriver) {
-      debugPrint("[🟢] Viaje autorizado, pero sin conductor. Navegando a selección de conductor...");
-      final selectedDriver = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SelectDriverScreen(
-            tripRequest: widget.tripRequest,
-            isSupervisor: widget.isSupervisor,
-            region: widget.region,
-          ),
-        ),
-      );
-
-      if (selectedDriver != null) {
-        debugPrint("[✅] Conductor seleccionado: ${selectedDriver['name']}");
-        await tripRef.update({
-          'driver': selectedDriver['name'],
-        });
-      }
-
-      return;
-    }
-
     if (newStatus == 'authorized') {
-      debugPrint("[🚀] Autorizando viaje por primera vez. Navegando a selección de conductor...");
-      final selectedDriver = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SelectDriverScreen(
-            tripRequest: widget.tripRequest,
-            isSupervisor: widget.isSupervisor,
-            region: widget.region,
-          ),
-        ),
-      );
+      debugPrint("[🚀] Autorizando viaje...");
 
-      if (selectedDriver != null) {
-        debugPrint("[✅] Conductor seleccionado: ${selectedDriver['name']}");
-        await tripRef.update({
-          'status': 'authorized',
-          'driver': selectedDriver['name'],
-        });
+      // 1. Cambiar el status a 'authorized'
+      await tripRef.update({
+        'status': 'authorized',
+      });
+
+      // 2. Si aún no tiene conductor, navegar a selección
+      if (!hasDriver) {
+        debugPrint("[➡️] No hay conductor. Redirigiendo a selección...");
+        final selectedDriver = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SelectDriverScreen(
+              tripRequest: widget.tripRequest,
+              isSupervisor: widget.isSupervisor,
+              region: widget.region,
+            ),
+          ),
+        );
+
+        if (selectedDriver != null) {
+          debugPrint("[✅] Conductor seleccionado: ${selectedDriver['name']}");
+          await tripRef.update({
+            'driver': selectedDriver['name'],
+          });
+        }
       }
 
       return;
     }
 
     if (newStatus == 'denied') {
-      debugPrint("[❌] Viaje denegado.");
+      debugPrint("[❌] Denegando viaje...");
       await tripRef.update({
         'status': 'denied',
       });
-      Navigator.pop(context);
+
+      // Mostrar mensaje de confirmación
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("El viaje ha sido denegado.")),
+      );
+
+      // Regresar automáticamente a la pantalla anterior
+      Navigator.pop(context); // o Navigator.of(context).maybePop();
     }
   }
 

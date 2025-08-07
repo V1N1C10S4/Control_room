@@ -466,16 +466,19 @@ class _HomeScreenState extends State<HomeScreen> {
   // Step 3: Upload the token to the database
   Future<void> _uploadTokenToDatabase(String token) async {
     try {
-      final controlRoomRef = _databaseReference.child('controlroom/${widget.usuario}');
-      await controlRoomRef.update({'fcmToken_2': token});
+      // Defer the update to avoid nested event dispatch
+      await Future.microtask(() async {
+        final controlRoomRef = _databaseReference.child('controlroom/${widget.usuario}');
+        await controlRoomRef.update({'fcmToken_2': token});
 
-      Fluttertoast.showToast(
-        msg: "Token updated successfully in database.",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
+        Fluttertoast.showToast(
+          msg: "Token updated successfully in database.",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      });
     } catch (e) {
       Fluttertoast.showToast(
         msg: "Error uploading token: $e",
@@ -489,12 +492,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Step 4: Listen for FCM token refresh events
   void _listenForTokenRefresh() {
-    _messaging.onTokenRefresh.listen((newToken) async {
+    _messaging.onTokenRefresh.listen((newToken) {
       print("FCM Token refreshed: $newToken");
+
       setState(() {
         _fcmToken = newToken;
       });
-      await _uploadTokenToDatabase(newToken);
+
+      // Solución: ejecutar fuera del contexto del evento
+      Future.microtask(() async {
+        await _uploadTokenToDatabase(newToken);
+      });
     });
   }
 
