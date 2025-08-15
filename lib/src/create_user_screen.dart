@@ -23,7 +23,6 @@ class UserCreationScreen extends StatefulWidget {
 class _UserCreationScreenState extends State<UserCreationScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _userIdController = TextEditingController();
-  final TextEditingController _ciudadController = TextEditingController();
   final TextEditingController _nombreUsuarioController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
   final TextEditingController _numeroTelefonoController = TextEditingController();
@@ -37,7 +36,7 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
       final userId = _userIdController.text.trim();
 
       final userData = {
-        'Ciudad': _ciudadController.text.trim(),
+        'Ciudad': widget.region,
         'NombreUsuario': _nombreUsuarioController.text.trim(),
         'Contraseña': _contrasenaController.text.trim(),
         'FotoPerfil': _fotoPerfilURL ?? '',
@@ -159,14 +158,10 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _ciudadController,
+                initialValue: widget.region,
                 decoration: const InputDecoration(labelText: 'Ciudad'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese la Ciudad';
-                  }
-                  return null;
-                },
+                readOnly: true,
+                enableInteractiveSelection: true,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -277,7 +272,6 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
   void dispose() {
     // Liberar los controladores
     _userIdController.dispose();
-    _ciudadController.dispose();
     _nombreUsuarioController.dispose();
     _contrasenaController.dispose();
     _numeroTelefonoController.dispose();

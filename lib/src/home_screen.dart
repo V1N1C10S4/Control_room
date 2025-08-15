@@ -8,7 +8,7 @@ import 'trip_request_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
 import 'driver_availability.dart';
-import 'driver_management_screen.dart';
+import 'management_hub_screen.dart';
 import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
 import 'cancelled_trip_screen.dart';
@@ -1070,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => DriverManagementScreen(
+                              builder: (context) => ManagementHubScreen(
                                 usuario: widget.usuario,
                                 region: widget.region,
                               ),

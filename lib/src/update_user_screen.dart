@@ -25,6 +25,7 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
   final _ciudadController = TextEditingController();
   final _numeroTelefonoController = TextEditingController();
   final _fotoPerfilController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -153,68 +154,100 @@ class _UpdateUserScreenState extends State<UpdateUserScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            TextField(
-              controller: _userNameController,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _ciudadController,
-              decoration: const InputDecoration(labelText: 'Ciudad'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _numeroTelefonoController,
-              decoration: const InputDecoration(labelText: 'Número de Teléfono'),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 10),
-            TextFormField(
-              initialValue: widget.userId,
-              decoration: const InputDecoration(
-                labelText: 'Usuario',
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: ListView(
+            children: [
+              TextFormField(
+                controller: _userNameController,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Por favor, ingrese el Nombre' : null,
               ),
-              readOnly: true,
-            ),
-            const SizedBox(height: 10),
-            if (widget.userData.containsKey('Contraseña'))
-            TextFormField(
-              initialValue: widget.userData['Contraseña'],
-              decoration: const InputDecoration(
-                labelText: 'Contraseña',
+              const SizedBox(height: 10),
+
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(labelText: 'Ciudad'),
+                value: const ['Tabasco', 'CDMX'].contains(_ciudadController.text)
+                    ? _ciudadController.text
+                    : null,
+                items: const [
+                  DropdownMenuItem(value: 'Tabasco', child: Text('Tabasco')),
+                  DropdownMenuItem(value: 'CDMX', child: Text('CDMX')),
+                ],
+                onChanged: (val) {
+                  if (val == null) return;
+                  setState(() => _ciudadController.text = val);
+                },
+                validator: (val) =>
+                    (val == null || val.trim().isEmpty) ? 'Selecciona una ciudad' : null,
+                hint: const Text('Selecciona una ciudad'),
               ),
-              readOnly: true,
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: () => _seleccionarYSubirNuevaFoto(widget.userId),
-              icon: const Icon(Icons.image),
-              label: const Text('Cambiar Foto de Perfil'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[700],
-                foregroundColor: Colors.white,
+              const SizedBox(height: 10),
+
+              TextFormField(
+                controller: _numeroTelefonoController,
+                decoration: const InputDecoration(labelText: 'Número de Teléfono'),
+                keyboardType: TextInputType.phone,
+                validator: (v) {
+                  final value = (v ?? '').trim();
+                  if (value.isEmpty) return 'Por favor, ingrese el Número de Teléfono';
+                  if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                    return 'El número debe tener 10 dígitos';
+                  }
+                  return null;
+                },
               ),
-            ),
-            if (_fotoPerfilController.text.isNotEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: Text("Imagen actualizada ✅", style: TextStyle(color: Colors.green)),
+              const SizedBox(height: 10),
+
+              TextFormField(
+                initialValue: widget.userId,
+                decoration: const InputDecoration(labelText: 'Usuario'),
+                readOnly: true,
               ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _confirmAndUpdateUserData,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde militar
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              const SizedBox(height: 10),
+
+              if (widget.userData.containsKey('Contraseña'))
+                TextFormField(
+                  initialValue: widget.userData['Contraseña'],
+                  decoration: const InputDecoration(labelText: 'Contraseña'),
+                  readOnly: true,
+                ),
+              const SizedBox(height: 10),
+
+              ElevatedButton.icon(
+                onPressed: () => _seleccionarYSubirNuevaFoto(widget.userId),
+                icon: const Icon(Icons.image),
+                label: const Text('Cambiar Foto de Perfil'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  foregroundColor: Colors.white,
+                ),
               ),
-              child: const Text(
-                'Guardar Cambios',
-                style: TextStyle(fontSize: 16, color: Colors.white), // Texto blanco
+              if (_fotoPerfilController.text.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text("Imagen actualizada ✅", style: TextStyle(color: Colors.green)),
+                ),
+              const SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed: () {
+                  if (_formKey.currentState?.validate() != true) return;
+                  _confirmAndUpdateUserData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(120, 170, 90, 1),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Guardar Cambios',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

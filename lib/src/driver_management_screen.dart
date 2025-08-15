@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'update_driver_screen.dart';
 import 'create_driver_screen.dart'; // Nueva pantalla para crear conductores
@@ -21,6 +22,7 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
   List<QueryDocumentSnapshot> _allDrivers = [];
   List<QueryDocumentSnapshot> _filteredDrivers = [];
   String _searchQuery = "";
+  StreamSubscription<QuerySnapshot>? _driversSub;
 
   @override
   void initState() {
@@ -29,17 +31,34 @@ class _DriverManagementScreenState extends State<DriverManagementScreen> {
   }
 
   void _fetchDrivers() {
-    FirebaseFirestore.instance.collection('Conductores').snapshots().listen((snapshot) {
+    _driversSub?.cancel(); // cancela previa
+
+    _driversSub = FirebaseFirestore.instance
+        .collection('Conductores')
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
       setState(() {
         _allDrivers = snapshot.docs.where((driver) {
-          // Filtra los conductores por la misma región del operador
           final driverData = driver.data();
           final ciudad = (driverData['Ciudad'] ?? '').toString().toLowerCase();
           return ciudad == widget.region.toLowerCase();
         }).toList();
         _applySearch();
       });
+    }, onError: (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error leyendo conductores: $e')),
+      );
     });
+  }
+
+  @override
+  void dispose() {
+    // 4) CANCELA la suscripción para evitar fugas
+    _driversSub?.cancel();
+    super.dispose();
   }
 
   void _applySearch() {

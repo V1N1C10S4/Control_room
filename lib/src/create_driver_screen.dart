@@ -20,13 +20,16 @@ class CreateDriverScreen extends StatefulWidget {
 
 class _CreateDriverScreenState extends State<CreateDriverScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controladores existentes
   final TextEditingController _driverIdController = TextEditingController();
-  final TextEditingController _ciudadController = TextEditingController();
   final TextEditingController _nombreConductorController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
   final TextEditingController _numeroTelefonoController = TextEditingController();
   final TextEditingController _infoVehiculoController = TextEditingController();
   final TextEditingController _placasController = TextEditingController();
+
+  // Mantendremos estos dos, pero los volveremos read-only y los llenaremos desde el selector
   final TextEditingController _nombreSupervisorController = TextEditingController();
   final TextEditingController _numeroSupervisorController = TextEditingController();
 
@@ -34,73 +37,20 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
   bool _isPasswordVisible = false;
   String? _fotoPerfilURL;
 
-  void _saveDriver() async {
-    if (_formKey.currentState!.validate()) {
-      final driverId = _driverIdController.text.trim();
+  // Estado de selección de supervisor
+  String? _selectedSupervisorId; // doc.id del supervisor seleccionado
 
-      final driverData = {
-        'Ciudad': _ciudadController.text.trim(),
-        'NombreConductor': _nombreConductorController.text.trim(),
-        'Contraseña': _contrasenaController.text.trim(),
-        'FotoPerfil': _fotoPerfilURL ?? '',
-        'NumeroTelefono': _numeroTelefonoController.text.trim(),
-        'InfoVehiculo': _infoVehiculoController.text.trim(),
-        'Placas': _placasController.text.trim(),
-        'NombreSupervisor': _nombreSupervisorController.text.trim(),
-        'NumeroSupervisor': _numeroSupervisorController.text.trim(),
-        'Estatus': 'disponible',
-        'Viaje': false,
-      };
-
-      try {
-        setState(() {
-          _isSaving = true;
-        });
-
-        // Guardar documento en Firestore bajo "Conductores/{driverId}"
-        await FirebaseFirestore.instance.collection('Conductores').doc(driverId).set(driverData);
-
-        setState(() {
-          _isSaving = false;
-        });
-
-        // Mostrar ventana de confirmación
-        _showConfirmationDialog();
-      } catch (e) {
-        setState(() {
-          _isSaving = false;
-        });
-
-        // Mostrar error en caso de fallo
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear el conductor: $e')),
-        );
-      }
-    }
-  }
-
-  void _showConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Conductor Creado'),
-          content: const Text('El conductor ha sido creado exitosamente.'),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Cerrar diálogo
-                Navigator.pop(context); // Regresar a la pantalla anterior
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromRGBO(149, 189, 64, 1), // Verde militar
-              ),
-              child: const Text('Aceptar', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _driverIdController.dispose();
+    _nombreConductorController.dispose();
+    _contrasenaController.dispose();
+    _numeroTelefonoController.dispose();
+    _infoVehiculoController.dispose();
+    _placasController.dispose();
+    _nombreSupervisorController.dispose();
+    _numeroSupervisorController.dispose();
+    super.dispose();
   }
 
   Future<void> _seleccionarYSubirFoto(String driverId) async {
@@ -115,6 +65,7 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
         reader.readAsArrayBuffer(file);
         await reader.onLoad.first;
 
+        // Nota: en web, reader.result suele ser ByteBuffer; tus pantallas actuales lo tratan igual
         final data = Uint8List.fromList(reader.result as List<int>);
         final storageRef = FirebaseStorage.instance.ref().child('profile_pictures/$driverId.jpg');
 
@@ -126,10 +77,12 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
             _fotoPerfilURL = downloadUrl;
           });
 
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Foto de perfil subida correctamente.')),
           );
         } catch (e) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error al subir la foto: $e')),
           );
@@ -138,70 +91,189 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
     });
   }
 
+  Future<void> _saveDriver() async {
+    if (_formKey.currentState!.validate() != true) return;
+
+    final driverId = _driverIdController.text.trim();
+
+    // Construcción del payload con supervisor seleccionado
+    final driverData = {
+      'Ciudad': widget.region,
+      'NombreConductor': _nombreConductorController.text.trim(),
+      'Contraseña': _contrasenaController.text.trim(),
+      'FotoPerfil': _fotoPerfilURL ?? '',
+      'NumeroTelefono': _numeroTelefonoController.text.trim(),
+      'InfoVehiculo': _infoVehiculoController.text.trim(),
+      'Placas': _placasController.text.trim(),
+      // Denormalizados para UI rápida:
+      'NombreSupervisor': _nombreSupervisorController.text.trim(),
+      'NumeroSupervisor': _numeroSupervisorController.text.trim(),
+      // Puntero (referencia lógica):
+      'supervisorId': _selectedSupervisorId,
+      'Estatus': 'disponible',
+      'Viaje': false,
+    };
+
+    try {
+      setState(() => _isSaving = true);
+
+      await FirebaseFirestore.instance
+          .collection('Conductores')
+          .doc(driverId)
+          .set(driverData);
+
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showConfirmationDialog();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al crear el conductor: $e')),
+      );
+    }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          title: const Text('Conductor Creado'),
+          content: const Text('El conductor ha sido creado exitosamente.'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromRGBO(149, 189, 64, 1),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Aceptar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Selector de supervisores por región.
+  /// Llena automáticamente NombreSupervisor/NumeroSupervisor (read-only).
+  Widget _supervisorSelector() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Supervisores')
+          .where('Ciudad', isEqualTo: widget.region)
+          .snapshots(),
+      builder: (context, snapshot) {
+        // Estados de carga/errores
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return DropdownButtonFormField<String>(
+            items: [],
+            onChanged: null,
+            decoration: InputDecoration(labelText: 'Supervisor'),
+            hint: Text('Cargando supervisores...'),
+          );
+        }
+        if (snapshot.hasError) {
+          return DropdownButtonFormField<String>(
+            items: const [],
+            onChanged: null,
+            decoration: const InputDecoration(labelText: 'Supervisor'),
+            hint: const Text('Error al cargar'),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        // Construir ítems
+        final items = docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final tel = (data['Número de teléfono'] ?? '').toString();
+          return DropdownMenuItem<String>(
+            value: doc.id,
+            child: Text('${doc.id}${tel.isNotEmpty ? ' · $tel' : ''}'),
+          );
+        }).toList();
+
+        return DropdownButtonFormField<String>(
+          decoration: const InputDecoration(labelText: 'Supervisor'),
+          value: (docs.any((d) => d.id == _selectedSupervisorId)) ? _selectedSupervisorId : null,
+          items: items,
+          onChanged: (val) {
+            if (val == null) return;
+            setState(() {
+              _selectedSupervisorId = val;
+              // Buscar doc para rellenar denormalizados
+              final selectedDoc = docs.firstWhere((d) => d.id == val);
+              final data = selectedDoc.data() as Map<String, dynamic>;
+              final tel = (data['Número de teléfono'] ?? '').toString();
+
+              // Llenamos los controladores (read-only en UI) para guardar denormalizados
+              _nombreSupervisorController.text = selectedDoc.id;
+              _numeroSupervisorController.text = tel;
+            });
+          },
+          validator: (v) => (v == null || v.isEmpty) ? 'Selecciona un supervisor' : null,
+          hint: const Text('Selecciona un supervisor'),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const brand = Color.fromRGBO(149, 189, 64, 1);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Crear Conductor',
-          style: TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color.fromRGBO(149, 189, 64, 1), // Verde militar
+        title: const Text('Crear Conductor', style: TextStyle(color: Colors.white)),
+        backgroundColor: brand,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: ListView(
             children: [
               TextFormField(
                 controller: _driverIdController,
                 decoration: const InputDecoration(labelText: 'Driver ID'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese un Driver ID';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                    (value == null || value.trim().isEmpty) ? 'Por favor, ingrese un Driver ID' : null,
               ),
               const SizedBox(height: 16),
+
+              // Ciudad fija por navegación
               TextFormField(
-                controller: _ciudadController,
+                initialValue: widget.region,
                 decoration: const InputDecoration(labelText: 'Ciudad'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese la Ciudad';
-                  }
-                  return null;
-                },
+                readOnly: true,
+                enableInteractiveSelection: true,
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _nombreConductorController,
                 decoration: const InputDecoration(labelText: 'Nombre del Conductor'),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese el Nombre del Conductor';
-                  }
-                  return null;
-                },
+                validator: (value) =>
+                    (value == null || value.trim().isEmpty) ? 'Por favor, ingrese el Nombre del Conductor' : null,
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _contrasenaController,
                 obscureText: !_isPasswordVisible,
                 decoration: InputDecoration(
                   labelText: 'Contraseña',
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
+                    icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                   ),
                 ),
                 validator: (value) {
@@ -215,6 +287,8 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
+              // Foto (opcional)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -232,84 +306,74 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
                       _seleccionarYSubirFoto(driverId);
                     },
                     label: const Text("Seleccionar imagen", style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromRGBO(149, 189, 64, 1),
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: brand),
                   ),
                   if (_fotoPerfilURL != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
                       child: Text("Imagen subida ✅", style: TextStyle(color: Colors.green)),
                     ),
                 ],
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _numeroTelefonoController,
                 decoration: const InputDecoration(labelText: 'Número de Teléfono'),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Por favor, ingrese el Número de Teléfono';
-                  }
-                  if (value.length != 10) {
-                    return 'El número debe tener 10 dígitos';
-                  }
+                  final v = (value ?? '').trim();
+                  if (v.isEmpty) return 'Por favor, ingrese el Número de Teléfono';
+                  if (!RegExp(r'^\d{10}$').hasMatch(v)) return 'El número debe tener 10 dígitos';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _infoVehiculoController,
                 decoration: const InputDecoration(labelText: 'Info del Vehículo'),
               ),
               const SizedBox(height: 16),
+
               TextFormField(
                 controller: _placasController,
                 decoration: const InputDecoration(labelText: 'Placas'),
               ),
               const SizedBox(height: 16),
+
+              // === NUEVO: Selector de Supervisor por región ===
+              _supervisorSelector(),
+              const SizedBox(height: 12),
+
+              // Campos informativos rellenos por el selector (no editables)
               TextFormField(
                 controller: _nombreSupervisorController,
-                decoration: const InputDecoration(labelText: 'Nombre del Supervisor'),
+                readOnly: true,
+                decoration: const InputDecoration(labelText: 'Nombre del Supervisor (auto)'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _numeroSupervisorController,
-                decoration: const InputDecoration(labelText: 'Número del Supervisor'),
+                readOnly: true,
+                decoration: const InputDecoration(labelText: 'Número del Supervisor (auto)'),
               ),
               const SizedBox(height: 24),
+
               ElevatedButton(
                 onPressed: _isSaving ? null : _saveDriver,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromRGBO(149, 189, 64, 1),
+                  backgroundColor: brand,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Guardar Conductor',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                    : const Text('Guardar Conductor', style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _driverIdController.dispose();
-    _ciudadController.dispose();
-    _nombreConductorController.dispose();
-    _contrasenaController.dispose();
-    _numeroTelefonoController.dispose();
-    _infoVehiculoController.dispose();
-    _placasController.dispose();
-    _nombreSupervisorController.dispose();
-    _numeroSupervisorController.dispose();
-    super.dispose();
   }
 }
