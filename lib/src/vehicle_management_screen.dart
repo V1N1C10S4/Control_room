@@ -1,26 +1,27 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'create_supervisor_screen.dart';
-import 'update_supervisor_screen.dart';
+import 'create_vehicle_screen.dart';
+import 'update_vehicle_screen.dart';
 
-class SupervisorManagementScreen extends StatefulWidget {
+class VehicleManagementScreen extends StatefulWidget {
   final String usuario;
   final String region;
 
-  const SupervisorManagementScreen({
+  const VehicleManagementScreen({
     super.key,
     required this.usuario,
     required this.region,
   });
 
   @override
-  State<SupervisorManagementScreen> createState() => _SupervisorManagementScreenState();
+  State<VehicleManagementScreen> createState() => _VehicleManagementScreenState();
 }
 
-class _SupervisorManagementScreenState extends State<SupervisorManagementScreen> {
-  final Color _brand = const Color.fromRGBO(120, 170, 90, 1);
-  late final StreamSubscription<QuerySnapshot> _sub;
+class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
+  static const Color _brand = Color.fromRGBO(90, 150, 200, 1);
+
+  StreamSubscription<QuerySnapshot>? _sub;
   List<QueryDocumentSnapshot> _all = [];
   List<QueryDocumentSnapshot> _filtered = [];
   String _search = "";
@@ -28,14 +29,25 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
   @override
   void initState() {
     super.initState();
-    _sub = FirebaseFirestore.instance.collection('Supervisores').snapshots().listen((snapshot) {
-      _all = snapshot.docs.where((doc) {
-        final data = doc.data();
-        final ciudad = (data['Ciudad'] ?? '').toString().toLowerCase();
-        return ciudad == widget.region.toLowerCase();
-      }).toList();
+    _listenVehicles();
+  }
+
+  void _listenVehicles() {
+    _sub?.cancel();
+    _sub = FirebaseFirestore.instance
+        .collection('UnidadesVehiculares')
+        .where('Ciudad', isEqualTo: widget.region)
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      _all = snapshot.docs;
       _applySearch();
-      if (mounted) setState(() {});
+      setState(() {});
+    }, onError: (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error leyendo vehículos: $e')),
+      );
     });
   }
 
@@ -48,19 +60,23 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
       final data = doc.data() as Map<String, dynamic>;
       final id = doc.id.toLowerCase();
       final ciudad = (data['Ciudad'] ?? '').toString().toLowerCase();
-      final tel = (data['Número de teléfono'] ?? '').toString().toLowerCase();
-      return id.contains(_search) || ciudad.contains(_search) || tel.contains(_search);
+      final placas = (data['Placas'] ?? '').toString().toLowerCase();
+      final info = (data['InfoVehiculo'] ?? '').toString().toLowerCase();
+      return id.contains(_search) ||
+          ciudad.contains(_search) ||
+          placas.contains(_search) ||
+          info.contains(_search);
     }).toList();
   }
 
-  void _confirmAndDelete(String supervisorId) {
+  void _confirmAndDelete(String vehicleId) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         title: const Text('Confirmar eliminación'),
-        content: const Text('¿Deseas eliminar este supervisor? Esta acción no se puede deshacer.'),
+        content: const Text('¿Deseas eliminar esta unidad? Esta acción no se puede deshacer.'),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -71,15 +87,15 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await FirebaseFirestore.instance.collection('Supervisores').doc(supervisorId).delete();
+                await FirebaseFirestore.instance.collection('UnidadesVehiculares').doc(vehicleId).delete();
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Supervisor eliminado exitosamente.')),
+                  const SnackBar(content: Text('Unidad eliminada exitosamente.')),
                 );
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error al eliminar el supervisor: $e')),
+                  SnackBar(content: Text('Error al eliminar la unidad: $e')),
                 );
               }
             },
@@ -93,7 +109,7 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
 
   @override
   void dispose() {
-    _sub.cancel();
+    _sub?.cancel();
     super.dispose();
   }
 
@@ -101,7 +117,7 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestión de Supervisores', style: TextStyle(color: Colors.white)),
+        title: const Text('Gestión de Vehículos', style: TextStyle(color: Colors.white)),
         backgroundColor: _brand,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -111,7 +127,7 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
             padding: const EdgeInsets.all(8),
             child: TextField(
               decoration: InputDecoration(
-                labelText: 'Buscar supervisores...',
+                labelText: 'Buscar vehículos...',
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -125,26 +141,27 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
           Expanded(
             child: _filtered.isEmpty
                 ? const Center(
-                    child: Text('No se encontraron supervisores.', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                    child: Text('No se encontraron vehículos.', style: TextStyle(fontSize: 18, color: Colors.grey)),
                   )
                 : ListView.builder(
                     itemCount: _filtered.length,
                     itemBuilder: (context, index) {
                       final doc = _filtered[index];
                       final data = doc.data() as Map<String, dynamic>;
-                      final foto = (data['FotoPerfil'] ?? '').toString();
+                      final foto = (data['Foto'] ?? '').toString();
 
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         child: ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: (foto.isNotEmpty) ? NetworkImage(foto) : null,
-                            child: (foto.isEmpty) ? const Icon(Icons.person) : null,
+                            backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
+                            child: foto.isEmpty ? const Icon(Icons.directions_car) : null,
                           ),
                           title: Text(doc.id, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(
-                            'Ciudad: ${data['Ciudad'] ?? 'Sin Ciudad'}\n'
-                            'Teléfono: ${data['Número de teléfono'] ?? 'Sin Teléfono'}',
+                            'Ciudad: ${data['Ciudad'] ?? 'N/D'}\n'
+                            'Placas: ${data['Placas'] ?? 'N/D'}\n'
+                            'Vehículo: ${data['InfoVehiculo'] ?? 'N/D'}',
                           ),
                           trailing: Wrap(
                             spacing: 8,
@@ -154,21 +171,27 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => UpdateSupervisorScreen(
+                                      builder: (_) => UpdateVehicleScreen(
                                         usuario: widget.usuario,
-                                        supervisorId: doc.id,
-                                        supervisorData: data,
+                                        vehicleId: doc.id,
+                                        vehicleData: data,
                                       ),
                                     ),
                                   );
                                 },
-                                style: ElevatedButton.styleFrom(backgroundColor: _brand, foregroundColor: Colors.white),
-                                child: const Text('Actualizar supervisor'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _brand,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Actualizar'),
                               ),
                               ElevatedButton(
                                 onPressed: () => _confirmAndDelete(doc.id),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-                                child: const Text('Eliminar supervisor'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Eliminar'),
                               ),
                             ],
                           ),
@@ -180,18 +203,18 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        heroTag: 'supervisor_creation',
+        heroTag: 'vehicle_creation',
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => CreateSupervisorScreen(usuario: widget.usuario, region: widget.region),
+              builder: (_) => CreateVehicleScreen(usuario: widget.usuario, region: widget.region),
             ),
           );
         },
         backgroundColor: _brand,
         child: const Icon(Icons.add, color: Colors.white),
-        tooltip: 'Crear Supervisor',
+        tooltip: 'Crear Vehículo',
       ),
     );
   }

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'driver_management_screen.dart';
 import 'supervisor_management_screen.dart';
-// import 'vehicle_management_screen.dart'; // pendiente (botón desactivado)
+import 'vehicle_management_screen.dart';
 
-/// Hub de gestión con navegación a Conductores, Supervisores y Vehículos.
-/// Se recibe `usuario` y `region` para propagarlos a las pantallas hijas.
-/// Por ahora, el botón de Vehículos está desactivado (onPressed: null).
 class ManagementHubScreen extends StatelessWidget {
   final String usuario;
   final String region;
@@ -16,25 +13,29 @@ class ManagementHubScreen extends StatelessWidget {
     required this.region,
   });
 
-  static const Color _brand = Color.fromRGBO(149, 189, 64, 1);
+  // Paleta por sección (texto en blanco para buen contraste)
+  static const Color _driversColor     = Color.fromRGBO(149, 189, 64, 1); // Conductores
+  static const Color _supervisorsColor = Color.fromRGBO(120, 170, 90, 1); // Supervisores
+  static const Color _vehiclesColor    = Color.fromRGBO(90, 150, 200, 1);  // Vehículos (azulado)
+  static const Color _appBarColor      = _driversColor;
 
-  // Botón grande reutilizable; altura generosa para buena tocabilidad.
+  // Botón grande reutilizable con color parametrizable
   Widget _bigActionButton({
     required BuildContext context,
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback? onPressed,
+    required Color color,                  // <- nuevo parámetro
+    Color foreground = Colors.white,       // opcional, por si algún color necesita texto negro
   }) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: onPressed, // null = desactivado (vehículos por ahora)
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _brand,
-          disabledBackgroundColor: Colors.grey.shade500, // para el botón desactivado
-          foregroundColor: Colors.white,
-          disabledForegroundColor: Colors.white,
+          backgroundColor: color,  // mantiene identidad aun deshabilitado
+          foregroundColor: foreground,
           minimumSize: const Size.fromHeight(110),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -68,7 +69,7 @@ class ManagementHubScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Panel de Gestión', style: TextStyle(color: Colors.white)),
-        backgroundColor: _brand,
+        backgroundColor: _appBarColor,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
@@ -77,9 +78,10 @@ class ManagementHubScreen extends StatelessWidget {
           children: [
             _bigActionButton(
               context: context,
-              icon: Icons.local_shipping, // Conductores
+              icon: Icons.local_shipping,
               title: 'Gestión de Conductores',
               subtitle: 'Altas, edición, eliminación',
+              color: _driversColor, // <- color único
               onPressed: () {
                 Navigator.push(
                   context,
@@ -95,9 +97,10 @@ class ManagementHubScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _bigActionButton(
               context: context,
-              icon: Icons.supervisor_account, // Supervisores
+              icon: Icons.supervisor_account,
               title: 'Gestión de Supervisores',
               subtitle: 'Altas, edición, eliminación',
+              color: _supervisorsColor, // <- color único
               onPressed: () {
                 Navigator.push(
                   context,
@@ -113,10 +116,21 @@ class ManagementHubScreen extends StatelessWidget {
             const SizedBox(height: 16),
             _bigActionButton(
               context: context,
-              icon: Icons.directions_car, // Vehículos (desactivado)
+              icon: Icons.directions_car,
               title: 'Gestión de Vehículos',
-              subtitle: 'Próximamente',
-              onPressed: null, // deshabilitado por ahora
+              subtitle: 'Altas, edición, eliminación',
+              color: _vehiclesColor, // <- color único
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VehicleManagementScreen(
+                      usuario: usuario,
+                      region: region,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

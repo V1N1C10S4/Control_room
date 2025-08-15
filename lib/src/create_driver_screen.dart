@@ -39,6 +39,7 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
 
   // Estado de selección de supervisor
   String? _selectedSupervisorId; // doc.id del supervisor seleccionado
+  String? _selectedVehicleId;
 
   @override
   void dispose() {
@@ -91,24 +92,36 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
     });
   }
 
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _saveDriver() async {
     if (_formKey.currentState!.validate() != true) return;
 
-    final driverId = _driverIdController.text.trim();
+    if (_selectedVehicleId == null) {
+      _showSnack('Selecciona un vehículo');
+      return;
+    }
+    if (_selectedSupervisorId == null) {
+      _showSnack('Selecciona un supervisor');
+      return;
+    }
 
-    // Construcción del payload con supervisor seleccionado
+    final driverId = _driverIdController.text.trim();
     final driverData = {
       'Ciudad': widget.region,
       'NombreConductor': _nombreConductorController.text.trim(),
       'Contraseña': _contrasenaController.text.trim(),
       'FotoPerfil': _fotoPerfilURL ?? '',
       'NumeroTelefono': _numeroTelefonoController.text.trim(),
+      // Denormalizados llenados por los selectores
       'InfoVehiculo': _infoVehiculoController.text.trim(),
       'Placas': _placasController.text.trim(),
-      // Denormalizados para UI rápida:
       'NombreSupervisor': _nombreSupervisorController.text.trim(),
       'NumeroSupervisor': _numeroSupervisorController.text.trim(),
-      // Puntero (referencia lógica):
+      // Punteros
+      'vehicleId': _selectedVehicleId,
       'supervisorId': _selectedSupervisorId,
       'Estatus': 'disponible',
       'Viaje': false,
@@ -330,15 +343,70 @@ class _CreateDriverScreenState extends State<CreateDriverScreen> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
-                controller: _infoVehiculoController,
-                decoration: const InputDecoration(labelText: 'Info del Vehículo'),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('UnidadesVehiculares')
+                    .where('Ciudad', isEqualTo: widget.region)
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return DropdownButtonFormField<String>(
+                      items: [], onChanged: null,
+                      decoration: InputDecoration(labelText: 'Vehículo'),
+                      hint: Text('Cargando vehículos...'),
+                    );
+                  }
+                  if (snap.hasError) {
+                    return DropdownButtonFormField<String>(
+                      items: [], onChanged: null,
+                      decoration: InputDecoration(labelText: 'Vehículo'),
+                      hint: Text('Error al cargar'),
+                    );
+                  }
+
+                  final docs = snap.data?.docs ?? [];
+                  final items = docs.map((d) {
+                    final data = d.data() as Map<String, dynamic>;
+                    final placas = (data['Placas'] ?? '').toString();
+                    return DropdownMenuItem<String>(
+                      value: d.id,
+                      child: Text('${d.id}${placas.isNotEmpty ? " · $placas" : ""}'),
+                    );
+                  }).toList();
+
+                  return DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Vehículo'),
+                    value: _selectedVehicleId,
+                    items: items,
+                    onChanged: (val) {
+                      if (val == null) return;
+                      setState(() {
+                        _selectedVehicleId = val;
+                        final sel = docs.firstWhere((d) => d.id == val);
+                        final data = sel.data() as Map<String, dynamic>;
+                        _infoVehiculoController.text = (data['InfoVehiculo'] ?? '').toString();
+                        _placasController.text = (data['Placas'] ?? '').toString();
+                      });
+                    },
+                    validator: (v) => (v == null || v.isEmpty) ? 'Selecciona un vehículo' : null,
+                    hint: const Text('Selecciona un vehículo'),
+                  );
+                },
               ),
               const SizedBox(height: 16),
 
               TextFormField(
+                controller: _infoVehiculoController,
+                decoration: const InputDecoration(labelText: 'Info del Vehículo (auto)'),
+                readOnly: true,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Selecciona un vehículo' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _placasController,
-                decoration: const InputDecoration(labelText: 'Placas'),
+                decoration: const InputDecoration(labelText: 'Placas (auto)'),
+                readOnly: true,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Selecciona un vehículo' : null,
               ),
               const SizedBox(height: 16),
 

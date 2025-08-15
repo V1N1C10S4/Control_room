@@ -22,7 +22,7 @@ class _UpdateSupervisorScreenState extends State<UpdateSupervisorScreen> {
   final _ciudadController = TextEditingController();
   final _telefonoController = TextEditingController();
 
-  final Color _brand = const Color.fromRGBO(149, 189, 64, 1);
+  final Color _brand = const Color.fromRGBO(120, 170, 90, 1);
 
   @override
   void initState() {

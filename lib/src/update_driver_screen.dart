@@ -31,6 +31,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
   final _fotoPerfilController = TextEditingController(); // Nuevo controlador para FotoPerfil
   final _formKey = GlobalKey<FormState>();
   String? _selectedSupervisorId;
+  String? _selectedVehicleId;
 
   @override
   void initState() {
@@ -43,8 +44,9 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
     _estatusDisponible = estatusRaw == 'disponible';
     _placasController.text = widget.driverData['Placas'] ?? '';
     _nombreSupervisorController.text = widget.driverData['NombreSupervisor'] ?? '';
-    _fotoPerfilController.text = widget.driverData['FotoPerfil'] ?? ''; // Inicializar con el valor actual
+    _fotoPerfilController.text = widget.driverData['FotoPerfil'] ?? '';
     _selectedSupervisorId = widget.driverData['supervisorId'];
+    _selectedVehicleId   = widget.driverData['vehicleId']; // <-- FALTA
   }
 
   @override
@@ -144,6 +146,7 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
       'Placas': _placasController.text,
       'NombreSupervisor': _nombreSupervisorController.text, // denormalizado
       'supervisorId': _selectedSupervisorId,                // referencia lógica
+      'vehicleId': _selectedVehicleId,  
       'FotoPerfil': _fotoPerfilController.text,
     };
 
@@ -194,9 +197,12 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
                   if (val == null) return;
                   setState(() {
                     _ciudadController.text = val;
-                    _selectedSupervisorId = null;        // limpia selección previa
-                    _nombreSupervisorController.clear(); // limpia denormalizados
+                    _selectedSupervisorId = null;
+                    _nombreSupervisorController.clear();
                     _numeroSupervisorController.clear();
+                    _selectedVehicleId = null;
+                    _infoVehiculoController.clear();
+                    _placasController.clear();
                   });
                 },
                 validator: (val) =>
@@ -213,17 +219,85 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
               ),
               const SizedBox(height: 10),
 
+              StreamBuilder<QuerySnapshot>(
+                stream: (_ciudadController.text.isEmpty)
+                    ? const Stream<QuerySnapshot>.empty()
+                    : FirebaseFirestore.instance
+                        .collection('UnidadesVehiculares')
+                        .where('Ciudad', isEqualTo: _ciudadController.text)
+                        .snapshots(),
+                builder: (context, snap) {
+                  if (_ciudadController.text.isEmpty) {
+                    return DropdownButtonFormField<String>(
+                      items: [],
+                      onChanged: null,
+                      decoration: InputDecoration(labelText: 'Vehículo'),
+                      hint: Text('Selecciona primero una ciudad'),
+                    );
+                  }
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return DropdownButtonFormField<String>(
+                      items: [],
+                      onChanged: null,
+                      decoration: InputDecoration(labelText: 'Vehículo'),
+                      hint: Text('Cargando vehículos...'),
+                    );
+                  }
+                  if (snap.hasError) {
+                    return DropdownButtonFormField<String>(
+                      items: [],
+                      onChanged: null,
+                      decoration: InputDecoration(labelText: 'Vehículo'),
+                      hint: Text('Error al cargar'),
+                    );
+                  }
+
+                  final docs = snap.data?.docs ?? [];
+                  final items = docs.map((d) {
+                    final data = d.data() as Map<String, dynamic>;
+                    final placas = (data['Placas'] ?? '').toString();
+                    return DropdownMenuItem<String>(
+                      value: d.id,
+                      child: Text('${d.id}${placas.isNotEmpty ? " · $placas" : ""}'),
+                    );
+                  }).toList();
+
+                  final exists = docs.any((d) => d.id == _selectedVehicleId);
+
+                  return DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Vehículo'),
+                    value: exists ? _selectedVehicleId : null,
+                    items: items,
+                    onChanged: (val) {
+                      if (val == null) return;
+                      setState(() {
+                        _selectedVehicleId = val;
+                        final sel = docs.firstWhere((d) => d.id == val);
+                        final data = sel.data() as Map<String, dynamic>;
+                        _infoVehiculoController.text = (data['InfoVehiculo'] ?? '').toString();
+                        _placasController.text = (data['Placas'] ?? '').toString();
+                      });
+                    },
+                    validator: (v) => (v == null || v.isEmpty) ? 'Selecciona un vehículo' : null,
+                    hint: const Text('Selecciona un vehículo'),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+
               TextFormField(
                 controller: _infoVehiculoController,
-                decoration: const InputDecoration(labelText: 'Info. del Vehículo'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                decoration: const InputDecoration(labelText: 'Info. del Vehículo (auto)'),
+                readOnly: true,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Selecciona un vehículo' : null,
               ),
               const SizedBox(height: 10),
 
               TextFormField(
                 controller: _placasController,
-                decoration: const InputDecoration(labelText: 'Placas'),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+                decoration: const InputDecoration(labelText: 'Placas (auto)'),
+                readOnly: true,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Selecciona un vehículo' : null,
               ),
               const SizedBox(height: 10),
 
@@ -347,7 +421,15 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
 
               ElevatedButton(
                 onPressed: () {
-                  if (_formKey.currentState?.validate() != true) return; // evita guardar con vacíos
+                  if (_formKey.currentState?.validate() != true) return;
+                  if (_selectedVehicleId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un vehículo')));
+                    return;
+                  }
+                  if (_selectedSupervisorId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecciona un supervisor')));
+                    return;
+                  }
                   _confirmAndUpdateDriverData();
                 },
                 style: ElevatedButton.styleFrom(

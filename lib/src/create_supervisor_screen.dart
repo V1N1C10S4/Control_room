@@ -23,7 +23,7 @@ class _CreateSupervisorScreenState extends State<CreateSupervisorScreen> {
   final _telefonoController = TextEditingController();
 
   bool _isSaving = false;
-  static const _brand = Color.fromRGBO(149, 189, 64, 1);
+  static const _brand = Color.fromRGBO(120, 170, 90, 1);
 
   @override
   void dispose() {
