@@ -163,7 +163,7 @@ class _SupervisorManagementScreenState extends State<SupervisorManagementScreen>
                                   );
                                 },
                                 style: ElevatedButton.styleFrom(backgroundColor: _brand, foregroundColor: Colors.white),
-                                child: const Text('Actualizar supervisor'),
+                                child: const Text('Detalles'),
                               ),
                               ElevatedButton(
                                 onPressed: () => _confirmAndDelete(doc.id),

@@ -183,7 +183,7 @@ class _VehicleManagementScreenState extends State<VehicleManagementScreen> {
                                   backgroundColor: _brand,
                                   foregroundColor: Colors.white,
                                 ),
-                                child: const Text('Actualizar'),
+                                child: const Text('Detalles'),
                               ),
                               ElevatedButton(
                                 onPressed: () => _confirmAndDelete(doc.id),

@@ -321,7 +321,6 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
         data.forEach((key, value) {
           if (value['userName'] == userName) { // Comparar userName
             fcmToken = value['fcmToken']; // Copiar el fcmToken si hay coincidencia
-            print("FCM Token encontrado: $fcmToken");
             return; // Rompe el bucle una vez encontrada la coincidencia
           }
         });

@@ -17,6 +17,9 @@ import 'trip_export_screen.dart';
 import 'scheduled_trip_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:control_room/src/widgets/trip_monitor_panel.dart';
+import 'package:control_room/src/widgets/map_panel.dart';
+import 'package:control_room/models/map_focus.dart';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -54,6 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _unreviewedScheduledTrips = 0;
   final Set<String> _shownRouteChangeStatuses = {};
   int _pendingRouteChangeCount = 0;
+  final ValueNotifier<String?> _selectedDriverId = ValueNotifier<String?>(null);
+  final selectedMapFocus = ValueNotifier<MapFocus?>(null);
 
   @override
   void initState() {
@@ -70,6 +75,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForNewMessages();
     _listenToRouteChangeStatuses();
     _listenToPendingRouteChanges();
+  }
+
+  @override
+  void dispose() {
+    _selectedDriverId.dispose();
+    super.dispose();
   }
 
   void _listenForEmergencies() {
@@ -632,11 +643,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 14),
+          Icon(icon, color: Colors.white, size: 9),
           const SizedBox(width: 4),
           Text(
             count > 9 ? '9+' : '$count',
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 9),
           ),
         ],
       ),
@@ -663,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 14,
+            fontSize: 10,
           ),
         ),
       ),
@@ -717,422 +728,478 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Container(
         color: const Color.fromARGB(255, 27, 25, 31), // Fondo negro
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ScheduledTripScreen(region: widget.region),
-                                ),
-                              );
-                            },
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.event_note, size: 50, color: Colors.white), 
-                                SizedBox(height: 10),
-                                Text(
-                                  'Viajes Programados',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (_scheduledLessThan2h > 0) _buildStatusBubble(_scheduledLessThan2h, Colors.red, Icons.alarm), // 🔴 Menos de 2 horas
-                              if (_scheduledLessThan6h > 0) _buildStatusBubble(_scheduledLessThan6h, Colors.yellow, Icons.timer), // 🟠 Menos de 6 horas
-                              if (_scheduledLessThan12h > 0) _buildStatusBubble(_scheduledLessThan12h, Colors.green, Icons.access_time), // 🔵 Menos de 12 horas
-                              if (_unreviewedScheduledTrips > 0) _buildStatusBubble(_unreviewedScheduledTrips, Colors.blue, Icons.visibility_off), // 🟣 No revisados
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TripRequestScreen(
-                                    usuario: widget.usuario,
-                                    isSupervisor: widget.isSupervisor,
-                                    region: widget.region,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.directions_car, size: 50, color: Colors.white),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Solicitudes de Viajes',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (_pendingCount > 0) _buildStatusBubble(_pendingCount, Colors.red, Icons.new_releases),
-                              if (_authorizedCount > 0) _buildStatusBubble(_authorizedCount, Colors.orange, Icons.check_circle),
-                              if (_inProgressCount > 0) _buildStatusBubble(_inProgressCount, Colors.blue, Icons.directions_run),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => OngoingTripScreen(
-                                    usuario: widget.usuario,
-                                    region: widget.region,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.directions_run, size: 50, color: Colors.white),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Viajes en Progreso',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              if (_startedCount > 0) _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car),
-                              if (_passengerReachedCount > 0) _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place),
-                              if (_pickedUpPassengerCount > 0) _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.people),
-                              if (_pendingRouteChangeCount > 0) _buildStatusBubble(_pendingRouteChangeCount, Colors.purple, Icons.alt_route),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            SizedBox(
+              width: 340, // ajusta si lo quieres más angosto/ancho
+              child: TripMonitorPanel(
+                isSupervisor: widget.isSupervisor,
+                usuario: widget.usuario,
+                region: widget.region,
+                selectedDriverId: _selectedDriverId,
+                selectedMapFocus: selectedMapFocus,
               ),
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(158, 212, 176, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => FinishedTripScreen(
-                                    usuario: widget.usuario,
-                                    region: widget.region,
-                                  )),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.check_circle, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Viajes Terminados',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(110, 191, 137, 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => DriverAvailability(
-                                    usuario: widget.usuario,
-                                    region: widget.region,
-                                  )),
-                        );
-                      },
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.local_taxi, size: 50, color: Colors.white),
-                          SizedBox(height: 10),
-                          Text(
-                            'Conductores Disponibles',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red[300]!,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EmergencyDuringTripScreen(region: widget.region),
-                                ),
-                              );
-                            },
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.warning, size: 50, color: Colors.white),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Emergencias',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (_emergencyCount > 0)
-                          Positioned(top: 8, right: 8, child: _buildNotificationBubble(_emergencyCount)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        SizedBox.expand(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromRGBO(255, 99, 71, 1),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                            ),
-                            onPressed: () async {
-                              // Marcar todos los viajes cancelados como revisados en Firebase
-                              final tripRequestsRef = _databaseReference.child('trip_requests');
-                              final snapshot = await tripRequestsRef.orderByChild('status').equalTo('trip cancelled').get();
 
-                              if (snapshot.exists) {
-                                final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
-                                
-                                data.forEach((key, value) {
-                                  if (value is Map && value['city'] == widget.region) {
-                                    tripRequestsRef.child(key).update({'reviewed': true});
-                                  }
-                                });
-                              }
+            const SizedBox(width: 16),
 
-                              _resetCancelledTripsCount(); // Actualiza la UI
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CancelledTripsScreen(region: widget.region),
-                                ),
-                              );
-                            },
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.cancel, size: 50, color: Colors.white),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Viajes Cancelados',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (_cancelledTripsCount > 0)
-                          Positioned(top: 8, right: 8, child: _buildNotificationBubble(_cancelledTripsCount)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (widget.isSupervisor)
-              const SizedBox(height: 16),
-            if (widget.isSupervisor)
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(150, 190, 65, 1), // Verde militar
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ManagementHubScreen(
-                                usuario: widget.usuario,
-                                region: widget.region,
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+          Expanded(
+            child: Column (
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Stack(
                           children: [
-                            Icon(Icons.settings, size: 50, color: Colors.white),
-                            SizedBox(height: 10),
-                            Text(
-                              'Gestión de Conductores y Vehículos',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          SizedBox.expand(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.lightBlue, // Color similar al de la imagen
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.0),
+                            SizedBox.expand(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromRGBO(180, 180, 255, 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ScheduledTripScreen(region: widget.region),
+                                    ),
+                                  );
+                                },
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.event_note, size: 30, color: Colors.white), 
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Viajes Programados',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TripExportScreen(region: widget.region),
-                                  ),
-                                );
-                              },
-                              child: const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Icon(Icons.file_download, size: 50, color: Colors.white), // Icono de mensajes
-                                  SizedBox(height: 10),
-                                  Text(
-                                    'Exportar datos',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.white),
-                                  ),
+                                  if (_scheduledLessThan2h > 0) _buildStatusBubble(_scheduledLessThan2h, Colors.red, Icons.alarm), // 🔴 Menos de 2 horas
+                                  if (_scheduledLessThan6h > 0) _buildStatusBubble(_scheduledLessThan6h, Colors.yellow, Icons.timer), // 🟠 Menos de 6 horas
+                                  if (_scheduledLessThan12h > 0) _buildStatusBubble(_scheduledLessThan12h, Colors.green, Icons.access_time), // 🔵 Menos de 12 horas
+                                  if (_unreviewedScheduledTrips > 0) _buildStatusBubble(_unreviewedScheduledTrips, Colors.blue, Icons.visibility_off), // 🟣 No revisados
                                 ],
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            SizedBox.expand(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TripRequestScreen(
+                                        usuario: widget.usuario,
+                                        isSupervisor: widget.isSupervisor,
+                                        region: widget.region,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.directions_car, size: 30, color: Colors.white),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Solicitudes de Viajes',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (_pendingCount > 0) _buildStatusBubble(_pendingCount, Colors.red, Icons.new_releases),
+                                  if (_authorizedCount > 0) _buildStatusBubble(_authorizedCount, Colors.orange, Icons.check_circle),
+                                  if (_inProgressCount > 0) _buildStatusBubble(_inProgressCount, Colors.blue, Icons.directions_run),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            SizedBox.expand(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromRGBO(207, 215, 107, 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => OngoingTripScreen(
+                                        usuario: widget.usuario,
+                                        region: widget.region,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.directions_run, size: 30, color: Colors.white),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Viajes en Progreso',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (_startedCount > 0) _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car),
+                                  if (_passengerReachedCount > 0) _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place),
+                                  if (_pickedUpPassengerCount > 0) _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.people),
+                                  if (_pendingRouteChangeCount > 0) _buildStatusBubble(_pendingRouteChangeCount, Colors.purple, Icons.alt_route),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(158, 212, 176, 1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => FinishedTripScreen(
+                                        usuario: widget.usuario,
+                                        region: widget.region,
+                                      )),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle, size: 30, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Viajes Terminados',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromRGBO(110, 191, 137, 1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => DriverAvailability(
+                                        usuario: widget.usuario,
+                                        region: widget.region,
+                                      )),
+                            );
+                          },
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.local_taxi, size: 30, color: Colors.white),
+                              SizedBox(height: 10),
+                              Text(
+                                'Conductores Disponibles',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            SizedBox.expand(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red[300]!,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EmergencyDuringTripScreen(region: widget.region),
+                                    ),
+                                  );
+                                },
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.warning, size: 30, color: Colors.white),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Emergencias',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (_emergencyCount > 0)
+                              Positioned(top: 8, right: 8, child: _buildNotificationBubble(_emergencyCount)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            SizedBox.expand(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromRGBO(255, 99, 71, 1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  // Marcar todos los viajes cancelados como revisados en Firebase
+                                  final tripRequestsRef = _databaseReference.child('trip_requests');
+                                  final snapshot = await tripRequestsRef.orderByChild('status').equalTo('trip cancelled').get();
+
+                                  if (snapshot.exists) {
+                                    final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+                                    
+                                    data.forEach((key, value) {
+                                      if (value is Map && value['city'] == widget.region) {
+                                        tripRequestsRef.child(key).update({'reviewed': true});
+                                      }
+                                    });
+                                  }
+
+                                  _resetCancelledTripsCount(); // Actualiza la UI
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CancelledTripsScreen(region: widget.region),
+                                    ),
+                                  );
+                                },
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.cancel, size: 30, color: Colors.white),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      'Viajes Cancelados',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (_cancelledTripsCount > 0)
+                              Positioned(top: 8, right: 8, child: _buildNotificationBubble(_cancelledTripsCount)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.isSupervisor)
+                  const SizedBox(height: 16),
+                if (widget.isSupervisor)
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromRGBO(150, 190, 65, 1), // Verde militar
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ManagementHubScreen(
+                                    usuario: widget.usuario,
+                                    region: widget.region,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.settings, size: 30, color: Colors.white),
+                                SizedBox(height: 10),
+                                Text(
+                                  'Gestión de Conductores y Vehículos',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Stack(
+                            children: [
+                              SizedBox.expand(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.lightBlue, // Color similar al de la imagen
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8.0),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => TripExportScreen(region: widget.region),
+                                      ),
+                                    );
+                                  },
+                                  child: const Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.file_download, size: 30, color: Colors.white), // Icono de mensajes
+                                      SizedBox(height: 10),
+                                      Text(
+                                        'Exportar datos',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16), // Espacio entre los botones
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde diferente
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserManagementScreen(
+                                    usuario: widget.usuario,
+                                    region: widget.region,
+                                    isSupervisor: widget.isSupervisor,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.people, size: 30, color: Colors.white), // Icono de usuarios
+                                SizedBox(height: 10),
+                                Text(
+                                  'Gestión de Pasajeros',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16), // Espacio entre los botones
-                    Expanded(
+                  ),
+                  if (widget.isSupervisor) const SizedBox(height: 16),
+                  if (widget.isSupervisor)
+                    SizedBox(
+                      width: double.infinity,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(120, 170, 90, 1), // Verde diferente
+                          backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
+                          padding: const EdgeInsets.symmetric(vertical: 24.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),
@@ -1140,67 +1207,36 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => UserManagementScreen(
-                                usuario: widget.usuario,
-                                region: widget.region,
-                                isSupervisor: widget.isSupervisor,
-                              ),
-                            ),
+                            MaterialPageRoute(builder: (context) => GenerateTripScreen()),
                           );
                         },
-                        child: const Column(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.people, size: 50, color: Colors.white), // Icono de usuarios
-                            SizedBox(height: 10),
-                            Text(
-                              'Gestión de Pasajeros',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            Icon(Icons.map, size: 25, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text('Generar Viaje',
+                                style: TextStyle(color: Colors.white, fontSize: 22)),
                           ],
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            if (widget.isSupervisor) // Solo mostrar el botón si es supervisor
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: SizedBox(
-                  width: double.infinity, // Ocupa todo el renglón
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromRGBO(107, 202, 186, 1),
-                      padding: const EdgeInsets.symmetric(vertical: 24.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => GenerateTripScreen(),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.map, size: 28, color: Colors.white), // Ícono que representa un viaje
-                        SizedBox(width: 8),
-                        Text(
-                          'Generar Viaje',
-                          style: TextStyle(color: Colors.white, fontSize: 22),
-                        ),
-                      ],
+
+                  // ====== Mapa (placeholder real) ======
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 250,
+                    width: double.infinity,
+                    child: MapPanel(
+                      usuario: widget.usuario,
+                      region: widget.region,
+                      selectedDriverId: _selectedDriverId,
+                      selectedMapFocus: selectedMapFocus,
                     ),
                   ),
-                ),
+                ],
               ),
+            ),
           ],
         ),
       ),

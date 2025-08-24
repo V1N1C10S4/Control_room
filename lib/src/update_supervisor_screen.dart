@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'update_driver_screen.dart';
 
 class UpdateSupervisorScreen extends StatefulWidget {
   final String usuario;
@@ -149,7 +150,7 @@ class _UpdateSupervisorScreenState extends State<UpdateSupervisorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Actualizar Supervisor - ${widget.supervisorId}', style: const TextStyle(color: Colors.white)),
+        title: Text('Detalles de Supervisor - ${widget.supervisorId}', style: const TextStyle(color: Colors.white)),
         backgroundColor: _brand,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -189,6 +190,96 @@ class _UpdateSupervisorScreenState extends State<UpdateSupervisorScreen> {
                 onPressed: _confirmAndUpdate,
                 style: ElevatedButton.styleFrom(backgroundColor: _brand, padding: const EdgeInsets.symmetric(vertical: 12)),
                 child: const Text('Guardar Cambios', style: TextStyle(fontSize: 16, color: Colors.white)),
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              // Conductores vinculados (solo lectura, en vivo)
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('Conductores')
+                    .where('supervisorId', isEqualTo: widget.supervisorId)
+                    .snapshots(),
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: LinearProgressIndicator(),
+                    );
+                  }
+                  if (snap.hasError) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Text('Error al cargar conductores vinculados'),
+                    );
+                  }
+
+                  final docs = snap.data?.docs ?? [];
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Conductores vinculados',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 8),
+                          Chip(label: Text('${docs.length}')),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+
+                      if (docs.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                          child: Text('Sin conductores vinculados.'),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true, // evita scroll anidado
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: docs.length,
+                          separatorBuilder: (_, __) => const Divider(height: 8),
+                          itemBuilder: (context, i) {
+                            final d = docs[i];
+                            final data = d.data() as Map<String, dynamic>;
+                            final nombre = (data['NombreConductor'] ?? 'Sin Nombre').toString();
+                            final tel    = (data['NumeroTelefono'] ?? '').toString();
+                            final foto   = (data['FotoPerfil'] ?? '').toString();
+                            final ciudad = (data['Ciudad'] ?? '').toString();
+                            final est    = (data['Estatus'] ?? '').toString();
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
+                                child: foto.isEmpty ? const Icon(Icons.person) : null,
+                              ),
+                              title: Text(nombre),
+                              subtitle: Text(
+                                'Usuario: ${d.id}\n'
+                                'Tel: ${tel.isEmpty ? 'N/D' : tel} · Ciudad: $ciudad · Estatus: $est',
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UpdateDriverScreen(
+                                      usuario: widget.usuario,
+                                      driverKey: d.id,
+                                      driverData: data, // del snapshot actual
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
