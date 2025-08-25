@@ -129,7 +129,8 @@ class _MapPanelState extends State<MapPanel> {
         markerId: markerId,
         position: f.target,
         infoWindow: InfoWindow(title: f.title, snippet: f.snippet),
-        zIndexInt: 1000,
+        // ignore: deprecated_member_use
+        zIndex: 1000.0, 
       );
     });
 
@@ -348,7 +349,8 @@ class _MapPanelState extends State<MapPanel> {
                               markerId: MarkerId(id),
                               position: pos,
                               icon: _driverDot ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-                              zIndexInt: 1,
+                              // ignore: deprecated_member_use
+                              zIndex: 1.0,
                               infoWindow: InfoWindow(title: id),
                               onTap: () {
                                 if (widget.selectedMapFocus.value != null) widget.selectedMapFocus.value = null;
