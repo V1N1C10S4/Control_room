@@ -273,6 +273,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showEmergencyBanner(String message) {
+    debugPrint('[EMERGENCY][REQ] message="$message" mounted=$mounted');
+
+    if (!mounted) {
+      debugPrint('[EMERGENCY][SKIP] widget not mounted');
+      return;
+    }
+
     final snackBar = SnackBar(
       content: Text(
         message,
@@ -282,10 +289,27 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Colors.red,
     );
 
-    // Ensure the context is still valid before showing
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        debugPrint('[EMERGENCY][SKIP] postFrame but widget unmounted');
+        return;
+      }
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      debugPrint('[EMERGENCY][POST] messengerIsNull=${messenger == null}');
+
+      if (messenger == null) {
+        debugPrint('[EMERGENCY][ERR] No ScaffoldMessenger in context.');
+        return;
+      }
+
+      try {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(snackBar);
+        debugPrint('[EMERGENCY][SHOW] ok');
+      } catch (e, st) {
+        debugPrint('[EMERGENCY][EXC] $e\n$st');
+      }
+    });
   }
 
   void _playEmergencyAlert() async {
@@ -402,18 +426,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Muestra una notificación tipo banner.
   void _showBannerNotification(String message, {Color? backgroundColor}) {
+    debugPrint('[BANNER][REQ] message="$message" mounted=$mounted');
+
+    if (!mounted) {
+      debugPrint('[BANNER][SKIP] widget not mounted');
+      return;
+    }
+
     final snackBar = SnackBar(
-      content: Text(
-        message,
-        style: const TextStyle(fontSize: 16, color: Colors.white),
-      ),
+      content: Text(message, style: const TextStyle(fontSize: 16, color: Colors.white)),
       duration: const Duration(seconds: 6),
-      backgroundColor: backgroundColor ?? Colors.blue, // Azul por defecto
+      backgroundColor: backgroundColor ?? Colors.blue,
     );
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-    }
+    // Diferir al próximo frame: evita que se pierda si el Scaffold aún no existe
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        debugPrint('[BANNER][SKIP] postFrame but widget unmounted');
+        return;
+      }
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      debugPrint('[BANNER][POST] messengerIsNull=${messenger == null} hasSnackBar=???');
+
+      if (messenger == null) {
+        debugPrint('[BANNER][ERR] No ScaffoldMessenger in context. ¿Esta pantalla está dentro de un Scaffold?');
+        return;
+      }
+
+      try {
+        messenger.hideCurrentSnackBar();
+        messenger.showSnackBar(snackBar);
+        debugPrint('[BANNER][SHOW] ok');
+      } catch (e, st) {
+        debugPrint('[BANNER][EXC] $e\n$st');
+      }
+    });
   }
 
   void _playNotificationSound() async {

@@ -128,12 +128,16 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
             "id": driverId,
             "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
             "TelefonoConductor": telefonoConductor,
+            "InfoVehiculo": driverData?["InfoVehiculo"] ?? "",
+            "Placas": driverData?["Placas"] ?? "",
           };
         } else if (_selectedDriver2 == null && _selectedDriver!["id"] != driverId) {
           _selectedDriver2 = {
             "id": driverId,
             "NombreConductor": driverData?["NombreConductor"] ?? "Desconocido",
             "TelefonoConductor": telefonoConductor,
+            "InfoVehiculo": driverData?["InfoVehiculo"] ?? "",
+            "Placas": driverData?["Placas"] ?? "",
           };
           _isSelectingSecondDriver = false;
         }
@@ -243,7 +247,10 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                     'Conductor seleccionado: ${_selectedDriver!["NombreConductor"]}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('Teléfono: ${_selectedDriver!["TelefonoConductor"]}'),
+                  subtitle: Text(
+                    'Teléfono: ${_selectedDriver!["TelefonoConductor"]}\n'
+                    'Vehículo: ${_selectedDriver!["InfoVehiculo"]} · Placas: ${_selectedDriver!["Placas"]}',
+                  ),
                 ),
               ),
             ],
@@ -258,7 +265,10 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                     'Segundo conductor: ${_selectedDriver2!["NombreConductor"]}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('Teléfono: ${_selectedDriver2!["TelefonoConductor"]}'),
+                  subtitle: Text(
+                    'Teléfono: ${_selectedDriver2!["TelefonoConductor"]}\n'
+                    'Vehículo: ${_selectedDriver2!["InfoVehiculo"]} · Placas: ${_selectedDriver2!["Placas"]}',
+                  ),
                 ),
               ),
             ],
@@ -357,14 +367,32 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         // ✅ Actualizar Firebase Realtime Database con los conductores seleccionados
                         Map<String, dynamic> updateData = {
                           'status': 'in progress',
+
+                          // id principal + alias por compatibilidad
                           'driver': _selectedDriver!["id"],
+
+                          // 🔹 NOMBRE del conductor
+                          'driverName': _selectedDriver!["NombreConductor"],
+
+                          // 🔹 TELÉFONO
                           'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
+
+                          // 🔹 Vehículo (nombres canónicos que ya consumes en TripMonitorPanel)
+                          'vehiclePlates': _selectedDriver!["Placas"] ?? '',
+                          'vehicleInfo':   _selectedDriver!["InfoVehiculo"] ?? '',
                         };
 
+                        // Segundo conductor (si aplica)
                         if (_selectedDriver2 != null) {
-                          updateData["driver2"] = _selectedDriver2!["id"];
-                          updateData["TelefonoConductor2"] =
-                              _selectedDriver2!["TelefonoConductor"];
+                          updateData.addAll({
+                            'driver2': _selectedDriver2!["id"],
+                            'driver2Name': _selectedDriver2!["NombreConductor"],
+                            'TelefonoConductor2': _selectedDriver2!["TelefonoConductor"],
+
+                            // vehículo del segundo conductor (por si quieres mostrarlo después)
+                            'vehicle2Plates': _selectedDriver2!["Placas"] ?? '',
+                            'vehicle2Info':   _selectedDriver2!["InfoVehiculo"] ?? '',
+                          });
                         }
 
                         await tripRef.update(updateData);

@@ -37,9 +37,9 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   Widget _initialScreen() {
-    final usuario = html.window.sessionStorage['usuario'];
-    final region = html.window.sessionStorage['region'];
-    final isSupervisor = html.window.sessionStorage['isSupervisor'];
+    final usuario = html.window.sessionStorage.getItem('usuario');
+    final region = html.window.sessionStorage.getItem('region');
+    final isSupervisor = html.window.sessionStorage.getItem('isSupervisor');
 
     if (usuario != null && region != null && isSupervisor != null) {
       final bool isSup = isSupervisor.toLowerCase() == 'true';

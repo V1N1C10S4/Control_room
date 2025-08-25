@@ -67,11 +67,14 @@ class _MyAppFormState extends State<MyAppForm> {
               backgroundColor: Colors.green,
               textColor: Colors.white,
             );
+            
+            final regionStr = collection['region'] as String;
+            final isSup = collection['isSupervisor'] as bool;
 
-            // Guardar sesión en sessionStorage
-            html.window.sessionStorage['usuario'] = usuario;
-            html.window.sessionStorage['region'] = collection['region'];
-            html.window.sessionStorage['isSupervisor'] = collection['isSupervisor'].toString();
+            html.window.sessionStorage
+              ..setItem('usuario', usuario)
+              ..setItem('region', regionStr)
+              ..setItem('isSupervisor', isSup.toString());
 
             if (mounted) {
                 final String permission = await solicitarPermisoNotificaciones();
