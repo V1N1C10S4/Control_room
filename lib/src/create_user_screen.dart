@@ -64,7 +64,7 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
 
         // Mostrar error en caso de fallo
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear el usuario: $e')),
+          SnackBar(content: Text('Error al crear el pasajero: $e')),
         );
       }
     }
@@ -110,8 +110,8 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Usuario Creado'),
-          content: const Text('El usuario ha sido creado exitosamente.'),
+          title: const Text('Pasajero Creado'),
+          content: const Text('El pasajero ha sido creado exitosamente.'),
           actions: [
             ElevatedButton(
               onPressed: () {
@@ -257,7 +257,7 @@ class _UserCreationScreenState extends State<UserCreationScreen> {
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'Guardar Usuario',
+                        'Guardar Pasajero',
                         style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
               ),

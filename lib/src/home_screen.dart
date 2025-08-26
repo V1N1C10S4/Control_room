@@ -1,3 +1,4 @@
+import 'package:control_room/src/availability_hub_screen.dart';
 import 'package:control_room/src/user_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -7,7 +8,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'trip_request_screen.dart';
 import 'ongoing_trip_screen.dart';
 import 'finished_trip_screen.dart';
-import 'driver_availability.dart';
 import 'management_hub_screen.dart';
 import 'login_screen.dart';
 import 'emergency_during_trip_screen.dart';
@@ -1003,7 +1003,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => DriverAvailability(
+                                  builder: (context) => AvailabilityHubScreen(
                                         usuario: widget.usuario,
                                         region: widget.region,
                                       )),
@@ -1015,7 +1015,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Icon(Icons.local_taxi, size: 30, color: Colors.white),
                               SizedBox(height: 10),
                               Text(
-                                'Conductores Disponibles',
+                                'Conductores y Vehículos Disponibles',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Colors.white),
                               ),
@@ -1254,7 +1254,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => GenerateTripScreen()),
+                            MaterialPageRoute(builder: (context) => GenerateTripScreen(region: widget.region)),
                           );
                         },
                         child: const Row(

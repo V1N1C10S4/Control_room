@@ -246,7 +246,7 @@ class _RouteChangeControlRoomScreenState extends State<RouteChangeControlRoomScr
               if (allowPickupEdit) ...[
                 _buildLocationSearchField(
                   controller: _pickupController,
-                  label: 'Pickup',
+                  label: 'Punto de recogida',
                   locationType: 'pickup',
                   predictions: _pickupPredictions,
                 ),
@@ -265,7 +265,7 @@ class _RouteChangeControlRoomScreenState extends State<RouteChangeControlRoomScr
                       Expanded(
                         child: _buildLocationSearchField(
                           controller: controller,
-                          label: 'Stop ${i + 1}',
+                          label: 'Parada ${i + 1}',
                           locationType: 'stop',
                           predictions: _stopPredictions[i],
                           stopIndex: i,
@@ -287,7 +287,7 @@ class _RouteChangeControlRoomScreenState extends State<RouteChangeControlRoomScr
               const SizedBox(height: 10),
               _buildLocationSearchField(
                 controller: _destinationController,
-                label: 'Destination',
+                label: 'Destino',
                 locationType: 'destination',
                 predictions: _destinationPredictions,
               ),

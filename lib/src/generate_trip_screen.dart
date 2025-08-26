@@ -9,7 +9,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'generate_stops_for_trip_screen.dart';
 
 class GenerateTripScreen extends StatefulWidget {
-  const GenerateTripScreen({Key? key}) : super(key: key);
+  final String region; 
+  const GenerateTripScreen({Key? key, required this.region}) : super(key: key);
 
   @override
   State<GenerateTripScreen> createState() => _GenerateTripScreenState();
@@ -61,8 +62,11 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   }
 
   Future<void> _loadUsersFromFirestore() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('Usuarios').get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Usuarios')
+        .where('Ciudad', isEqualTo: widget.region) // 👈 filtro por región
+        .get();
+
     setState(() {
       users = snapshot.docs;
     });
@@ -304,7 +308,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
   Future<void> _sendTripRequest() async {
     if (selectedUserId == null || _pickupLocation == null || _destinationLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Seleccione el usuario, el punto de recogida y el destino.'),
+        content: Text('Seleccione el pasajero, el punto de recogida y el destino.'),
       ));
       return;
     }
@@ -480,7 +484,7 @@ class _GenerateTripScreenState extends State<GenerateTripScreen> {
                 },
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Usuario',
+                  labelText: 'Pasajero',
                 ),
               ),
               const SizedBox(height: 16),

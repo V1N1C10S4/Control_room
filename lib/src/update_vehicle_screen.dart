@@ -27,6 +27,7 @@ class _UpdateVehicleScreenState extends State<UpdateVehicleScreen> {
   final _infoController = TextEditingController();
   final _placasController = TextEditingController();
   final _fotoController = TextEditingController();
+  bool _available = true; 
 
   static const _brand = Color.fromRGBO(90, 150, 200, 1);
 
@@ -37,6 +38,7 @@ class _UpdateVehicleScreenState extends State<UpdateVehicleScreen> {
     _infoController.text = widget.vehicleData['InfoVehiculo'] ?? '';
     _placasController.text = widget.vehicleData['Placas'] ?? '';
     _fotoController.text = widget.vehicleData['Foto'] ?? '';
+    _available = (widget.vehicleData['Disponible'] as bool?) ?? true;
   }
 
   @override
@@ -123,6 +125,7 @@ class _UpdateVehicleScreenState extends State<UpdateVehicleScreen> {
       'InfoVehiculo': newInfo,
       'Placas': newPlacas,
       'Foto': newFoto,
+      'Disponible': _available,
     };
 
     try {
@@ -281,6 +284,14 @@ class _UpdateVehicleScreenState extends State<UpdateVehicleScreen> {
                 controller: _placasController,
                 decoration: const InputDecoration(labelText: 'Placas'),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                title: const Text('Estatus'),
+                subtitle: Text(_available ? 'Disponible' : 'No disponible'),
+                value: _available,
+                activeColor: _brand, // mismo color de marca que usas
+                onChanged: (val) => setState(() => _available = val),
               ),
               const SizedBox(height: 10),
               ElevatedButton.icon(

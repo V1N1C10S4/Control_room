@@ -96,6 +96,7 @@ class _CreateVehicleScreenState extends State<CreateVehicleScreen> {
       'InfoVehiculo': _infoController.text.trim(),
       'Placas': _placasController.text.trim(),
       'Foto': _fotoURL ?? '',
+      'Disponible': true,
     };
 
     try {

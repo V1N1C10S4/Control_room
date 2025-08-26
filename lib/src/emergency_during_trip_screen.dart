@@ -128,14 +128,10 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
         content: const Text('¿Estás seguro de que quieres marcar esta emergencia como atendida?'),
         actions: [
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
             ),
             child: const Text('Cancelar', style: TextStyle(color: Colors.white)),
           ),
@@ -143,30 +139,48 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
             onPressed: () async {
               Navigator.pop(context);
               try {
-                DateTime now = DateTime.now();
-                final tripSnapshot = await _databaseReference.child('trip_requests').child(tripId).get();
-                final Map<dynamic, dynamic>? tripData = tripSnapshot.value as Map<dynamic, dynamic>?;
+                final tripRef = _databaseReference.child('trip_requests').child(tripId);
+                final snap = await tripRef.get();
+                final Map<dynamic, dynamic>? tripData = snap.value as Map<dynamic, dynamic>?;
 
-                // Verificar si 'attended_at' ya existe para no sobrescribirlo
-                if (tripData == null || !tripData.containsKey('attended_at')) {
-                  await _databaseReference.child('trip_requests').child(tripId).update({
-                    'emergency': false,
-                    'attended_at': now.toIso8601String(), 
-                  });
-                  _logger.i('Emergencia atendida para el viaje $tripId.');
-                  _fetchEmergencyTrips();
-                } else {
-                  _logger.w('La emergencia ya había sido atendida anteriormente.');
+                if (tripData == null) return;
+
+                // ✅ Nuevo candado: solo si la emergencia sigue activa
+                if (tripData['emergency'] != true) {
+                  _logger.w('La emergencia ya fue atendida por otro operador.');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('La emergencia ya fue atendida por otro operador.')),
+                    );
+                  }
+                  return;
                 }
+
+                final nowIso = DateTime.now().toIso8601String();
+
+                // (Opcional) historial de atenciones
+                final List<dynamic> history =
+                    (tripData['emergency_history'] as List?)?.toList() ?? <dynamic>[];
+                history.add({
+                  'emergency_at': tripData['emergency_at'],
+                  'attended_at': nowIso,
+                });
+
+                await tripRef.update({
+                  'emergency': false,          // 🔻 desactiva
+                  'attended_at': nowIso,       // última atención (se sobreescribe cada vez)
+                  'emergency_history': history // opcional, conserva registro
+                });
+
+                _logger.i('Emergencia atendida para el viaje $tripId.');
+                // No hace falta _fetchEmergencyTrips(); onValue refresca solo
               } catch (error) {
                 _logger.e('Error al actualizar emergencia: $error');
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
             ),
             child: const Text('Confirmar', style: TextStyle(color: Colors.white)),
           ),

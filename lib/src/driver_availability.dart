@@ -66,6 +66,7 @@ class DriverAvailability extends StatelessWidget {
                         itemCount: availableDrivers.length,
                         itemBuilder: (context, index) {
                           final driver = availableDrivers[index].data() as Map<String, dynamic>;
+                          final foto = (driver['FotoPerfil'] ?? '').toString().trim();
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                             child: Card(
@@ -78,11 +79,18 @@ class DriverAvailability extends StatelessWidget {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    CircleAvatar(
-                                      radius: 50,
-                                      backgroundImage: CachedNetworkImageProvider(driver['FotoPerfil']),
-                                      backgroundColor: Colors.transparent,
-                                    ),
+                                    (foto.isNotEmpty)
+                                      ? CircleAvatar(
+                                          radius: 50,
+                                          backgroundColor: Colors.transparent,
+                                          backgroundImage: CachedNetworkImageProvider(foto),
+                                          onBackgroundImageError: (_, __) {}, // solo si hay imagen
+                                        )
+                                      : const CircleAvatar(
+                                          radius: 50,
+                                          backgroundColor: Colors.transparent,
+                                          child: Icon(Icons.person, size: 40),
+                                        ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
@@ -130,6 +138,7 @@ class DriverAvailability extends StatelessWidget {
                           final driver = unavailableDrivers[index].data() as Map<String, dynamic>;
                           final bool isInProgress = driver['Estatus'] == 'disponible' && driver['Viaje'] == true;
                           final String reason = isInProgress ? 'Viaje en progreso' : 'Fuera de horario laboral';
+                          final foto = (driver['FotoPerfil'] ?? '').toString().trim();
 
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -145,8 +154,12 @@ class DriverAvailability extends StatelessWidget {
                                   children: [
                                     CircleAvatar(
                                       radius: 50,
-                                      backgroundImage: CachedNetworkImageProvider(driver['FotoPerfil']),
                                       backgroundColor: Colors.transparent,
+                                      backgroundImage: foto.isNotEmpty ? CachedNetworkImageProvider(foto) : null,
+                                      // si no hay imagen, mostramos un ícono
+                                      child: foto.isEmpty ? const Icon(Icons.person, size: 40) : null,
+                                      // evita que un URL roto tire la app; puedes loguear si quieres
+                                      onBackgroundImageError: (_, __) {},
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
