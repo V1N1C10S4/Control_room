@@ -149,6 +149,31 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
     }
   }
 
+  Widget _driverAvatar(dynamic fotoField) {
+    final url = (fotoField ?? '').toString().trim();
+    final ok = Uri.tryParse(url)?.hasScheme == true; // https/http válido
+
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: Colors.grey.shade200,
+      child: ok
+          ? ClipOval(
+              child: Image.network(
+                url,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                // Si la URL existe pero devuelve HTML/404, caemos aquí y no crashea
+                errorBuilder: (_, err, __) {
+                  debugPrint('❌ FotoPerfil inválida: "$url" · $err');
+                  return const Icon(Icons.person, color: Colors.grey);
+                },
+              ),
+            )
+          : const Icon(Icons.person, color: Colors.grey),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,9 +228,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8.0),
                           child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundImage: NetworkImage(driver['FotoPerfil']),
-                            ),
+                            leading: _driverAvatar(driver['FotoPerfil']),
                             title: Text(
                               'Nombre conductor: ${driver['NombreConductor']}',
                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

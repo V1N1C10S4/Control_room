@@ -170,8 +170,11 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
   final List<String> _staticFieldOrder = [
     "trip_id",
     "status",
-    "driver",
+    "driver_id",
+    "driver_name",
     "TelefonoConductor",
+    "vehicle_plates",
+    "vehicle_info",
     "userId",
     "userName",
     "telefonoPasajero",
@@ -182,32 +185,40 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     "destination",
     "destination_coords",
     "passengers",
-    "luggage",
-    "pets",
-    "babySeats",
-    "need_second_driver",
-    "notes",
-    "driver_feedback",
-    "user_feedback",
-    "emergency",
-    "attended_at",
-    "emergency_at",
-    "emergency_location",
-    "emergency_reason",
+    "luggage", //Dinámico
+    "pets", //Dinámico
+    "babySeats", //Dinámico
+    "need_second_driver", //Dinámico
+    "notes", //Dinámico
+    "driver_feedback", //Dinámico
+    "user_feedback", //Dinámico
+    "emergency", 
+    "emergency_at", //Dinámico
+    "emergency_location", //Dinámico
+    "emergency_reason", //Dinámico
+    "attended_at", //Dinámico
     "started_at",
     "passenger_reached_at",
     "picked_up_passenger_at",
     "finished_at",
-    "route_change_request",
-    "scheduled_at",
-    "cancellation_reason",
+    "route_change_request", //Dinámico
+    "scheduled_at", //Dinámico
+    "cancellation_reason", //Dinámico
   ];
 
   final Map<String, String> _fieldTranslations = const {
     "trip_id": "Id de viaje",
     "status": "Estatus",
-    "driver": "Conductor",
+    "driver_id": "Id de conductor",
+    "driver_name": "Nombre de conductor",
     "TelefonoConductor": "Teléfono de conductor",
+    "vehicle_plates": "Placas del vehículo",
+    "vehicle_info": "Info. del vehículo",
+    "driver2": "Id de conductor 2",
+    "driver2_name": "Nombre de conductor 2",
+    "TelefonoConductor2": "Teléfono de conductor 2",
+    "vehicle2_plates": "Placas del vehículo 2",
+    "vehicle2_info": "Info. del vehículo 2",
     "userId": "Id de pasajero",
     "userName": "Nombre de pasajero",
     "telefonoPasajero": "Teléfono pasajero",
@@ -225,9 +236,9 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     "notes": "Notas adicionales",
     "driver_feedback": "Opinión de conductor",
     "user_feedback": "Opinión del pasajero",
-    "emergency": "Emergencia",
-    "attended_at": "Emergencia terminada",
-    "emergency_at": "Emergencia atendida",
+    "emergency": "Emergencia activa",
+    "attended_at": "Emergencia atendida",
+    "emergency_at": "Emergencia presentada",
     "emergency_location": "Ubicación de emergencia",
     "emergency_reason": "Razón de emergencia",
     "started_at": "Viaje autorizado",
@@ -398,22 +409,99 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     };
   }
 
+  bool _looksEmpty(dynamic v) {
+    if (v == null) return true;
+    if (v is bool) return !v;                       // solo mostramos si en algún viaje hay true
+    if (v is num) return false;                     // cualquier número cuenta como no vacío
+    if (v is String) return v.trim().isEmpty;       // string vacío => vacío
+    if (v is Map) return v.isEmpty;
+    if (v is Iterable) return v.isEmpty;
+    return false;                                   // por defecto, considérese no vacío
+  }
+
+  bool _hasAnyNonEmpty(List<Map<String, dynamic>> trips, String key) {
+    for (final t in trips) {
+      if (t.containsKey(key) && !_looksEmpty(t[key])) return true;
+    }
+    return false;
+  }
+
   List<String> _buildTableKeys(List<Map<String, dynamic>> trips) {
     final dyn = _extractDynamicKeys(trips);
-
     final keys = List<String>.from(_staticFieldOrder);
 
-    // Punto de inserción: después de 'pickup_coords' (si no está, cae tras 'pickup')
-    int insertAfter = keys.indexOf('pickup_coords');
-    if (insertAfter == -1) {
-      insertAfter = keys.indexOf('pickup');
+    // 1) Oculta campos dinámicos si nadie los usa
+    const dynamicCandidates = <String>{
+      'luggage',
+      'pets',
+      'babySeats',
+      'need_second_driver',
+      'notes',
+      'driver_feedback',
+      'user_feedback',
+      'attended_at',
+      'emergency_at',
+      'emergency_location',
+      'emergency_reason',
+      'route_change_request',
+      'scheduled_at',
+      'cancellation_reason',
+    };
+    for (final k in dynamicCandidates) {
+      if (!_hasAnyNonEmpty(trips, k)) keys.remove(k);
     }
-    if (insertAfter == -1) insertAfter = 8; // fallback razonable
 
-    // Insertar stopN + stopN_coords alternados
+    // 2) ¿hay algún dato del conductor 2?
+    final hasDriver2 =
+        _hasAnyNonEmpty(trips, 'driver2') ||
+        _hasAnyNonEmpty(trips, 'driver2_name') || _hasAnyNonEmpty(trips, 'driver2Name') ||
+        _hasAnyNonEmpty(trips, 'TelefonoConductor2') ||
+        _hasAnyNonEmpty(trips, 'vehicle2_plates')  || _hasAnyNonEmpty(trips, 'vehicle2Plates') ||
+        _hasAnyNonEmpty(trips, 'vehicle2_info')    || _hasAnyNonEmpty(trips, 'vehicle2Info');
+
+    if (hasDriver2) {
+      // devuelve SIEMPRE String ('' si no hay coincidencia) ⇒ no-nullable
+      String chooseExisting(List<String> options) {
+        for (final k in options) {
+          if (_hasAnyNonEmpty(trips, k)) return k;
+        }
+        return '';
+      }
+
+      final driver2IdKey      = chooseExisting(['driver2']);
+      final driver2NameKey    = chooseExisting(['driver2_name', 'driver2Name']);
+      final driver2PhoneKey   = chooseExisting(['TelefonoConductor2']);
+      final vehicle2PlatesKey = chooseExisting(['vehicle2_plates', 'vehicle2Plates']);
+      final vehicle2InfoKey   = chooseExisting(['vehicle2_info', 'vehicle2Info']);
+
+      int afterIdx = keys.indexOf('vehicle_info');
+      if (afterIdx == -1) {
+        afterIdx = keys.indexOf('TelefonoConductor');
+        if (afterIdx == -1) afterIdx = keys.indexOf('driver_name');
+        if (afterIdx == -1) afterIdx = keys.indexOf('driver_id');
+        if (afterIdx == -1) afterIdx = 2;
+      }
+
+      final toInsert = <String>[];
+      if (driver2IdKey.isNotEmpty) toInsert.add(driver2IdKey);
+      if (driver2NameKey.isNotEmpty) toInsert.add(driver2NameKey);
+      if (driver2PhoneKey.isNotEmpty) toInsert.add(driver2PhoneKey);
+      if (vehicle2PlatesKey.isNotEmpty) toInsert.add(vehicle2PlatesKey);
+      if (vehicle2InfoKey.isNotEmpty) toInsert.add(vehicle2InfoKey);
+
+      if (toInsert.isNotEmpty) {
+        keys.insertAll(afterIdx + 1, toInsert);
+      }
+    }
+
+    // 3) Paradas dinámicas tras pickup/pickup_coords
+    int insertAfter = keys.indexOf('pickup_coords');
+    if (insertAfter == -1) insertAfter = keys.indexOf('pickup');
+    if (insertAfter == -1) insertAfter = keys.indexOf('city');
+    if (insertAfter == -1) insertAfter = 8;
+
     int offset = 1;
-    for (int i = 0; i < dyn['stops']!.length; i++) {
-      final stopKey = dyn['stops']![i];
+    for (final stopKey in dyn['stops']!) {
       final coordKey = '${stopKey}_coords';
       keys.insert(insertAfter + offset, stopKey);
       offset++;
@@ -423,11 +511,11 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
       }
     }
 
-    // Agregar al final los eventos de timeline (on_stop_way_N_at / stop_reached_N_at)
+    // 4) Timeline al final
     keys.addAll(dyn['stopWays']!);
     keys.addAll(dyn['stopReached']!);
 
-    // Eliminar duplicados por si ya existían
+    // 5) Deduplicar
     final seen = <String>{};
     final result = <String>[];
     for (final k in keys) {
@@ -621,6 +709,13 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     return LatLng(lat, lng);
   }
 
+  String _boolEs(dynamic v) {
+    if (v == null) return 'No';
+    if (v is bool) return v ? 'Sí' : 'No';
+    final s = v.toString().trim().toLowerCase();
+    return (s == 'true' || s == '1' || s == 'si' || s == 'sí' || s == 'yes') ? 'Sí' : 'No';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -680,15 +775,19 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                   n['city']            = (raw['city'] ?? '').toString();
                   n['status']          = (raw['status'] ?? '').toString();
 
-                  n['driver_id']       = (raw['driverUser'] ?? raw['driver_id'] ?? raw['driverId'] ?? raw['driver'] ?? '').toString();
-                  n['driver_name']     = (raw['driverName'] ?? raw['driver_name'] ?? '').toString();
+                  n['driver_id']   = (raw['driverUser'] ?? raw['driver_id'] ?? raw['driverId'] ?? raw['driver'] ?? '').toString();
+                  n['driver_name'] = (raw['driverName'] ?? raw['driver_name'] ?? raw['NombreConductor'] ?? '').toString();
+                  n['TelefonoConductor'] = (raw['TelefonoConductor'] ?? raw['driverPhone'] ?? '').toString();
 
-                  n['vehicle_plates']  = (raw['vehiclePlates'] ?? raw['placas'] ?? '').toString();
-                  n['vehicle_info']    = (raw['vehicleInfo'] ?? raw['infoVehiculo'] ?? '').toString();
+                  n['vehicle_plates'] = (raw['vehiclePlates'] ?? raw['placas'] ?? raw['Placas'] ?? '').toString();
+                  n['vehicle_info']   = (raw['vehicleInfo']   ?? raw['infoVehiculo'] ?? raw['InfoVehiculo'] ?? '').toString();
 
-                  n['supervisor_id']    = (raw['supervisorId'] ?? raw['supervisor_id'] ?? '').toString();
-                  n['supervisor_name']  = (raw['supervisorName'] ?? raw['supervisor_name'] ?? '').toString();
-                  n['supervisor_phone'] = (raw['supervisorPhone'] ?? raw['numeroSupervisor'] ?? '').toString();
+                  // Segundo conductor (si existe)
+                  n['driver2']            = (raw['driver2'] ?? '').toString();
+                  n['driver2_name']       = (raw['driver2Name'] ?? raw['driver2_name'] ?? '').toString();
+                  n['TelefonoConductor2'] = (raw['TelefonoConductor2'] ?? raw['driver2Phone'] ?? '').toString();
+                  n['vehicle2_plates']    = (raw['vehicle2Plates'] ?? raw['placas2'] ?? '').toString();
+                  n['vehicle2_info']      = (raw['vehicle2Info'] ?? raw['infoVehiculo2'] ?? '').toString();
 
                   return n;
                 }).toList();
@@ -698,15 +797,19 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                 //     una verificación defensiva por si acaso.)
                 final city = widget.region.trim();
                 final normalizedTrips = <Map<String, dynamic>>[];
+
                 for (int i = 0; i < entries.length; i++) {
                   final raw = entries[i].value;
                   final n   = normalizedAll[i];
 
-                  final okCity   = (n['city']?.toString().trim() ?? '') == city;
-                  final okStatus = _isActiveStatus(n['status']?.toString());
-                  final okWindow = _inWindowRTDB(raw); // usa el mapa crudo para fechas
+                  final okCity        = (n['city']?.toString().trim() ?? '') == city;
+                  final statusStr     = n['status']?.toString();
+                  final okStatus      = _isActiveStatus(statusStr);
+                  final okWindow      = _inWindowRTDB(raw); // usa el mapa crudo para fechas
+                  final followableNow = _isMapFollowableStatus(statusStr);
 
-                  if (okCity && okStatus && okWindow) {
+                  // Incluye si está en ventana Y con status permitido, O si es seguible ahora mismo
+                  if (okCity && ((okStatus && okWindow) || followableNow)) {
                     normalizedTrips.add(n);
                   }
                 }
@@ -785,9 +888,14 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                       final child = Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: style);
                                       return (maxW != null) ? SizedBox(width: maxW, child: child) : child;
                                     }
-
                                     DataCell buildCell(String key) {
                                       switch (key) {
+                                        case 'emergency':
+                                        case 'need_second_driver':
+                                          return DataCell(
+                                            cellText(_boolEs(m[key]), maxW: 90),
+                                            onTap: () => _toggleRowSelection(context, tripId, driverId, m),
+                                          );
                                         case 'driver_name':
                                           final canFollow = _isMapFollowableStatus(status);
                                           return DataCell(
@@ -851,22 +959,89 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                             ),
                                           );
                                         }
+                                        case 'TelefonoConductor':
+                                          return DataCell(cellText((m['TelefonoConductor'] ?? '').toString().isEmpty ? '—' : (m['TelefonoConductor'] ?? '').toString(), maxW: 140));
+
                                         case 'vehicle_plates':
                                           return DataCell(
                                             cellText(placas.isEmpty ? '—' : placas, maxW: 120),
                                             onTap: () => widget.onVehicleTap?.call(
-                                              placas,
+                                              placas.isEmpty ? '—' : placas,
                                               {'Placas': placas, 'InfoVehiculo': infoVeh, 'Ciudad': ciudad},
                                             ),
                                           );
+
                                         case 'vehicle_info':
                                           return DataCell(
                                             cellText(infoVeh.isEmpty ? '—' : infoVeh, maxW: 220),
                                             onTap: () => widget.onVehicleTap?.call(
-                                              placas,
+                                              placas.isEmpty ? '—' : placas,
                                               {'Placas': placas, 'InfoVehiculo': infoVeh, 'Ciudad': ciudad},
                                             ),
                                           );
+
+                                        // ====== Segundo conductor ======
+                                        case 'driver2_name': {
+                                          final id2  = (m['driver2'] ?? '').toString();
+                                          final name = (m['driver2_name'] ?? '').toString();
+                                          final canFollow = _isMapFollowableStatus(status);
+                                          return DataCell(
+                                            Tooltip(
+                                              message: canFollow ? 'Seguir conductor 2 en mapa' : 'Ubicación no disponible (viaje inactivo)',
+                                              child: cellText(
+                                                name.isEmpty ? '—' : name,
+                                                maxW: 180,
+                                                style: canFollow ? null : const TextStyle(color: Colors.black45, fontStyle: FontStyle.italic),
+                                              ),
+                                            ),
+                                            onTap: () => _toggleRowSelection(context, tripId, id2, m),
+                                          );
+                                        }
+
+                                        case 'driver2': {
+                                          final id2 = (m['driver2'] ?? '').toString();
+                                          final canFollow = _isMapFollowableStatus(status);
+                                          return DataCell(
+                                            Tooltip(
+                                              message: canFollow ? 'Seguir conductor 2 en mapa' : 'Ubicación no disponible (viaje inactivo)',
+                                              child: cellText(
+                                                id2.isEmpty ? '—' : id2,
+                                                maxW: 140,
+                                                style: canFollow ? null : const TextStyle(color: Colors.black45, fontStyle: FontStyle.italic),
+                                              ),
+                                            ),
+                                            onTap: () => _toggleRowSelection(context, tripId, id2, m),
+                                          );
+                                        }
+
+                                        case 'TelefonoConductor2': {
+                                          final phone2 = (m['TelefonoConductor2'] ?? '').toString();
+                                          return DataCell(cellText(phone2.isEmpty ? '—' : phone2, maxW: 140));
+                                        }
+
+                                        case 'vehicle2_plates': {
+                                          final placas2 = (m['vehicle2_plates'] ?? '').toString();
+                                          final info2   = (m['vehicle2_info'] ?? '').toString();
+                                          return DataCell(
+                                            cellText(placas2.isEmpty ? '—' : placas2, maxW: 120),
+                                            onTap: () => widget.onVehicleTap?.call(
+                                              placas2,
+                                              {'Placas': placas2, 'InfoVehiculo': info2, 'Ciudad': ciudad},
+                                            ),
+                                          );
+                                        }
+
+                                        case 'vehicle2_info': {
+                                          final info2   = (m['vehicle2_info'] ?? '').toString();
+                                          final placas2 = (m['vehicle2_plates'] ?? '').toString();
+                                          return DataCell(
+                                            cellText(info2.isEmpty ? '—' : info2, maxW: 220),
+                                            onTap: () => widget.onVehicleTap?.call(
+                                              placas2,
+                                              {'Placas': placas2, 'InfoVehiculo': info2, 'Ciudad': ciudad},
+                                            ),
+                                          );
+                                        }
                                         case 'supervisor_name': {
                                           final canFollow = _isMapFollowableStatus(status);
                                           return DataCell(
@@ -920,8 +1095,11 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                         }
                                         default:
                                           final raw = m[key];
-                                          final isCoords   = key.endsWith('_coords');
-                                          final isTimeLike = key.endsWith('_at');
+
+                                          // 🔹 considera emergency_location como campo de coordenadas
+                                          final bool isCoords   = key.endsWith('_coords') || key == 'emergency_location';
+                                          final bool isTimeLike = key.endsWith('_at');
+
                                           final value = isTimeLike ? fmtValue(raw) : (raw ?? '').toString();
 
                                           double? w;
@@ -936,36 +1114,39 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                             final ll = coords.isEmpty ? null : _parseLatLng(coords);
                                             final enabled = ll != null;
 
+                                            // 🔴 rojo solo para emergency_location, 🔵 azul para el resto
+                                            final Color chipColor = (key == 'emergency_location') ? Colors.red : Colors.blue;
 
-                                              return DataCell(
-                                                _StatusChip(
+                                            return DataCell(
+                                              _StatusChip(
                                                 text: enabled ? coords : '—',
-                                                color: Colors.blue,
+                                                color: chipColor,
                                                 onTap: !enabled ? null : () {
-                                                    setState(() => _selectedTripId = tripId);
+                                                  setState(() => _selectedTripId = tripId);
 
-                                                    final f = widget.selectedMapFocus.value;
-                                                    final sameFocus = f != null && f.tripId == tripId && f.key == key; // ← compara también key
-                                                    if (sameFocus) {
-                                                      widget.selectedMapFocus.value = null;
-                                                      return;
-                                                    }
+                                                  final f = widget.selectedMapFocus.value;
+                                                  final sameFocus = f != null && f.tripId == tripId && f.key == key;
+                                                  if (sameFocus) {
+                                                    widget.selectedMapFocus.value = null;
+                                                    return;
+                                                  }
 
-                                                    widget.selectedMapFocus.value = MapFocus(
-                                                      tripId: tripId,
-                                                      key: key,
-                                                      target: ll,
-                                                      title: _labelFromKey(key),
-                                                      snippet: ciudad,
-                                                    );
-                                                  },
-                                                ),
-                                              );
-                                            }
-                                        return DataCell(
-                                          cellText(value.isEmpty ? '—' : value, maxW: w),
-                                          onTap: () => _toggleRowSelection(context, tripId, driverId, m),
-                                        );
+                                                  widget.selectedMapFocus.value = MapFocus(
+                                                    tripId: tripId,
+                                                    key: key,
+                                                    target: ll,
+                                                    title: _labelFromKey(key), // mostrará “Ubicación de emergencia”
+                                                    snippet: ciudad,
+                                                  );
+                                                },
+                                              ),
+                                            );
+                                          }
+
+                                          return DataCell(
+                                            cellText(value.isEmpty ? '—' : value, maxW: w),
+                                            onTap: () => _toggleRowSelection(context, tripId, driverId, m),
+                                          );
                                       }
                                     }
 

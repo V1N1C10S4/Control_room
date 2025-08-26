@@ -140,6 +140,7 @@ class _MapPanelState extends State<MapPanel> {
   String _focusLabel(String key) {
     if (key == 'pickup_coords') return 'Partida';
     if (key == 'destination_coords') return 'Destino';
+    if (key == 'emergency_location') return 'Emergencia';
     final m = RegExp(r'^stop(\d+)_coords$').firstMatch(key);
     if (m != null) return 'Parada ${m.group(1)}';
     return key;
