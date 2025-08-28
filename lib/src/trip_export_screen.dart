@@ -22,7 +22,10 @@ class _TripExportScreenState extends State<TripExportScreen> {
   final List<String> staticFieldOrder = [
     "trip_id",
     "driver",
+    "driverName",
     "TelefonoConductor",
+    "vehicleInfo",
+    "vehiclePlates", 
     "userId",
     "userName",
     "telefonoPasajero",
@@ -58,7 +61,10 @@ class _TripExportScreenState extends State<TripExportScreen> {
   final Map<String, String> fieldTranslations = {
     "trip_id": "Id de viaje",
     "driver": "Conductor",
+    "driverName": "Nombre de conductor",
     "TelefonoConductor": "Teléfono de conductor",
+    "vehicleInfo": "Información del vehículo",
+    "vehiclePlates": "Placas", 
     "userId": "Id de pasajero",
     "userName": "Nombre de pasajero",
     "telefonoPasajero": "Teléfono pasajero",
@@ -74,7 +80,7 @@ class _TripExportScreenState extends State<TripExportScreen> {
     "notes": "Notas adicionales",
     "driver_feedback": "Opinión de conductor",
     "user_feedback": "Opinión del pasajero",
-    "emergency": "Emergencia",
+    "emergency": "Emergencia activa",
     "attended_at": "Emergencia terminada",
     "emergency_at": "Emergencia atendida",
     "emergency_location": "Ubicación de emergencia",
@@ -113,6 +119,48 @@ class _TripExportScreenState extends State<TripExportScreen> {
         _selectedRange = picked;
       });
     }
+  }
+
+  String _statusLabelFor(String? raw) {
+    final s = (raw ?? '').toLowerCase().trim();
+
+    // Dinámicos
+    final mOnWay = RegExp(r'^on_stop_way_(\d+)(?:_at)?$').firstMatch(s);
+    if (mOnWay != null) return 'En camino a parada ${mOnWay.group(1)}';
+
+    final mReached = RegExp(r'^stop_reached_(\d+)(?:_at)?$').firstMatch(s);
+    if (mReached != null) return 'Esperando en parada ${mReached.group(1)}';
+
+    switch (s) {
+      case 'pending':              return 'Pendiente';
+      case 'authorized':           return 'Autorizado';
+      case 'in progress':          return 'Esperando conductor';
+
+      case 'started':
+      case 'trip started':         return 'Iniciado';
+      case 'passenger reached':    return 'Conductor en sitio';
+      case 'picked up passenger':  return 'Pasajero recogido';
+
+      case 'scheduled':            return 'Agendado';
+
+      case 'denied':               return 'Denegado';
+      case 'trip cancelled':       return 'Viaje cancelado';
+      case 'scheduled canceled':   return 'Viaje agendado cancelado';
+      case 'trip finished':        return 'Viaje terminado';
+    }
+    return 'Desconocido';
+  }
+
+  static const Set<String> _booleanEsKeys = {
+    'emergency',
+    'need_second_driver',
+  };
+
+  String _siNo(dynamic v) {
+    if (v is bool) return v ? 'Sí' : 'No';
+    final s = (v ?? '').toString().trim().toLowerCase();
+    if (s == 'true' || s == '1' || s == 'si' || s == 'sí') return 'Sí';
+    return 'No'; // incluye false, null, '', etc.
   }
 
   Future<void> _loadAndFilterTrips() async {
@@ -347,6 +395,14 @@ class _TripExportScreenState extends State<TripExportScreen> {
       final row = _tableKeys.map((key) {
         final rawValue = trip[key];
 
+        if (key == 'status') {
+          return _statusLabelFor(rawValue?.toString());
+        }
+
+        if (_booleanEsKeys.contains(key)) {
+          return _siNo(rawValue);
+        }
+
         // 🕓 Formato de fecha legible
         if (rawValue is String &&
             RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
@@ -529,6 +585,15 @@ class _TripExportScreenState extends State<TripExportScreen> {
                                     rows: _filteredTrips.map((trip) => DataRow(
                                       cells: _tableKeys.map((key) {
                                         final rawValue = trip[key];
+
+                                        if (key == 'status') {
+                                          return DataCell(Text(_statusLabelFor(rawValue?.toString())));
+                                        }
+
+                                        if (_booleanEsKeys.contains(key)) {
+                                          return DataCell(Text(_siNo(rawValue)));
+                                        }
+                                        
                                         if (rawValue is String &&
                                             RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}').hasMatch(rawValue)) {
                                           try {

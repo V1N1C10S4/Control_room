@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:logger/logger.dart';
-import 'home_screen.dart'; // Asegúrate de importar la pantalla de solicitudes
+import 'home_screen.dart';
+import 'vehicle_selection_screen.dart';
 
 class SelectDriverScreen extends StatefulWidget {
   final Map<dynamic, dynamic> tripRequest;
@@ -174,6 +175,43 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
     );
   }
 
+  Future<void> _openVehicleSelector(Map<String, dynamic> driver) async {
+    final String driverId = (driver['id'] ?? '').toString();
+
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VehicleSelectionScreen(
+          driverId: driverId,
+          region: widget.region,
+          userCity: _userCity,                           // si ya la tienes calculada
+          currentVehicleId: (driver['vehicleId'] ?? ''), // opcional
+        ),
+      ),
+    );
+
+    // Si el usuario confirmó un vehículo, refrescamos la UI local
+    if (result != null) {
+      final newVid = (result['vehicleId'] ?? '').toString();
+      final placas = (result['Placas'] ?? '').toString();
+      final info   = (result['InfoVehiculo'] ?? '').toString();
+
+      setState(() {
+        void apply(Map<String, dynamic> d) {
+          d['vehicleId']    = newVid;
+          d['Placas']       = placas;
+          d['InfoVehiculo'] = info;
+        }
+
+        for (final d in _drivers)         { if ((d['id'] ?? '') == driverId) apply(d); }
+        for (final d in _filteredDrivers) { if ((d['id'] ?? '') == driverId) apply(d); }
+
+        if (_selectedDriver  != null && (_selectedDriver!['id']  ?? '') == driverId) apply(_selectedDriver!);
+        if (_selectedDriver2 != null && (_selectedDriver2!['id'] ?? '') == driverId) apply(_selectedDriver2!);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -274,6 +312,15 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                     'Teléfono: ${_selectedDriver!["TelefonoConductor"]}\n'
                     'Vehículo: ${_selectedDriver!["InfoVehiculo"]} · Placas: ${_selectedDriver!["Placas"]}',
                   ),
+                  trailing: OutlinedButton(
+                    onPressed: () => _openVehicleSelector(_selectedDriver!),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF5A96C8)),
+                      foregroundColor: const Color(0xFF5A96C8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    ),
+                    child: const Text('Cambiar vehículo'),
+                  ),
                 ),
               ),
             ],
@@ -291,6 +338,15 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                   subtitle: Text(
                     'Teléfono: ${_selectedDriver2!["TelefonoConductor"]}\n'
                     'Vehículo: ${_selectedDriver2!["InfoVehiculo"]} · Placas: ${_selectedDriver2!["Placas"]}',
+                  ),
+                  trailing: OutlinedButton(
+                    onPressed: () => _openVehicleSelector(_selectedDriver2!),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.green),
+                      foregroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                    ),
+                    child: const Text('Cambiar vehículo'),
                   ),
                 ),
               ),

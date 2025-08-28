@@ -132,33 +132,52 @@ class _UpdateDriverScreenState extends State<UpdateDriverScreen> {
     });
   }
 
-  void _updateDriverData() {
-    // Referencia al documento del conductor en Firestore
-    final driverRef = FirebaseFirestore.instance.collection('Conductores').doc(widget.driverKey);
+  Future<String> _fetchVehiclePhoto(String vehicleId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('UnidadesVehiculares')
+          .doc(vehicleId)
+          .get();
+      final data = doc.data();
+      return (data?['Foto'] ?? '').toString();
+    } catch (_) {
+      return '';
+    }
+  }
 
-    // Datos actualizados
+  Future<void> _updateDriverData() async {
+    final driverRef = FirebaseFirestore.instance
+        .collection('Conductores')
+        .doc(widget.driverKey);
+
+    // Traer la foto del vehículo seleccionado (si hay)
+    String fotoVehiculo = '';
+    if (_selectedVehicleId != null && _selectedVehicleId!.trim().isNotEmpty) {
+      fotoVehiculo = await _fetchVehiclePhoto(_selectedVehicleId!);
+    }
+
     final updatedData = {
       'Ciudad': _ciudadController.text,
       'InfoVehiculo': _infoVehiculoController.text,
-      'NumeroSupervisor': _numeroSupervisorController.text, // denormalizado
+      'NumeroSupervisor': _numeroSupervisorController.text,
       'NumeroTelefono': _numeroTelefonoController.text,
       'Estatus': _estatusDisponible ? 'disponible' : 'no disponible',
       'Placas': _placasController.text,
-      'NombreSupervisor': _nombreSupervisorController.text, // denormalizado
-      'supervisorId': _selectedSupervisorId,                // referencia lógica
-      'vehicleId': _selectedVehicleId,  
+      'NombreSupervisor': _nombreSupervisorController.text,
+      'supervisorId': _selectedSupervisorId,
+      'vehicleId': _selectedVehicleId,
       'FotoPerfil': _fotoPerfilController.text,
+
+      // 👇 se crea si no existe y se sobreescribe si ya estaba
+      'FotoVehiculo': fotoVehiculo,  // puede ser '' si el vehículo no tiene foto
     };
 
-    // Actualizar documento en Firestore
     driverRef.update(updatedData).then((_) {
-      // Mostrar mensaje de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Datos actualizados exitosamente')),
       );
-      Navigator.pop(context); // Regresa a la pantalla anterior
+      Navigator.pop(context);
     }).catchError((error) {
-      // Mostrar mensaje de error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al actualizar los datos: $error')),
       );
