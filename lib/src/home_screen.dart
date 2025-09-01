@@ -59,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _pendingRouteChangeCount = 0;
   final ValueNotifier<String?> _selectedDriverId = ValueNotifier<String?>(null);
   final selectedMapFocus = ValueNotifier<MapFocus?>(null);
+  final Map<String, Map<String, int>> _lastTripCounts = {};
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForNewMessages();
     _listenToRouteChangeStatuses();
     _listenToPendingRouteChanges();
+    _listenToPassengerAndExtrasUpdates();
   }
 
   @override
@@ -748,6 +750,80 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (context) => const MyAppForm()),
       (route) => false,
     );
+  }
+
+  int _asInt(dynamic v) {
+    if (v is int) return v;
+    if (v is double) return v.round();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
+  }
+
+  void _listenToPassengerAndExtrasUpdates() {
+    final tripsRef = FirebaseDatabase.instance.ref('trip_requests');
+    final regionLc = widget.region.toLowerCase().trim();
+
+    // Seed inicial: guardamos valores actuales para no disparar banner al principio
+    tripsRef.onChildAdded.listen((event) {
+      final key = event.snapshot.key;
+      final raw = event.snapshot.value;
+      if (key == null || raw is! Map) return;
+
+      final m = Map<String, dynamic>.from(raw);
+      final city = (m['city'] ?? '').toString().toLowerCase().trim();
+      if (city != regionLc) return;
+
+      _lastTripCounts[key] = {
+        'passengers': _asInt(m['passengers']),
+        'luggage': _asInt(m['luggage']),
+        'pets': _asInt(m['pets']),
+        'babySeats': _asInt(m['babySeats']),
+      };
+    });
+
+    // Detección de cambios puntuales
+    tripsRef.onChildChanged.listen((event) {
+      final key = event.snapshot.key;
+      final raw = event.snapshot.value;
+      if (key == null || raw is! Map) return;
+
+      final m = Map<String, dynamic>.from(raw);
+      final city = (m['city'] ?? '').toString().toLowerCase().trim();
+      if (city != regionLc) return;
+
+      final prev = _lastTripCounts[key];
+      final cur = {
+        'passengers': _asInt(m['passengers']),
+        'luggage': _asInt(m['luggage']),
+        'pets': _asInt(m['pets']),
+        'babySeats': _asInt(m['babySeats']),
+      };
+
+      // Si no tenemos base, inicializamos y no mostramos banner
+      if (prev == null) {
+        _lastTripCounts[key] = cur;
+        return;
+      }
+
+      final userName = (m['userName'] ?? '').toString().trim();
+      String suffix = userName.isNotEmpty ? ' · Pasajero: $userName' : '';
+
+      void notifyIfChanged(String field, String label) {
+        final oldV = prev[field] ?? 0;
+        final newV = cur[field] ?? 0;
+        if (oldV != newV) {
+          _showBannerNotification('$label actualizado: $oldV → $newV$suffix', backgroundColor: Colors.orange);
+        }
+      }
+
+      notifyIfChanged('passengers', 'Pasajeros');
+      notifyIfChanged('luggage', 'Equipaje');
+      notifyIfChanged('pets', 'Mascotas');
+      notifyIfChanged('babySeats', 'Sillas para bebé');
+
+      // Actualiza base para futuras comparaciones
+      _lastTripCounts[key] = cur;
+    });
   }
 
   @override
