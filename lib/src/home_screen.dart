@@ -60,6 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final ValueNotifier<String?> _selectedDriverId = ValueNotifier<String?>(null);
   final selectedMapFocus = ValueNotifier<MapFocus?>(null);
   final Map<String, Map<String, int>> _lastTripCounts = {};
+  static const _extrasOrder = ['passengers','luggage','pets','babySeats'];
+  static const _extrasLabels = {
+    'passengers': 'Pasajeros',
+    'luggage': 'Equipaje',
+    'pets': 'Mascotas',
+    'babySeats': 'Sillas para bebé',
+  };
 
   @override
   void initState() {
@@ -794,34 +801,50 @@ class _HomeScreenState extends State<HomeScreen> {
       final prev = _lastTripCounts[key];
       final cur = {
         'passengers': _asInt(m['passengers']),
-        'luggage': _asInt(m['luggage']),
-        'pets': _asInt(m['pets']),
-        'babySeats': _asInt(m['babySeats']),
+        'luggage':    _asInt(m['luggage']),
+        'pets':       _asInt(m['pets']),
+        'babySeats':  _asInt(m['babySeats']),
       };
 
-      // Si no tenemos base, inicializamos y no mostramos banner
+      // Si no hay base previa, inicializa y no muestres banner
       if (prev == null) {
         _lastTripCounts[key] = cur;
         return;
       }
 
-      final userName = (m['userName'] ?? '').toString().trim();
-      String suffix = userName.isNotEmpty ? ' · Pasajero: $userName' : '';
+      // Junta todos los cambios en un solo resumen
+      final diffs = <String, String>{}; // key -> "old → new"
+      for (final k in _extrasOrder) {
+        final oldV = prev[k] ?? 0;
+        final newV = cur[k] ?? 0;
+        if (oldV != newV) diffs[k] = '$oldV → $newV';
+      }
 
-      void notifyIfChanged(String field, String label) {
-        final oldV = prev[field] ?? 0;
-        final newV = cur[field] ?? 0;
-        if (oldV != newV) {
-          _showBannerNotification('$label actualizado: $oldV → $newV$suffix', backgroundColor: Colors.orange);
+      if (diffs.isNotEmpty) {
+        final userName = (m['userName'] ?? '').toString().trim();
+        final suffix = userName.isNotEmpty ? ' · Pasajero: $userName' : '';
+
+        if (diffs.length == 1) {
+          // Un solo cambio → banner simple
+          final k = diffs.keys.first;
+          _showBannerNotification(
+            '${_extrasLabels[k]} actualizado: ${diffs[k]}$suffix',
+            backgroundColor: Colors.orange,
+          );
+        } else {
+          // Varios cambios → un solo banner con todo
+          final summary = _extrasOrder
+              .where(diffs.containsKey)
+              .map((k) => '${_extrasLabels[k]} ${diffs[k]}')
+              .join(' · ');
+          _showBannerNotification(
+            'Datos de viaje actualizados: $summary$suffix',
+            backgroundColor: Colors.orange,
+          );
         }
       }
 
-      notifyIfChanged('passengers', 'Pasajeros');
-      notifyIfChanged('luggage', 'Equipaje');
-      notifyIfChanged('pets', 'Mascotas');
-      notifyIfChanged('babySeats', 'Sillas para bebé');
-
-      // Actualiza base para futuras comparaciones
+      // Actualiza baseline
       _lastTripCounts[key] = cur;
     });
   }
