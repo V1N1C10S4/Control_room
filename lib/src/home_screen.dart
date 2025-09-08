@@ -20,6 +20,7 @@ import 'package:universal_html/html.dart' as html;
 import 'package:control_room/src/widgets/trip_monitor_panel.dart';
 import 'package:control_room/src/widgets/map_panel.dart';
 import 'package:control_room/models/map_focus.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   final String usuario;
@@ -60,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final ValueNotifier<String?> _selectedDriverId = ValueNotifier<String?>(null);
   final selectedMapFocus = ValueNotifier<MapFocus?>(null);
   final Map<String, Map<String, int>> _lastTripCounts = {};
+  final Set<String> _seenPoiReqIds = {}; // evita banners duplicados
+  int _pendingPoiCount = 0;
   static const _extrasOrder = ['passengers','luggage','pets','babySeats'];
   static const _extrasLabels = {
     'passengers': 'Pasajeros',
@@ -67,6 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
     'pets': 'Mascotas',
     'babySeats': 'Sillas para bebé',
   };
+  StreamSubscription<DatabaseEvent>? _poiAddedSub;
+  StreamSubscription<DatabaseEvent>? _poiChangedSub;
+  StreamSubscription<DatabaseEvent>? _poiRemovedSub;
 
   @override
   void initState() {
@@ -84,11 +90,15 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenToRouteChangeStatuses();
     _listenToPendingRouteChanges();
     _listenToPassengerAndExtrasUpdates();
+     _listenPoiInboxForRegion();
   }
 
   @override
   void dispose() {
     _selectedDriverId.dispose();
+    _poiAddedSub?.cancel();
+    _poiChangedSub?.cancel();
+    _poiRemovedSub?.cancel();
     super.dispose();
   }
 
@@ -847,6 +857,98 @@ class _HomeScreenState extends State<HomeScreen> {
       // Actualiza baseline
       _lastTripCounts[key] = cur;
     });
+  }
+
+  void _poiLog(String msg) => debugPrint('[POI][${DateTime.now().toIso8601String()}] $msg');
+
+  void _listenPoiInboxForRegion() async {
+    final regionKey = widget.region.trim().toUpperCase();
+    final inboxRef  = FirebaseDatabase.instance.ref('poi_inbox/$regionKey');
+
+    _poiLog('Escuchando inbox en: poi_inbox/$regionKey');
+
+    // 1) Seed inicial: no banners por lo ya existente, solo contador y cache de IDs
+    try {
+      final snap = await inboxRef.get();
+      _poiLog('GET inicial: exists=${snap.exists} type=${snap.value.runtimeType}');
+      int cnt = 0;
+      _seenPoiReqIds.clear();
+
+      if (snap.exists && snap.value is Map) {
+        final m = Map<String, dynamic>.from(snap.value as Map);
+        m.forEach((id, v) {
+          _seenPoiReqIds.add(id); // <- seed para NO banner
+          if (v is Map) {
+            final st = (v['status'] ?? 'pending').toString();
+            if (st == 'pending') cnt++;
+          }
+        });
+      }
+      _poiLog('GET inicial → pendientes=$cnt, seeded=${_seenPoiReqIds.length}');
+      if (mounted) setState(() => _pendingPoiCount = cnt);
+    } catch (e) {
+      _poiLog('ERROR en GET inicial: $e');
+    }
+
+    // 2) Entradas nuevas → banner solo si pending y no vista
+    _poiAddedSub = inboxRef.onChildAdded.listen((e) {
+      final id  = e.snapshot.key ?? '';
+      final val = e.snapshot.value;
+      _poiLog('onChildAdded id=$id type=${val.runtimeType} value=$val');
+
+      if (val is! Map) return; // tu esquema es Map
+
+      final m = Map<String, dynamic>.from(val);
+      final status   = (m['status'] ?? 'pending').toString();
+      final tripId   = (m['tripId'] ?? '').toString();
+      final guestsCt = (m['guests_count'] ?? 1).toString();
+
+      // Solo si es NUEVO (no estaba en el seed) y está pending
+      if (status == 'pending' && _seenPoiReqIds.add(id)) {
+        _poiLog('Banner: pending id=$id trip=$tripId guests=$guestsCt');
+        _showBannerNotification(
+          'Nueva solicitud POI ($guestsCt) en viaje $tripId',
+          backgroundColor: Colors.deepPurple,
+        );
+        if (mounted) setState(() => _pendingPoiCount++);
+      } else {
+        _poiLog('onChildAdded ignorado: status=$status seen=${_seenPoiReqIds.contains(id)}');
+      }
+    }, onError: (err) => _poiLog('ERROR onChildAdded: $err'));
+
+    // 3) Cambios de estado → recomputa contador
+    _poiChangedSub = inboxRef.onChildChanged.listen((e) async {
+      _poiLog('onChildChanged id=${e.snapshot.key} value=${e.snapshot.value}');
+      await _refreshPendingPoiCount(inboxRef);
+    }, onError: (err) => _poiLog('ERROR onChildChanged: $err'));
+
+    // 4) Eliminadas → saca de vistos y recomputa
+    _poiRemovedSub = inboxRef.onChildRemoved.listen((e) async {
+      final id = e.snapshot.key ?? '';
+      _poiLog('onChildRemoved id=$id');
+      _seenPoiReqIds.remove(id);
+      await _refreshPendingPoiCount(inboxRef);
+    }, onError: (err) => _poiLog('ERROR onChildRemoved: $err'));
+  }
+
+  Future<void> _refreshPendingPoiCount(DatabaseReference inboxRef) async {
+    try {
+      final snap = await inboxRef.get();
+      int cnt = 0;
+      if (snap.exists && snap.value is Map) {
+        final m = Map<String, dynamic>.from(snap.value as Map);
+        m.forEach((id, v) {
+          if (v is Map) {
+            final st = (v['status'] ?? 'pending').toString();
+            if (st == 'pending') cnt++;
+          }
+        });
+      }
+      _poiLog('REFRESH → pendientes=$cnt');
+      if (mounted) setState(() => _pendingPoiCount = cnt);
+    } catch (e) {
+      _poiLog('ERROR en refresh: $e');
+    }
   }
 
   @override
