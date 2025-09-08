@@ -71,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
     'babySeats': 'Sillas para bebé',
   };
   StreamSubscription<DatabaseEvent>? _poiAddedSub;
-  StreamSubscription<DatabaseEvent>? _poiChangedSub;
   StreamSubscription<DatabaseEvent>? _poiRemovedSub;
+  StreamSubscription<DatabaseEvent>? _poiBadgeSub;
 
   @override
   void initState() {
@@ -97,8 +97,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     _selectedDriverId.dispose();
     _poiAddedSub?.cancel();
-    _poiChangedSub?.cancel();
     _poiRemovedSub?.cancel();
+    _poiBadgeSub?.cancel();
     super.dispose();
   }
 
@@ -859,96 +859,67 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _poiLog(String msg) => debugPrint('[POI][${DateTime.now().toIso8601String()}] $msg');
+  int _countPending(Object? data) {
+  if (data is Map) {
+    int c = 0;
+    data.forEach((_, raw) {
+      if (raw is Map && ((raw['status'] ?? '').toString() == 'pending')) c++;
+    });
+    return c;
+  }
+  return 0;
+}
 
   void _listenPoiInboxForRegion() async {
     final regionKey = widget.region.trim().toUpperCase();
     final inboxRef  = FirebaseDatabase.instance.ref('poi_inbox/$regionKey');
 
-    _poiLog('Escuchando inbox en: poi_inbox/$regionKey');
-
-    // 1) Seed inicial: no banners por lo ya existente, solo contador y cache de IDs
-    try {
-      final snap = await inboxRef.get();
-      _poiLog('GET inicial: exists=${snap.exists} type=${snap.value.runtimeType}');
-      int cnt = 0;
-      _seenPoiReqIds.clear();
-
-      if (snap.exists && snap.value is Map) {
-        final m = Map<String, dynamic>.from(snap.value as Map);
-        m.forEach((id, v) {
-          _seenPoiReqIds.add(id); // <- seed para NO banner
-          if (v is Map) {
-            final st = (v['status'] ?? 'pending').toString();
-            if (st == 'pending') cnt++;
-          }
-        });
-      }
-      _poiLog('GET inicial → pendientes=$cnt, seeded=${_seenPoiReqIds.length}');
-      if (mounted) setState(() => _pendingPoiCount = cnt);
-    } catch (e) {
-      _poiLog('ERROR en GET inicial: $e');
+    // 1) Seed inicial: contador + cache de IDs (sin banners por lo existente)
+    final snap = await inboxRef.get();
+    _seenPoiReqIds.clear();
+    if (snap.exists && snap.value is Map) {
+      final m = Map<String, dynamic>.from(snap.value as Map);
+      m.forEach((id, _) => _seenPoiReqIds.add(id));
+      if (mounted) setState(() => _pendingPoiCount = _countPending(m));
+    } else {
+      if (mounted) setState(() => _pendingPoiCount = 0);
     }
 
-    // 2) Entradas nuevas → banner solo si pending y no vista
+    // 2) Badge en tiempo real (cualquier cambio recalcula)
+    _poiBadgeSub?.cancel();
+    _poiBadgeSub = inboxRef.onValue.listen((e) {
+      final cnt = _countPending(e.snapshot.value);
+      if (mounted) setState(() => _pendingPoiCount = cnt);
+    });
+
+    // 3) Banners SOLO para nuevas solicitudes pending
+    _poiAddedSub?.cancel();
     _poiAddedSub = inboxRef.onChildAdded.listen((e) {
       final id  = e.snapshot.key ?? '';
       final val = e.snapshot.value;
-      _poiLog('onChildAdded id=$id type=${val.runtimeType} value=$val');
-
-      if (val is! Map) return; // tu esquema es Map
+      if (val is! Map) return;
 
       final m = Map<String, dynamic>.from(val);
-      final status   = (m['status'] ?? 'pending').toString();
+      final status   = (m['status'] ?? '').toString();
       final tripId   = (m['tripId'] ?? '').toString();
       final guestsCt = (m['guests_count'] ?? 1).toString();
 
-      // Solo si es NUEVO (no estaba en el seed) y está pending
+      // nuevo + pending => banner
       if (status == 'pending' && _seenPoiReqIds.add(id)) {
-        _poiLog('Banner: pending id=$id trip=$tripId guests=$guestsCt');
         _showBannerNotification(
-          'Nueva solicitud POI ($guestsCt) en viaje $tripId',
+          'Nueva solicitud de abordaje ($guestsCt) en viaje $tripId',
           backgroundColor: Colors.deepPurple,
         );
-        if (mounted) setState(() => _pendingPoiCount++);
-      } else {
-        _poiLog('onChildAdded ignorado: status=$status seen=${_seenPoiReqIds.contains(id)}');
+        // 👇 NO toques _pendingPoiCount aquí; onValue lo actualizará solo.
       }
-    }, onError: (err) => _poiLog('ERROR onChildAdded: $err'));
+    });
 
-    // 3) Cambios de estado → recomputa contador
-    _poiChangedSub = inboxRef.onChildChanged.listen((e) async {
-      _poiLog('onChildChanged id=${e.snapshot.key} value=${e.snapshot.value}');
-      await _refreshPendingPoiCount(inboxRef);
-    }, onError: (err) => _poiLog('ERROR onChildChanged: $err'));
-
-    // 4) Eliminadas → saca de vistos y recomputa
-    _poiRemovedSub = inboxRef.onChildRemoved.listen((e) async {
+    // 4) Removidas: limpia cache. (El contador lo actualiza onValue)
+    _poiRemovedSub?.cancel();
+    _poiRemovedSub = inboxRef.onChildRemoved.listen((e) {
       final id = e.snapshot.key ?? '';
-      _poiLog('onChildRemoved id=$id');
       _seenPoiReqIds.remove(id);
-      await _refreshPendingPoiCount(inboxRef);
-    }, onError: (err) => _poiLog('ERROR onChildRemoved: $err'));
-  }
-
-  Future<void> _refreshPendingPoiCount(DatabaseReference inboxRef) async {
-    try {
-      final snap = await inboxRef.get();
-      int cnt = 0;
-      if (snap.exists && snap.value is Map) {
-        final m = Map<String, dynamic>.from(snap.value as Map);
-        m.forEach((id, v) {
-          if (v is Map) {
-            final st = (v['status'] ?? 'pending').toString();
-            if (st == 'pending') cnt++;
-          }
-        });
-      }
-      _poiLog('REFRESH → pendientes=$cnt');
-      if (mounted) setState(() => _pendingPoiCount = cnt);
-    } catch (e) {
-      _poiLog('ERROR en refresh: $e');
-    }
+    });
   }
 
   @override
@@ -1143,9 +1114,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   if (_startedCount > 0) _buildStatusBubble(_startedCount, Colors.blue, Icons.directions_car),
-                                  if (_passengerReachedCount > 0) _buildStatusBubble(_passengerReachedCount, Colors.orange, Icons.place),
+                                  if (_passengerReachedCount > 0) _buildStatusBubble(_passengerReachedCount, Colors.yellow, Icons.place),
                                   if (_pickedUpPassengerCount > 0) _buildStatusBubble(_pickedUpPassengerCount, Colors.green, Icons.people),
                                   if (_pendingRouteChangeCount > 0) _buildStatusBubble(_pendingRouteChangeCount, Colors.purple, Icons.alt_route),
+                                  if (_pendingPoiCount > 0) _buildStatusBubble(_pendingPoiCount, Colors.orange, Icons.person_add),
                                 ],
                               ),
                             ),
