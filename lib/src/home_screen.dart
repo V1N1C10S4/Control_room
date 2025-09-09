@@ -907,8 +907,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // nuevo + pending => banner
       if (status == 'pending' && _seenPoiReqIds.add(id)) {
         _showBannerNotification(
-          'Nueva solicitud de abordaje ($guestsCt) en viaje $tripId',
-          backgroundColor: Colors.deepPurple,
+          'Nueva solicitud de abordaje $guestsCt pasajeros en viaje $tripId',
+          backgroundColor: Colors.orange,
         );
         // 👇 NO toques _pendingPoiCount aquí; onValue lo actualizará solo.
       }

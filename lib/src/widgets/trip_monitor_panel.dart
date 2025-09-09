@@ -178,6 +178,8 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     "userId",
     "userName",
     "telefonoPasajero",
+    "poi_requests", // estado agregado por solicitud
+    "poi_guests", 
     "created_at",
     "city",
     "pickup",
@@ -248,6 +250,8 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     "route_change_request": "Solicitud cambio de ruta",
     "scheduled_at": "Fecha de viaje agendado",
     "cancellation_reason": "Razón de cancelación",
+    "poi_requests": "Solicitudes POI",
+    "poi_guests":   "Pasajeros POI",
   };
 
   String _labelFromKey(String key) {
@@ -355,6 +359,92 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
       data['route_change_request'] = (r['status'] ?? '').toString();
     }
 
+     final poiReqs = <Map<String, dynamic>>[];
+    final poiGuestsFlat = <Map<String, String>>[];
+
+    if (data['guest_add_requests'] is Map) {
+      final gar = Map<String, dynamic>.from(data['guest_add_requests']);
+
+      gar.forEach((reqId, rawReq) {
+        if (rawReq is! Map) return;
+        final req = Map<String, dynamic>.from(rawReq);
+
+        final guestsMap = (req['guests'] is Map)
+            ? Map<String, dynamic>.from(req['guests'])
+            : <String, dynamic>{};
+        if (guestsMap.isEmpty) return;
+
+        final approved = <String>[];
+        final denied   = <String>[];
+        final pending  = <String>[];
+
+        DateTime? earliest; // fecha de solicitud por req (mínima entre sus guests)
+
+        guestsMap.forEach((_, g) {
+          if (g is! Map) return;
+          final m = Map<String, dynamic>.from(g);
+
+          final name   = (m['name'] ?? '').toString().trim();
+          final status = (m['status'] ?? '').toString().trim();
+          final subAt  = (m['submitted_at'] ?? '').toString().trim();
+          final subBy  = (m['submitted_by'] ?? '').toString().trim();
+
+          if (name.isEmpty) return;
+
+          // clasifica por status
+          final st = status.isEmpty ? 'pending' : status;
+          if (st == 'approved') {
+            approved.add(name);
+          } else if (st == 'denied') {
+            denied.add(name);
+          } else {
+            pending.add(name);
+          }
+
+          // lista plana para la columna "Pasajeros POI"
+          poiGuestsFlat.add({
+            'name': name,
+            'status': st,
+            'reqId': reqId,
+            'submitted_at': subAt,
+            'submitted_by': subBy,
+          });
+
+          // busca la fecha más antigua
+          final dt = _toDate(subAt);
+          if (dt != null) {
+            if (earliest == null || dt.isBefore(earliest!)) earliest = dt;
+          }
+        });
+
+        // Estado agregado por solicitud (agg)
+        String agg;
+        if (pending.isNotEmpty) {
+          agg = 'pending';
+        } else if (approved.isNotEmpty && denied.isEmpty) {
+          agg = 'approved';
+        } else if (denied.isNotEmpty && approved.isEmpty) {
+          agg = 'denied';
+        } else if (approved.isNotEmpty && denied.isNotEmpty) {
+          agg = 'partial';
+        } else {
+          agg = 'pending';
+        }
+
+        poiReqs.add({
+          'reqId': reqId,
+          'agg': agg,
+          'approved': approved,
+          'denied': denied,
+          'pending': pending,
+          'submitted_at': earliest?.toIso8601String() ?? '',
+        });
+      });
+    }
+
+    if (poiReqs.isNotEmpty) data['poi_requests'] = poiReqs;
+    if (poiGuestsFlat.isNotEmpty) data['poi_guests'] = poiGuestsFlat;
+
     return data;
   }
 
@@ -446,6 +536,8 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
       'route_change_request',
       'scheduled_at',
       'cancellation_reason',
+      'poi_requests',
+      'poi_guests',
     };
     for (final k in dynamicCandidates) {
       if (!_hasAnyNonEmpty(trips, k)) keys.remove(k);
@@ -1092,6 +1184,135 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                               });
                                             },
                                           );
+                                        }
+                                        case 'poi_requests': {
+                                          final list = (m['poi_requests'] is List)
+                                              ? List<Map<String, dynamic>>.from(m['poi_requests'] as List)
+                                              : const <Map<String, dynamic>>[];
+
+                                          if (list.isEmpty) return const DataCell(Text('—'));
+
+                                          Color aggColor(String a) {
+                                            switch (a) {
+                                              case 'approved': return Colors.green;
+                                              case 'denied':   return Colors.red;
+                                              case 'pending':  return Colors.amber;
+                                              case 'partial':  return Colors.blue;
+                                              default:         return Colors.grey;
+                                            }
+                                          }
+
+                                          String short(String id) => id.length <= 5 ? id : id.substring(0, 5);
+
+                                          String fmtShort(DateTime d) {
+                                            String two(int x) => x.toString().padLeft(2, '0');
+                                            return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+                                          }
+
+                                          final chips = list.map((r) {
+                                            final reqId = (r['reqId'] ?? '').toString();
+                                            final agg   = (r['agg'] ?? 'pending').toString();
+                                            final ap    = (r['approved'] is List) ? (r['approved'] as List).length : 0;
+                                            final de    = (r['denied']   is List) ? (r['denied']   as List).length : 0;
+                                            final pe    = (r['pending']  is List) ? (r['pending']  as List).length : 0;
+
+                                            final subAtRaw = (r['submitted_at'] ?? '').toString();
+                                            final subAt    = _toDate(subAtRaw);
+                                            final subTxt   = subAt != null ? ' · ${fmtShort(subAt)}' : '';
+
+                                            String text;
+                                            switch (agg) {
+                                              case 'approved': text = '#${short(reqId)} · ✓$ap$subTxt'; break;
+                                              case 'denied':   text = '#${short(reqId)} · ✕$de$subTxt'; break;
+                                              case 'pending':  text = '#${short(reqId)} · Pend:$pe$subTxt'; break;
+                                              default:         text = '#${short(reqId)} · Parcial ($ap/$de)$subTxt'; break;
+                                            }
+
+                                            return Padding(
+                                              padding: const EdgeInsets.only(right: 6, bottom: 6),
+                                              child: _StatusChip(
+                                                text: text,
+                                                color: aggColor(agg),
+                                                onTap: () {
+                                                  _toggleRowSelection(context, tripId, driverId, m, showSnack: false);
+                                                  _navigateByStatus(context, (m['status'] ?? '').toString());
+                                                },
+                                              ),
+                                            );
+                                          }).toList();
+
+                                          return DataCell(SizedBox(
+                                            width: 280,
+                                            child: Wrap(children: chips),
+                                          ));
+                                        }
+
+                                        case 'poi_guests': {
+                                          final list = (m['poi_guests'] is List)
+                                              ? List<Map<String, String>>.from(m['poi_guests'] as List)
+                                              : const <Map<String, String>>[];
+
+                                          if (list.isEmpty) return const DataCell(Text('—'));
+
+                                          Color stColor(String s) {
+                                            switch (s) {
+                                              case 'approved': return Colors.green;
+                                              case 'denied':   return Colors.red;
+                                              case 'pending':  return Colors.amber;
+                                              default:         return Colors.grey;
+                                            }
+                                          }
+
+                                          String stIcon(String s) {
+                                            switch (s) {
+                                              case 'approved': return '✓';
+                                              case 'denied':   return '✕';
+                                              case 'pending':  return '⏳';
+                                              default:         return '•';
+                                            }
+                                          }
+
+                                          String short(String id) => id.length <= 5 ? id : id.substring(0, 5);
+
+                                          String fmtShort(DateTime d) {
+                                            String two(int x) => x.toString().padLeft(2, '0');
+                                            return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
+                                          }
+
+                                          final chips = list.map((g) {
+                                            final name   = (g['name'] ?? '').toString();
+                                            final status = (g['status'] ?? 'pending').toString();
+                                            final reqId  = (g['reqId'] ?? '').toString();
+                                            final subAt  = _toDate((g['submitted_at'] ?? '').toString());
+                                            final by     = (g['submitted_by'] ?? '').toString();
+
+                                            final label  = '${stIcon(status)} $name';
+                                            final tooltip = [
+                                              if (reqId.isNotEmpty) 'Solicitud: #${short(reqId)}',
+                                              'Estado: $status',
+                                              if (subAt != null) 'Enviado: ${fmtShort(subAt)}',
+                                              if (by.isNotEmpty)  'Por: $by',
+                                            ].join(' · ');
+
+                                            return Padding(
+                                              padding: const EdgeInsets.only(right: 6, bottom: 6),
+                                              child: Tooltip(
+                                                message: tooltip,
+                                                child: _StatusChip(
+                                                  text: label,
+                                                  color: stColor(status),
+                                                  onTap: () {
+                                                    _toggleRowSelection(context, tripId, driverId, m, showSnack: false);
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          }).toList();
+
+                                          return DataCell(SizedBox(
+                                            width: 360,
+                                            child: Wrap(children: chips),
+                                          ));
                                         }
                                         default:
                                           final raw = m[key];
