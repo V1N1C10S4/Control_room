@@ -808,6 +808,16 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
     return (s == 'true' || s == '1' || s == 'si' || s == 'sí' || s == 'yes') ? 'Sí' : 'No';
   }
 
+  String _poiStatusLabel(String? raw) {
+    final s = (raw ?? '').toLowerCase().trim();
+    switch (s) {
+      case 'approved': return 'Aprobado';
+      case 'denied':   return 'Denegado';
+      case 'pending':  return 'Pendiente';
+      default:         return s.isEmpty ? 'Desconocido' : s;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -1186,11 +1196,22 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                           );
                                         }
                                         case 'poi_requests': {
+                                          // Lista segura
                                           final list = (m['poi_requests'] is List)
-                                              ? List<Map<String, dynamic>>.from(m['poi_requests'] as List)
-                                              : const <Map<String, dynamic>>[];
+                                              ? (m['poi_requests'] as List)
+                                                  .where((e) => e is Map)
+                                                  .map((e) => Map<String, dynamic>.from(e as Map))
+                                                  .toList()
+                                              : <Map<String, dynamic>>[];
 
                                           if (list.isEmpty) return const DataCell(Text('—'));
+
+                                          // Ordena por fecha de envío (para numerar 1,2,3… en orden cronológico)
+                                          list.sort((a, b) {
+                                            final da = _toDate((a['submitted_at'] ?? '').toString())?.millisecondsSinceEpoch ?? 0;
+                                            final db = _toDate((b['submitted_at'] ?? '').toString())?.millisecondsSinceEpoch ?? 0;
+                                            return da.compareTo(db);
+                                          });
 
                                           Color aggColor(String a) {
                                             switch (a) {
@@ -1202,47 +1223,52 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                             }
                                           }
 
-                                          String short(String id) => id.length <= 5 ? id : id.substring(0, 5);
+                                          final chips = <Widget>[];
+                                          for (var i = 0; i < list.length; i++) {
+                                            final r   = list[i];
+                                            final agg = (r['agg'] ?? 'pending').toString();
 
-                                          String fmtShort(DateTime d) {
-                                            String two(int x) => x.toString().padLeft(2, '0');
-                                            return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
-                                          }
+                                            final ap = (r['approved'] is List) ? (r['approved'] as List).length : 0;
+                                            final de = (r['denied']   is List) ? (r['denied']   as List).length : 0;
+                                            final pe = (r['pending']  is List) ? (r['pending']  as List).length : 0;
 
-                                          final chips = list.map((r) {
-                                            final reqId = (r['reqId'] ?? '').toString();
-                                            final agg   = (r['agg'] ?? 'pending').toString();
-                                            final ap    = (r['approved'] is List) ? (r['approved'] as List).length : 0;
-                                            final de    = (r['denied']   is List) ? (r['denied']   as List).length : 0;
-                                            final pe    = (r['pending']  is List) ? (r['pending']  as List).length : 0;
+                                            final reqNum = i + 1; // ← “Solicitud 1, 2, 3…”
 
-                                            final subAtRaw = (r['submitted_at'] ?? '').toString();
-                                            final subAt    = _toDate(subAtRaw);
-                                            final subTxt   = subAt != null ? ' · ${fmtShort(subAt)}' : '';
-
-                                            String text;
+                                            // Texto explícito por estado
+                                            String label;
                                             switch (agg) {
-                                              case 'approved': text = '#${short(reqId)} · ✓$ap$subTxt'; break;
-                                              case 'denied':   text = '#${short(reqId)} · ✕$de$subTxt'; break;
-                                              case 'pending':  text = '#${short(reqId)} · Pend:$pe$subTxt'; break;
-                                              default:         text = '#${short(reqId)} · Parcial ($ap/$de)$subTxt'; break;
+                                              case 'approved':
+                                                label = 'Solicitud $reqNum · Aprobados: $ap';
+                                                break;
+                                              case 'denied':
+                                                label = 'Solicitud $reqNum · Denegados: $de';
+                                                break;
+                                              case 'pending':
+                                                label = 'Solicitud $reqNum · Pendientes: $pe';
+                                                break;
+                                              default: // partial
+                                                label = 'Solicitud $reqNum · Parcial · Aprobados: $ap · Denegados: $de · Pendientes: $pe';
+                                                break;
                                             }
 
-                                            return Padding(
-                                              padding: const EdgeInsets.only(right: 6, bottom: 6),
-                                              child: _StatusChip(
-                                                text: text,
-                                                color: aggColor(agg),
-                                                onTap: () {
-                                                  _toggleRowSelection(context, tripId, driverId, m, showSnack: false);
-                                                  _navigateByStatus(context, (m['status'] ?? '').toString());
-                                                },
+                                            chips.add(
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 6, bottom: 6),
+                                                child: _StatusChip(
+                                                  text: label,
+                                                  color: aggColor(agg),
+                                                  onTap: () {
+                                                    _toggleRowSelection(context, tripId, driverId, m, showSnack: false);
+                                                    _navigateByStatus(context, (m['status'] ?? '').toString());
+                                                  },
+                                                ),
                                               ),
                                             );
-                                          }).toList();
+                                          }
 
+                                          // Ajusta el ancho si quieres más aire
                                           return DataCell(SizedBox(
-                                            width: 280,
+                                            width: 360,
                                             child: Wrap(children: chips),
                                           ));
                                         }
@@ -1254,6 +1280,24 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
 
                                           if (list.isEmpty) return const DataCell(Text('—'));
 
+                                          // Mapa: reqId -> número de solicitud (1,2,3...) ordenado por submitted_at
+                                          final reqList = (m['poi_requests'] is List)
+                                              ? (m['poi_requests'] as List)
+                                                  .where((e) => e is Map)
+                                                  .map((e) => Map<String, dynamic>.from(e as Map))
+                                                  .toList()
+                                              : <Map<String, dynamic>>[];
+                                          reqList.sort((a, b) {
+                                            final da = _toDate((a['submitted_at'] ?? '').toString())?.millisecondsSinceEpoch ?? 0;
+                                            final db = _toDate((b['submitted_at'] ?? '').toString())?.millisecondsSinceEpoch ?? 0;
+                                            return da.compareTo(db);
+                                          });
+                                          final reqNumById = <String, int>{};
+                                          for (var i = 0; i < reqList.length; i++) {
+                                            final id = (reqList[i]['reqId'] ?? '').toString();
+                                            if (id.isNotEmpty) reqNumById[id] = i + 1;
+                                          }
+
                                           Color stColor(String s) {
                                             switch (s) {
                                               case 'approved': return Colors.green;
@@ -1262,7 +1306,6 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                               default:         return Colors.grey;
                                             }
                                           }
-
                                           String stIcon(String s) {
                                             switch (s) {
                                               case 'approved': return '✓';
@@ -1271,9 +1314,6 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                               default:         return '•';
                                             }
                                           }
-
-                                          String short(String id) => id.length <= 5 ? id : id.substring(0, 5);
-
                                           String fmtShort(DateTime d) {
                                             String two(int x) => x.toString().padLeft(2, '0');
                                             return '${two(d.day)}/${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
@@ -1286,10 +1326,13 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                             final subAt  = _toDate((g['submitted_at'] ?? '').toString());
                                             final by     = (g['submitted_by'] ?? '').toString();
 
-                                            final label  = '${stIcon(status)} $name';
+                                            final reqNum = reqNumById[reqId];
+                                            final reqTxt = (reqNum != null) ? 'Solicitud $reqNum' : (reqId.isNotEmpty ? 'Solicitud: $reqId' : '');
+
+                                            final label   = '${stIcon(status)} $name';
                                             final tooltip = [
-                                              if (reqId.isNotEmpty) 'Solicitud: #${short(reqId)}',
-                                              'Estado: $status',
+                                              if (reqTxt.isNotEmpty) reqTxt,
+                                              'Estado: ${_poiStatusLabel(status)}',
                                               if (subAt != null) 'Enviado: ${fmtShort(subAt)}',
                                               if (by.isNotEmpty)  'Por: $by',
                                             ].join(' · ');
@@ -1310,7 +1353,7 @@ class _TripMonitorPanelState extends State<TripMonitorPanel> {
                                           }).toList();
 
                                           return DataCell(SizedBox(
-                                            width: 360,
+                                            width: 230,
                                             child: Wrap(children: chips),
                                           ));
                                         }

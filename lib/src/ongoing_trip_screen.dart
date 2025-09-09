@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'route_change_review_screen.dart';
 import 'generate_route_change_request_screen.dart';
+import 'poi_guest_review_screen.dart';
 
 class OngoingTripScreen extends StatefulWidget {
   final String usuario;
@@ -19,11 +20,13 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
   final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref();
   List<Map<dynamic, dynamic>> _ongoingTrips = [];
   final Logger _logger = Logger();
+  final Set<String> _tripIdsWithPendingPoiInbox = {};
 
   @override
   void initState() {
     super.initState();
     _fetchOngoingTrips();
+    _listenPoiInboxPending();
   }
 
   Widget buildEmptyState({
@@ -250,6 +253,48 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
     }
   }
 
+  void _listenPoiInboxPending() {
+    final regionKey = widget.region.trim().toUpperCase();
+    FirebaseDatabase.instance.ref('poi_inbox/$regionKey').onValue.listen((event) {
+      final next = <String>{};
+      final val = event.snapshot.value;
+      if (val is Map) {
+        val.forEach((_, raw) {
+          if (raw is Map) {
+            final m = Map<String, dynamic>.from(raw);
+            final status = (m['status'] ?? '').toString();
+            final tripId = (m['tripId'] ?? '').toString();
+            if (status == 'pending' && tripId.isNotEmpty) {
+              next.add(tripId);
+            }
+          }
+        });
+      }
+      setState(() {
+        _tripIdsWithPendingPoiInbox
+          ..clear()
+          ..addAll(next);
+      });
+    });
+  }
+
+  bool _tripHasPendingPoiGuests(Map<dynamic, dynamic> trip) {
+    final gar = trip['guest_add_requests'];
+    if (gar is! Map) return false;
+    for (final v in gar.values) {
+      if (v is Map && v['guests'] is Map) {
+        final guests = v['guests'] as Map;
+        for (final g in guests.values) {
+          if (g is Map) {
+            final st = (g['status'] ?? '').toString().trim();
+            if (st.isEmpty || st == 'pending') return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -270,6 +315,10 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
               itemCount: _ongoingTrips.length,
               itemBuilder: (context, index) {
                 final trip = _ongoingTrips[index];
+                final hasPendingPoi = _tripHasPendingPoiGuests(trip) ||
+                  _tripIdsWithPendingPoiInbox.contains(
+                    (trip['id'] ?? '').toString(), // defensivo por si no es String
+                  );
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   child: Card(
@@ -509,7 +558,28 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                                     ),
                                   ),
                                 ),
-
+                                if (hasPendingPoi)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PoiGuestReviewScreen(
+                                            tripId: trip['id'] as String,
+                                            region: widget.region,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                    ),
+                                    child: const Text('Gestionar abordajes (POI)', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ),
                               ElevatedButton(
                                 onPressed: () => _showCancelDialog(trip['id']),
                                 style: ElevatedButton.styleFrom(
