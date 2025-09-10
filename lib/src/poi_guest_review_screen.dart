@@ -127,15 +127,38 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
   Future<void> _save() async {
     final updates = <String, Object?>{};
 
-    // 1) Aplica decisiones a trip_requests
+    // 👉 cuantos aprobamos que ANTES estaban pending
+    int deltaApproved = 0;
+
+    // 1) Aplica decisiones a trip_requests y calcula deltaApproved
     _decisions.forEach((reqId, map) {
       map.forEach((guestId, newSt) {
         if (newSt == 'approved' || newSt == 'denied') {
-          updates['trip_requests/${widget.tripId}/guest_add_requests/$reqId/guests/$guestId/status'] = newSt;
-          updates['trip_requests/${widget.tripId}/guest_add_requests/$reqId/guests/$guestId/reviewed_at'] = ServerValue.timestamp;
+          // paths de cada guest
+          final basePath =
+              'trip_requests/${widget.tripId}/guest_add_requests/$reqId/guests/$guestId';
+          updates['$basePath/status'] = newSt;
+          updates['$basePath/reviewed_at'] = ServerValue.timestamp;
+
+          // si aprobamos y el estado original era pending (o vacío) => cuenta para incrementar
+          if (newSt == 'approved') {
+            final req = _requests[reqId] as Map<String, dynamic>?;
+            final guests = (req?['guests'] as Map?) ?? const {};
+            final gv = guests[guestId];
+            final oldSt = (gv is Map ? (gv['status'] ?? '') : '').toString().trim().toLowerCase();
+            if (oldSt.isEmpty || oldSt == 'pending') {
+              deltaApproved++;
+            }
+          }
         }
       });
     });
+
+    // ⬆️ incrementa passengers de forma atómica si hubo aprobaciones nuevas
+    if (deltaApproved > 0) {
+      updates['trip_requests/${widget.tripId}/passengers'] =
+          ServerValue.increment(deltaApproved);
+    }
 
     if (updates.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -147,12 +170,12 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
     setState(() => _loading = true);
     await _rootRef.update(updates);
 
-    // ✅ Usa tu helper que ya considera _decisions
+    // ✅ Usa tu helper que ya considera _decisions para el estado agregado
     final overallAgg = _requests.isEmpty
-      ? 'approved'                 // sin solicitudes -> no hay nada pendiente
-      : _aggregateGlobal(_requests);
+        ? 'approved' // sin solicitudes -> nada pendiente
+        : _aggregateGlobal(_requests);
 
-    // 3) Atiende los POI inbox del viaje en esta región
+    // 3) Atiende poi_inbox de esta región para este tripId
     final regionKey = widget.region.trim().toUpperCase();
     final inboxRef  = _rootRef.child('poi_inbox/$regionKey');
     final inboxSnap = await inboxRef.get();
@@ -167,7 +190,8 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
         final tripId = (x['tripId'] ?? '').toString();
         if (status == 'pending' && tripId == widget.tripId) {
           inboxUpdates['poi_inbox/$regionKey/$inboxId/status'] = overallAgg;
-          inboxUpdates['poi_inbox/$regionKey/$inboxId/attended_at'] = ServerValue.timestamp;
+          inboxUpdates['poi_inbox/$regionKey/$inboxId/attended_at'] =
+              ServerValue.timestamp;
         }
       });
     }
@@ -177,7 +201,13 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cambios guardados y POI atendidos.')),
+        SnackBar(
+          content: Text(
+            deltaApproved > 0
+                ? 'Cambios guardados, $deltaApproved pasajero(s) añadido(s), POI atendidos.'
+                : 'Cambios guardados y POI atendidos.',
+          ),
+        ),
       );
       Navigator.pop(context);
     }
@@ -211,6 +241,16 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
       ),
     );
   }
+
+  ButtonStyle _outlineBtn(Color c) => OutlinedButton.styleFrom(
+    foregroundColor: c,                         // texto/ícono
+    side: BorderSide(color: c, width: 1.6),    // borde
+    overlayColor: c,         // ripple al presionar
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -330,6 +370,7 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
                       const SizedBox(width: 8),
                       if (pending) ...[
                         OutlinedButton(
+                          style: _outlineBtn(Colors.green),
                           onPressed: () {
                             setState(() {
                               _decisions[reqId] ??= {};
@@ -338,8 +379,11 @@ class _PoiGuestReviewScreenState extends State<PoiGuestReviewScreen> {
                           },
                           child: const Text('Aprobar'),
                         ),
+
                         const SizedBox(width: 6),
+
                         OutlinedButton(
+                          style: _outlineBtn(Colors.red),
                           onPressed: () {
                             setState(() {
                               _decisions[reqId] ??= {};
