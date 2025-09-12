@@ -9,12 +9,14 @@ class SelectDriverScreen extends StatefulWidget {
   final Map<dynamic, dynamic> tripRequest;
   final bool isSupervisor;
   final String region;
+  final bool preassignMode;
 
   const SelectDriverScreen({
     super.key,
     required this.tripRequest,
     required this.isSupervisor,
     required this.region,
+    this.preassignMode = false,
   });
 
   @override
@@ -35,6 +37,9 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
   void initState() {
     super.initState();
     _fetchUserCityAndDrivers();
+    if (widget.preassignMode) {
+      _prefillFromPreassigned();
+    }
   }
 
   Future<void> _fetchUserCityAndDrivers() async {
@@ -212,18 +217,44 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
     }
   }
 
+  void _prefillFromPreassigned() {
+    final m = widget.tripRequest;
+    final d1 = (m['preassigned_driver'] ?? '').toString().trim();
+    final d2 = (m['preassigned_driver2'] ?? '').toString().trim();
+
+    if (d1.isNotEmpty) {
+      _selectedDriver = {
+        "id": d1,
+        "NombreConductor": m['preassigned_driver_name'] ?? '',
+        "TelefonoConductor": m['preassigned_driver_phone'] ?? '',
+        "InfoVehiculo": m['preassigned_vehicle_info'] ?? '',
+        "Placas": m['preassigned_vehicle_plates'] ?? '',
+      };
+      setState(() {});
+    }
+    if (d2.isNotEmpty) {
+      _selectedDriver2 = {
+        "id": d2,
+        "NombreConductor": m['preassigned_driver2_name'] ?? '',
+        "TelefonoConductor": m['preassigned_driver2_phone'] ?? '',
+        "InfoVehiculo": m['preassigned_vehicle2_info'] ?? '',
+        "Placas": m['preassigned_vehicle2_plates'] ?? '',
+      };
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Solicitud #${widget.tripRequest['id']}: Selección de conductor',
+          'Solicitud #${widget.tripRequest['id']}: '
+          '${widget.preassignMode ? 'Preasignar conductor' : 'Selección de conductor'}',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color.fromRGBO(152, 192, 131, 1),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -409,9 +440,7 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         final snapshot = await tripRef.get();
                         if (!snapshot.exists) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("El viaje ya no existe en la base de datos."),
-                            ),
+                            const SnackBar(content: Text("El viaje ya no existe en la base de datos.")),
                           );
                           return;
                         }
@@ -421,16 +450,75 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         final hasDriver = tripData.containsKey('driver') &&
                             (tripData['driver']?.toString().isNotEmpty ?? false);
 
+                        // Datos comunes a guardar (conductor/es + vehículo/s)
+                        final Map<String, dynamic> updateData = {
+                          'driver': _selectedDriver!["id"],
+                          'driverName': _selectedDriver!["NombreConductor"],
+                          'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
+                          'vehiclePlates': _selectedDriver!["Placas"] ?? '',
+                          'vehicleInfo':   _selectedDriver!["InfoVehiculo"] ?? '',
+                        };
+
+                        if (_selectedDriver2 != null) {
+                          updateData.addAll({
+                            'driver2': _selectedDriver2!["id"],
+                            'driver2Name': _selectedDriver2!["NombreConductor"],
+                            'TelefonoConductor2': _selectedDriver2!["TelefonoConductor"],
+                            'vehicle2Plates': _selectedDriver2!["Placas"] ?? '',
+                            'vehicle2Info':   _selectedDriver2!["InfoVehiculo"] ?? '',
+                          });
+                        }
+
+                        if (widget.preassignMode) {
+                        // ✅ Guardar SOLO como preasignación, sin tocar status ni Firestore.Viaje
+                        final preassign = <String, dynamic>{
+                          'preassigned_driver': _selectedDriver!["id"],
+                          'preassigned_driver_name': _selectedDriver!["NombreConductor"],
+                          'preassigned_driver_phone': _selectedDriver!["TelefonoConductor"],
+                          'preassigned_vehicle_plates': _selectedDriver!["Placas"] ?? '',
+                          'preassigned_vehicle_info':   _selectedDriver!["InfoVehiculo"] ?? '',
+                          if (_selectedDriver2 != null) ...{
+                            'preassigned_driver2': _selectedDriver2!["id"],
+                            'preassigned_driver2_name': _selectedDriver2!["NombreConductor"],
+                            'preassigned_driver2_phone': _selectedDriver2!["TelefonoConductor"],
+                            'preassigned_vehicle2_plates': _selectedDriver2!["Placas"] ?? '',
+                            'preassigned_vehicle2_info':   _selectedDriver2!["InfoVehiculo"] ?? '',
+                          } else ...{
+                            // (opcional) limpia por si existían datos de una preasignación anterior
+                            'preassigned_driver2': null,
+                            'preassigned_driver2_name': null,
+                            'preassigned_driver2_phone': null,
+                            'preassigned_vehicle2_plates': null,
+                            'preassigned_vehicle2_info': null,
+                          },
+
+                          // (opcional) asegúrate de no dejar canónicos si accidentalmente se guardaron antes
+                          'driver': null,
+                          'driverName': null,
+                          'TelefonoConductor': null,
+                          'vehiclePlates': null,
+                          'vehicleInfo': null,
+                        };
+
+                        await tripRef.update(preassign);
+
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Conductor(es) preasignado(s).")),
+                        );
+                        Navigator.pop(context, true); // <- volver a ScheduledTripScreen
+                        return;
+                      }
+
+                        // 🌐 FLUJO NORMAL (no preassign): mismo comportamiento de antes
                         if (currentStatus == 'in progress' && hasDriver) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Este viaje ya tiene un conductor asignado."),
-                            ),
+                            const SnackBar(content: Text("Este viaje ya tiene un conductor asignado.")),
                           );
                           return;
                         }
 
-                        // ✅ Actualizar Firestore para marcar a los conductores como ocupados
+                        // Marcar conductores como ocupados en Firestore
                         await FirebaseFirestore.instance
                             .collection('Conductores')
                             .doc(_selectedDriver!["id"])
@@ -443,41 +531,16 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                               .update({'Viaje': true});
                         }
 
-                        // ✅ Actualizar Firebase Realtime Database con los conductores seleccionados
-                        Map<String, dynamic> updateData = {
+                        // Viaje a in progress y guardar datos
+                        await tripRef.update({
+                          ...updateData,
                           'status': 'in progress',
-
-                          // id principal + alias por compatibilidad
-                          'driver': _selectedDriver!["id"],
-
-                          // 🔹 NOMBRE del conductor
-                          'driverName': _selectedDriver!["NombreConductor"],
-
-                          // 🔹 TELÉFONO
-                          'TelefonoConductor': _selectedDriver!["TelefonoConductor"],
-
-                          // 🔹 Vehículo (nombres canónicos que ya consumes en TripMonitorPanel)
-                          'vehiclePlates': _selectedDriver!["Placas"] ?? '',
-                          'vehicleInfo':   _selectedDriver!["InfoVehiculo"] ?? '',
-                        };
-
-                        // Segundo conductor (si aplica)
-                        if (_selectedDriver2 != null) {
-                          updateData.addAll({
-                            'driver2': _selectedDriver2!["id"],
-                            'driver2Name': _selectedDriver2!["NombreConductor"],
-                            'TelefonoConductor2': _selectedDriver2!["TelefonoConductor"],
-
-                            // vehículo del segundo conductor (por si quieres mostrarlo después)
-                            'vehicle2Plates': _selectedDriver2!["Placas"] ?? '',
-                            'vehicle2Info':   _selectedDriver2!["InfoVehiculo"] ?? '',
-                          });
-                        }
-
-                        await tripRef.update(updateData);
+                          'started_at': DateTime.now().toIso8601String(),
+                        });
 
                         _logger.i('Conductores asignados correctamente.');
 
+                        if (!mounted) return;
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
@@ -491,26 +554,22 @@ class SelectDriverScreenState extends State<SelectDriverScreen> {
                         );
                       } catch (error) {
                         _logger.e('Error al asignar los conductores: $error');
+                        if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Ocurrió un error al asignar el conductor."),
-                          ),
+                          const SnackBar(content: Text("Ocurrió un error al asignar el conductor.")),
                         );
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                ),
+                backgroundColor: widget.preassignMode ? Colors.orange : Colors.blue,
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
               ),
-              child: const Text(
-                'Asignar y Continuar',
-                style: TextStyle(fontSize: 16, color: Colors.white),
+              child: Text(
+                widget.preassignMode ? 'Preasignar y volver' : 'Asignar y Continuar',
+                style: const TextStyle(fontSize: 16, color: Colors.white),
               ),
-            )
+            ),
           ],
         ),
       ),
