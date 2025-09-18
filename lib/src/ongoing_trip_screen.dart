@@ -375,7 +375,6 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                             'Pasajero: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
-                          const SizedBox(height: 8),
                           if (approvedPoi.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             const Text(

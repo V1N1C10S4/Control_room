@@ -258,13 +258,16 @@ class _MapPanelState extends State<MapPanel> {
       final status = (v['status'] ?? '').toString();
       if (!_isActiveTripStatus(status)) return;
 
-      final driverId = (v['driverUser'] ??
-                        v['driver_id']  ??
-                        v['driverId']   ??
-                        v['driver']     ??
-                        '').toString().trim();
-      if (driverId.isNotEmpty) ids.add(driverId);
-      debugPrint('[MAP] trip city=${v['city']} status=${(v['status'] ?? '').toString()} driver=${driverId.isEmpty ? '—' : driverId} active=${_isActiveTripStatus(status)}');
+      final driverId  = (v['driverUser'] ?? v['driver_id'] ?? v['driverId'] ?? v['driver'] ?? '').toString().trim();
+      final driver2Id = (v['driver2'] ?? v['driverId2'] ?? v['driver_2'] ?? '').toString().trim();
+
+      if (driverId.isNotEmpty)  ids.add(driverId);
+      if (driver2Id.isNotEmpty) ids.add(driver2Id);
+
+      debugPrint('[MAP] trip city=${v['city']} status=${(v['status'] ?? '').toString()} '
+                'driver1=${driverId.isEmpty ? '—' : driverId} '
+                'driver2=${driver2Id.isEmpty ? '—' : driver2Id} '
+                'active=${_isActiveTripStatus(status)}');
     }
 
     if (root is Map) {
@@ -274,6 +277,7 @@ class _MapPanelState extends State<MapPanel> {
         if (v is Map) consider(v);
       }
     }
+
     debugPrint('[MAP] region=${widget.region} activeDriverIds=${ids.length}');
     return ids;
   }
