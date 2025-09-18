@@ -7,6 +7,15 @@ class CancelledTripsScreen extends StatelessWidget {
 
   const CancelledTripsScreen({Key? key, required this.region}) : super(key: key);
 
+  String _driverDisplay(Map<String, dynamic> t, {bool secondary = false}) {
+    final nameKey = secondary ? 'driver2Name' : 'driverName';
+    final idKey   = secondary ? 'driver2'     : 'driver';
+    final name = t[nameKey]?.toString().trim();
+    if (name != null && name.isNotEmpty) return name;
+    final id = t[idKey]?.toString().trim();
+    return (id == null || id.isEmpty) ? 'N/A' : id;
+  }
+
   Future<List<Map<String, dynamic>>> _fetchCancelledTrips() async {
     final DatabaseReference ref = FirebaseDatabase.instance.ref().child('trip_requests');
     final snapshot = await ref.orderByChild('status').equalTo('trip cancelled').get();
@@ -23,27 +32,30 @@ class CancelledTripsScreen extends StatelessWidget {
           'created_at': trip['created_at'] != null ? _formatDateTime(trip['created_at']) : 'NA',
           'pickup': trip['pickup']['placeName'] ?? 'NA',
           'destination': trip['destination']['placeName'] ?? 'NA',
-          'driver': trip['driver'] ?? 'NA',
+          // 🔽 añade estos campos para usar nombre cuando esté disponible
+          'driver': trip['driver'],
+          'driverName': trip['driverName'],
+          'driver2': trip['driver2'],
+          'driver2Name': trip['driver2Name'],
+          'TelefonoConductor': trip['TelefonoConductor'],
+          'TelefonoConductor2': trip['TelefonoConductor2'],
+
           'userName': trip['userName'] ?? 'NA',
           'luggage': trip['luggage']?.toString() ?? 'NA',
           'passengers': trip['passengers']?.toString() ?? 'NA',
           'pets': trip['pets']?.toString() ?? 'NA',
           'babySeats': trip['babySeats']?.toString() ?? 'NA',
           'started_at': trip['started_at'] != null ? _formatDateTime(trip['started_at']) : 'NA',
-          'passenger_reached_at': trip['passenger_reached_at'] != null
-              ? _formatDateTime(trip['passenger_reached_at'])
-              : 'NA',
-          'picked_up_passenger_at': trip['picked_up_passenger_at'] != null
-              ? _formatDateTime(trip['picked_up_passenger_at'])
-              : 'NA',
+          'passenger_reached_at': trip['passenger_reached_at'] != null ? _formatDateTime(trip['passenger_reached_at']) : 'NA',
+          'picked_up_passenger_at': trip['picked_up_passenger_at'] != null ? _formatDateTime(trip['picked_up_passenger_at']) : 'NA',
           'city': trip['city'] ?? 'NA',
-          'emergency_at': trip['emergency_at'] != null ? _formatDateTime(trip['emergency_at']) : null, // Captura emergency_at si existe
+          'emergency_at': trip['emergency_at'] != null ? _formatDateTime(trip['emergency_at']) : null,
           'telefonoPasajero': trip.containsKey('telefonoPasajero') && trip['telefonoPasajero'] != null && trip['telefonoPasajero'].toString().trim().isNotEmpty
-            ? trip['telefonoPasajero']
-            : "No disponible",
+              ? trip['telefonoPasajero']
+              : "No disponible",
           'cancellation_reason': trip.containsKey('cancellation_reason') && trip['cancellation_reason'] != null && trip['cancellation_reason'].toString().trim().isNotEmpty
-            ? trip['cancellation_reason']
-            : "N/A", // Si no existe o está vacío, muestra 'N/A'
+              ? trip['cancellation_reason']
+              : "N/A",
         };
       }).toList();
 
@@ -106,6 +118,37 @@ class CancelledTripsScreen extends StatelessWidget {
     );
   }
 
+  List<String> _approvedPoiGuests(Map<dynamic, dynamic> trip) {
+    final result = <String>[];
+
+    final gar = trip['guest_add_requests'];
+    if (gar is Map) {
+      gar.forEach((_, reqRaw) {
+        if (reqRaw is! Map) return;
+        final req = Map<String, dynamic>.from(reqRaw);
+
+        final guests = req['guests'];
+        if (guests is! Map) return;
+
+        guests.forEach((_, gRaw) {
+          if (gRaw is! Map) return;
+          final g = Map<String, dynamic>.from(gRaw);
+
+          final status = (g['status'] ?? '').toString().trim().toLowerCase();
+          final isPoi = (g['poi'] == true) ||
+                        ((req['reason'] ?? '').toString() == 'person_of_interest');
+
+          if (status == 'approved' && isPoi) {
+            final name = (g['name'] ?? '').toString().trim();
+            if (name.isNotEmpty) result.add(name);
+          }
+        });
+      });
+    }
+
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,6 +188,7 @@ class CancelledTripsScreen extends StatelessWidget {
             itemCount: trips.length,
             itemBuilder: (context, index) {
               final trip = trips[index];
+              final approvedPoi = _approvedPoiGuests(trip);
 
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -227,22 +271,38 @@ class CancelledTripsScreen extends StatelessWidget {
                         ],
                       ),
                       Text('Destino: ${trip['destination']}'),
-                      Text('Conductor: ${trip['driver']}'),
+                      Text(
+                        'Conductor: ${_driverDisplay(trip)}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
 
-                      if (trip['TelefonoConductor'] != null && trip['TelefonoConductor'].toString().trim().isNotEmpty)
-                        ...[
-                          Text('Teléfono Conductor: ${trip['TelefonoConductor']}'),
-                        ],
+                      if ((trip['TelefonoConductor'] ?? '').toString().trim().isNotEmpty)
+                        Text('Teléfono Conductor: ${trip['TelefonoConductor']}'),
 
-                      if (trip['driver2'] != null && trip['driver2'].toString().trim().isNotEmpty)
-                        ...[
-                          Text('Conductor Secundario: ${trip['driver2']}'),
-                          if (trip['TelefonoConductor2'] != null && trip['TelefonoConductor2'].toString().trim().isNotEmpty)
-                            ...[
-                              Text('Teléfono Conductor Secundario: ${trip['TelefonoConductor2']}'),
-                            ],
-                        ],
+                      if ((trip['driver2'] ?? '').toString().trim().isNotEmpty ||
+                          (trip['driver2Name'] ?? '').toString().trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Conductor Secundario: ${_driverDisplay(trip, secondary: true)}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        if ((trip['TelefonoConductor2'] ?? '').toString().trim().isNotEmpty)
+                          Text('Teléfono Conductor Secundario: ${trip['TelefonoConductor2']}'),
+                      ],
                       Text('Pasajero: ${trip['userName']}'),
+                      if (approvedPoi.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'POI autorizados:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        ...approvedPoi.map((name) => Text('• $name')),
+                      ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Conductor: ${(trip['driverName'] ?? trip['driver'] ?? 'N/A').toString()}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
                       Text('Teléfono del pasajero: ${trip['telefonoPasajero']}'),
                       Text('Equipaje: ${trip['luggage']}'),
                       Text('Pasajeros: ${trip['passengers']}'),

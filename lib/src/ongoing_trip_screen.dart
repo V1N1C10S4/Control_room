@@ -295,6 +295,37 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
     return false;
   }
 
+  List<String> _approvedPoiGuests(Map<dynamic, dynamic> trip) {
+    final result = <String>[];
+
+    final gar = trip['guest_add_requests'];
+    if (gar is Map) {
+      gar.forEach((_, reqRaw) {
+        if (reqRaw is! Map) return;
+        final req = Map<String, dynamic>.from(reqRaw);
+
+        final guests = req['guests'];
+        if (guests is! Map) return;
+
+        guests.forEach((_, gRaw) {
+          if (gRaw is! Map) return;
+          final g = Map<String, dynamic>.from(gRaw);
+
+          final status = (g['status'] ?? '').toString().trim().toLowerCase();
+          final isPoi = (g['poi'] == true) ||
+                        ((req['reason'] ?? '').toString() == 'person_of_interest');
+
+          if (status == 'approved' && isPoi) {
+            final name = (g['name'] ?? '').toString().trim();
+            if (name.isNotEmpty) result.add(name);
+          }
+        });
+      });
+    }
+
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -315,6 +346,7 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
               itemCount: _ongoingTrips.length,
               itemBuilder: (context, index) {
                 final trip = _ongoingTrips[index];
+                final approvedPoi = _approvedPoiGuests(trip);
                 final hasPendingPoi = _tripHasPendingPoiGuests(trip) ||
                   _tripIdsWithPendingPoiInbox.contains(
                     (trip['id'] ?? '').toString(), // defensivo por si no es String
@@ -341,6 +373,20 @@ class OngoingTripScreenState extends State<OngoingTripScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Pasajero: ${trip['userName'] ?? 'N/A'}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 8),
+                          if (approvedPoi.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'POI autorizados:',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            ...approvedPoi.map((name) => Text('• $name', style: const TextStyle(fontSize: 14))),
+                          ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Conductor: ${(trip['driverName'] ?? trip['driver'] ?? 'N/A').toString()}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),

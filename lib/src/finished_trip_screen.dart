@@ -99,6 +99,38 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
     return DateFormat('dd/MM/yyyy HH:mm').format(dateTime);
   }
 
+  List<String> _approvedPoiGuests(Map<dynamic, dynamic> trip) {
+    final result = <String>[];
+
+    final gar = trip['guest_add_requests'];
+    if (gar is Map) {
+      gar.forEach((_, reqRaw) {
+        if (reqRaw is! Map) return;
+        final req = Map<String, dynamic>.from(reqRaw);
+
+        final guests = req['guests'];
+        if (guests is! Map) return;
+
+        guests.forEach((_, gRaw) {
+          if (gRaw is! Map) return;
+          final g = Map<String, dynamic>.from(gRaw);
+
+          final status = (g['status'] ?? '').toString().trim().toLowerCase();
+          // marcamos como POI si viene el flag por invitado o si la solicitud fue por POI
+          final isPoi = (g['poi'] == true) ||
+                        ((req['reason'] ?? '').toString() == 'person_of_interest');
+
+          if (status == 'approved' && isPoi) {
+            final name = (g['name'] ?? '').toString().trim();
+            if (name.isNotEmpty) result.add(name);
+          }
+        });
+      });
+    }
+
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +151,7 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
               itemCount: _finishedTrips.length,
               itemBuilder: (context, index) {
                 final trip = _finishedTrips[index];
+                final approvedPoi = _approvedPoiGuests(trip);
 
                 // Formatear las fechas de los campos
                 final String createdAt = _formatDateTime(trip['created_at']);
@@ -152,9 +185,21 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
                             'Pasajero: ${trip['userName'] ?? 'N/A'}',
                             style: const TextStyle(fontSize: 16),
                           ),
+                          if (approvedPoi.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'POI autorizados:',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            ...approvedPoi.map(
+                              (name) => Text('• $name', style: const TextStyle(fontSize: 14)),
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Text(
-                            'Conductor: ${trip['driver'] ?? 'N/A'}',
+                            'Conductor: ${trip['driverName']?.toString().trim().isNotEmpty == true
+                                ? trip['driverName']
+                                : (trip['driver'] ?? 'N/A')}',
                             style: const TextStyle(fontSize: 16),
                           ),
                           const SizedBox(height: 8),
@@ -168,7 +213,9 @@ class FinishedTripScreenState extends State<FinishedTripScreen> {
 
                           if (trip['driver2'] != null && trip['driver2'].toString().isNotEmpty) ...[
                             Text(
-                              'Conductor Secundario: ${trip['driver2']}',
+                              'Conductor Secundario: ${trip['driver2Name']?.toString().trim().isNotEmpty == true
+                                  ? trip['driver2Name']
+                                  : (trip['driver2'] ?? 'N/A')}',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const SizedBox(height: 8),

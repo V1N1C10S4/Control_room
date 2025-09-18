@@ -25,10 +25,19 @@ class _TripExportScreenState extends State<TripExportScreen> {
     "driverName",
     "TelefonoConductor",
     "vehicleInfo",
-    "vehiclePlates", 
+    "vehiclePlates",
+    "driver2",
+    "driver2Name",
+    "TelefonoConductor2",
+    "vehicle2Info",
+    "vehicle2Plates",
     "userId",
     "userName",
     "telefonoPasajero",
+    "poi_approved_count",
+    "poi_denied_count",
+    "poi_approved_names",
+    "poi_denied_names",
     "created_at",
     "city",
     "pickup",
@@ -92,7 +101,16 @@ class _TripExportScreenState extends State<TripExportScreen> {
     "status": "Estatus",
     "route_change_request": "Solicitud cambio de ruta",
     "scheduled_at": "Fecha de viaje agendado",
-    "cancellation_reason": "Razón de cancelación"
+    "cancellation_reason": "Razón de cancelación",
+    "driver2": "Conductor secundario",
+    "driver2Name": "Nombre de conductor secundario",
+    "TelefonoConductor2": "Teléfono de conductor secundario",
+    "vehicle2Info": "Vehículo secundario",
+    "vehicle2Plates": "Placas secundarias",
+    "poi_approved_count": "POI autorizados (#)",
+    "poi_denied_count": "POI denegados (#)",
+    "poi_approved_names": "POI autorizados (nombres)",
+    "poi_denied_names": "POI denegados (nombres)",
   };
 
   @override
@@ -147,6 +165,7 @@ class _TripExportScreenState extends State<TripExportScreen> {
       case 'trip cancelled':       return 'Viaje cancelado';
       case 'scheduled canceled':   return 'Viaje agendado cancelado';
       case 'trip finished':        return 'Viaje terminado';
+      case 'scheduled approved':   return 'Agendado (revisado)';
     }
     return 'Desconocido';
   }
@@ -246,6 +265,53 @@ class _TripExportScreenState extends State<TripExportScreen> {
         final rcr = Map<String, dynamic>.from(data['route_change_request']);
         data['route_change_request'] = rcr['status'] ?? '';
       }
+
+      // --- Preferencias de nombre vs. ID de conductores (por si el front los quiere usar) ---
+      data['driver2']            = data['driver2'];
+      data['driver2Name']        = data['driver2Name'];
+      data['TelefonoConductor2'] = data['TelefonoConductor2'];
+      data['vehicle2Info']       = data['vehicle2Info'];
+      data['vehicle2Plates']     = data['vehicle2Plates'];
+
+      // --- POI: separar invitados por estatus (aprobado/denegado) ---
+      final approved = <String>[];
+      final denied   = <String>[];
+
+      if (data['guest_add_requests'] is Map) {
+        final gar = Map<String, dynamic>.from(data['guest_add_requests']);
+        gar.forEach((_, reqRaw) {
+          if (reqRaw is! Map) return;
+          final req = Map<String, dynamic>.from(reqRaw);
+
+          final guests = req['guests'];
+          if (guests is! Map) return;
+
+          guests.forEach((_, gRaw) {
+            if (gRaw is! Map) return;
+            final g = Map<String, dynamic>.from(gRaw);
+
+            final status = (g['status'] ?? '').toString().trim().toLowerCase();
+            final isPoi = (g['poi'] == true) ||
+                          ((req['reason'] ?? '').toString() == 'person_of_interest');
+
+            if (!isPoi) return;
+
+            final name = (g['name'] ?? '').toString().trim();
+            if (name.isEmpty) return;
+
+            if (status == 'approved') {
+              approved.add(name);
+            } else if (status == 'denied') {
+              denied.add(name);
+            }
+          });
+        });
+      }
+
+      data['poi_approved_count'] = approved.length;
+      data['poi_denied_count']   = denied.length;
+      data['poi_approved_names'] = approved.join('; ');
+      data['poi_denied_names']   = denied.join('; ');
 
       // Extraer paradas dinámicas stop_x
       final stopKeys = data.keys

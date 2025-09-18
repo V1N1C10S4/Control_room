@@ -189,10 +189,42 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
     );
   }
 
+  List<String> _approvedPoiGuests(Map<dynamic, dynamic> trip) {
+    final result = <String>[];
+
+    final gar = trip['guest_add_requests'];
+    if (gar is Map) {
+      gar.forEach((_, reqRaw) {
+        if (reqRaw is! Map) return;
+        final req = Map<String, dynamic>.from(reqRaw);
+
+        final guests = req['guests'];
+        if (guests is! Map) return;
+
+        guests.forEach((_, gRaw) {
+          if (gRaw is! Map) return;
+          final g = Map<String, dynamic>.from(gRaw);
+
+          final status = (g['status'] ?? '').toString().trim().toLowerCase();
+          final isPoi = (g['poi'] == true) ||
+                        ((req['reason'] ?? '').toString() == 'person_of_interest');
+
+          if (status == 'approved' && isPoi) {
+            final name = (g['name'] ?? '').toString().trim();
+            if (name.isNotEmpty) result.add(name);
+          }
+        });
+      });
+    }
+
+    return result;
+  }
+
   Widget _buildEmergencyCard(Map<dynamic, dynamic> trip, bool isInProgress) {
     final emergencyLocation = trip['emergency_location'] as Map<dynamic, dynamic>?;
     final latitude = emergencyLocation?['latitude']?.toString() ?? 'N/A';
     final longitude = emergencyLocation?['longitude']?.toString() ?? 'N/A';
+    final approvedPoi = _approvedPoiGuests(trip);
 
     // Verificar si el número del pasajero existe, de lo contrario mostrar "No disponible"
     String telefonoPasajero = trip.containsKey('telefonoPasajero') && trip['telefonoPasajero'] != null && trip['telefonoPasajero'].toString().trim().isNotEmpty
@@ -244,7 +276,9 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Conductor: ${trip['driver'] ?? 'N/A'}',
+                'Conductor: ${trip['driverName']?.toString().trim().isNotEmpty == true
+                    ? trip['driverName']
+                    : (trip['driver']?.toString().isNotEmpty == true ? trip['driver'] : 'N/A')}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -262,7 +296,9 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
 
               if (trip['driver2'] != null && trip['driver2'].toString().trim().isNotEmpty) ...[
                 Text(
-                  'Conductor secundario: ${trip['driver2']}',
+                  'Conductor secundario: ${trip['driver2Name']?.toString().trim().isNotEmpty == true
+                      ? trip['driver2Name']
+                      : (trip['driver2']?.toString().isNotEmpty == true ? trip['driver2'] : 'N/A')}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -296,6 +332,17 @@ class _EmergencyDuringTripScreenState extends State<EmergencyDuringTripScreen> {
                 ),
               ),
               const SizedBox(height: 8),
+              if (approvedPoi.isNotEmpty) ...[
+                const Text(
+                  'POI autorizados:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                ...approvedPoi.map(
+                  (name) => Text('• $name', style: const TextStyle(fontSize: 14)),
+                ),
+                const SizedBox(height: 8),
+              ],
               Text(
                 'Punto de partida: ${trip['pickup']?['placeName'] ?? 'N/A'}',
                 style: const TextStyle(
