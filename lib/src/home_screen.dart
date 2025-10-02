@@ -56,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scheduledLessThan6h = 0;  // 🟠 Antes _scheduledBetween6And24h
   int _scheduledLessThan2h = 0;
   int _unreviewedScheduledTrips = 0;
+  final Set<String> _shownPreassignAcks = <String>{};
   final Set<String> _shownRouteChangeStatuses = {};
   int _pendingRouteChangeCount = 0;
   final ValueNotifier<String?> _selectedDriverId = ValueNotifier<String?>(null);
@@ -86,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _listenForEmergenciesCounter();
     _listenForCancelledTrips();
     _listenForScheduledTrips();
+     _listenForPreassignAcks();
     _listenForNewMessages();
     _listenToRouteChangeStatuses();
     _listenToPendingRouteChanges();
@@ -919,6 +921,97 @@ class _HomeScreenState extends State<HomeScreen> {
     _poiRemovedSub = inboxRef.onChildRemoved.listen((e) {
       final id = e.snapshot.key ?? '';
       _seenPoiReqIds.remove(id);
+    });
+  }
+
+  String _resolvePreassignedDriverName(Map<String, dynamic> trip, String driverId) {
+    final d1 = (trip['preassigned_driver'] ?? '').toString().trim();
+    final d2 = (trip['preassigned_driver2'] ?? '').toString().trim();
+
+    if (driverId == d1) {
+      final n1 = (trip['preassigned_driver_name'] ?? '').toString().trim();
+      if (n1.isNotEmpty) return n1;
+    }
+    if (driverId == d2) {
+      final n2 = (trip['preassigned_driver2_name'] ?? '').toString().trim();
+      if (n2.isNotEmpty) return n2;
+    }
+
+    // Otras variantes posibles:
+    final byIdMap = {
+      (trip['driver'] ?? '').toString().trim(): (trip['driverName'] ?? trip['driver_name'] ?? '').toString().trim(),
+      (trip['driver2'] ?? '').toString().trim(): (trip['driver2Name'] ?? trip['driver2_name'] ?? '').toString().trim(),
+    };
+
+    final maybe = byIdMap[driverId];
+    if (maybe != null && maybe.isNotEmpty) return maybe;
+
+    return driverId; // fallback
+  }
+
+  void _handlePreassignAck(String? tripId, Map<String, dynamic> trip) {
+    if (tripId == null) return;
+
+    // 1) Filtro por región
+    final tripCity = (trip['city'] ?? '').toString();
+    if (tripCity != widget.region) return;
+
+    // 2) Nodo de acks
+    final ackRoot = trip['preassign_ack'];
+    if (ackRoot is! Map) return;
+
+    // 3) Recorre acks por conductor
+    ackRoot.forEach((driverId, raw) {
+      if (raw is! Map) return;
+
+      final ack = raw['ack'] == true;
+      if (!ack) return;
+
+      // dedupe por viaje+conductor
+      final key = '$tripId::$driverId::ack';
+      if (_shownPreassignAcks.contains(key)) return;
+
+      // nombre del conductor (si hay en el viaje) o fallback al id
+      final driverName = _resolvePreassignedDriverName(trip, driverId.toString());
+
+      final msg = '✅ $driverName se marcó como "Enterado" del viaje $tripId';
+
+      _showBannerNotification(msg, backgroundColor: Colors.blue);
+      _playNotificationSound();
+
+      _shownPreassignAcks.add(key);
+    });
+  }
+
+  void _listenForPreassignAcks() {
+    final tripsRef = _databaseReference.child('trip_requests');
+
+    // a) Procesa el estado inicial (por si ya había “ack” antes de abrir la app)
+    tripsRef.get().then((snap) {
+      if (!snap.exists) return;
+      final root = snap.value;
+      if (root is! Map) return;
+      root.forEach((key, raw) {
+        if (raw is Map) {
+          _handlePreassignAck(key.toString(), Map<String, dynamic>.from(raw));
+        }
+      });
+    });
+
+    // b) Escucha cambios posteriores
+    tripsRef.onChildChanged.listen((event) {
+      final tripId = event.snapshot.key;
+      final value = event.snapshot.value;
+      if (tripId == null || value is! Map) return;
+      _handlePreassignAck(tripId, Map<String, dynamic>.from(value));
+    });
+
+    // (Opcional) si quieres cubrir inserciones nuevas:
+    tripsRef.onChildAdded.listen((event) {
+      final tripId = event.snapshot.key;
+      final value = event.snapshot.value;
+      if (tripId == null || value is! Map) return;
+      _handlePreassignAck(tripId, Map<String, dynamic>.from(value));
     });
   }
 
